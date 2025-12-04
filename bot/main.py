@@ -1,8 +1,9 @@
 import os
+import asyncio
 from telegram import Bot
 
 
-def main():
+async def main():
     telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
     public_chat_id = os.getenv("TELEGRAM_PUBLIC_CHAT_ID")
     vip_chat_id = os.getenv("TELEGRAM_VIP_CHAT_ID")
@@ -21,7 +22,7 @@ def main():
     # Sima (public) csatorna teszt
     if public_chat_id:
         try:
-            bot.send_message(chat_id=public_chat_id, text="[PUBLIC] " + test_text)
+            await bot.send_message(chat_id=public_chat_id, text="[PUBLIC] " + test_text)
             print("Public üzenet elküldve, nem volt hiba.")
         except Exception as e:
             print(f"Hiba a PUBLIC csatornára küldésnél: {repr(e)}")
@@ -31,7 +32,7 @@ def main():
     # VIP csatorna teszt
     if vip_chat_id:
         try:
-            bot.send_message(chat_id=vip_chat_id, text="[VIP] " + test_text)
+            await bot.send_message(chat_id=vip_chat_id, text="[VIP] " + test_text)
             print("VIP üzenet elküldve, nem volt hiba.")
         except Exception as e:
             print(f"Hiba a VIP csatornára küldésnél: {repr(e)}")
@@ -40,4 +41,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
