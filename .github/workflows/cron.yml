@@ -1,12 +1,17 @@
 name: Szelvenykiraly Cron
 
 on:
+  # Kézzel is futtatható marad
+  workflow_dispatch:
+
+  # IDŐZÍTÉS – UTC-ben!
   schedule:
-    # UTC idő! Igazítsd magyar időhöz, ha kell (+1/+2 óra).
-    - cron: "0 5 * * *"   # reggeli tippek
-    - cron: "0 13 * * *"  # délutáni tippek
-    - cron: "0 19 * * *"  # esti tippek
-  workflow_dispatch:      # manuálisan is el tudod indítani GitHub UI-ból
+    # 07:00 UTC = 08:00 magyar idő (tél)
+    - cron: "0 7 * * *"
+    # 13:00 UTC = 14:00 magyar idő
+    - cron: "0 13 * * *"
+    # 18:00 UTC = 19:00 magyar idő
+    - cron: "0 18 * * *"
 
 jobs:
   run-bot:
@@ -23,20 +28,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Itt fixáljuk a httpx verziót, hogy ne legyen 'proxies' hiba az OpenAI kliensnél
       - name: Force httpx version (fix proxies error)
         run: |
           pip install "httpx<0.28"
 
       - name: Run tippmix bot
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
-          TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          SPORT_API_KEY: ${{ secrets.SPORT_API_KEY }}
         run: |
           python -m bot.main
