@@ -4,6 +4,9 @@ import datetime
 from typing import List, Dict, Any
 from openai import OpenAI
 
+# Max hány meccset küldünk át egyszerre az OpenAI-nak
+MAX_MATCHES_FOR_OPENAI = 80
+
 # Új stílusú OpenAI kliens (openai>=1.0)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -88,9 +91,63 @@ def _combined_odds(bets: List[Dict[str, Any]]):
 
 def _format_ft(amount: float) -> str:
     n = int(round(amount))
-    # Ezer elválasztó ponttal, pl. 5000 -> 5.000 Ft
     s = f"{n:,}".replace(",", ".")
     return f"{s} Ft"
+
+
+def _filter_and_limit_matches(matches: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Sok meccs esetén:
+    - kidobjuk a barátságos / utánpótlás / női ligákat,
+    - maximum MAX_MATCHES_FOR_OPENAI darabot hagyunk meg.
+    Így nem küldünk túl sok tokent az OpenAI-nak (rate limit védelem).
+    """
+    preferred = []
+    others = []
+
+    for m in matches:
+        league_name = (m.get("league") or "").lower()
+
+        # Barátságos, utánpótlás, női ligák kiszűrése
+        bad_keywords = [
+            "friendly",
+            "friendlies",
+            "u19",
+            "u20",
+            "u21",
+            "u17",
+            "women",
+            "női",
+            "barátságos",
+        ]
+        if any(k in league_name for k in bad_keywords):
+            continue
+
+        # Topabb ligák előresorolása (pl. premier league, la liga, serie a, nba)
+        top_keywords = [
+            "premier league",
+            "la liga",
+            "serie a",
+            "bundesliga",
+            "ligue 1",
+            "nb i",
+            "champions league",
+            "europa league",
+            "nba",
+            "euroleague",
+        ]
+
+        if any(k in league_name for k in top_keywords):
+            preferred.append(m)
+        else:
+            others.append(m)
+
+    ordered = preferred + others
+
+    if len(ordered) > MAX_MATCHES_FOR_OPENAI:
+        ordered = ordered[:MAX_MATCHES_FOR_OPENAI]
+
+    return ordered
 
 
 def _format_telegram_public(bets: List[Dict[str, Any]]) -> str:
@@ -132,7 +189,7 @@ def _format_telegram_public(bets: List[Dict[str, Any]]) -> str:
 
     total_odds = _combined_odds(bets)
     if total_odds:
-        example_stake = 2000  # kisebb, free példatét
+        example_stake = 2000  # free példatét
         possible_win = total_odds * example_stake
         body_lines.append("⸻")
         body_lines.append(f"Összodds (kb.): {total_odds:.2f}")
@@ -212,7 +269,6 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     OpenAI-t használva kiválasztjuk a tippeket, és MEGFORMÁZZUK a Telegram-szöveget.
     LOGIKA: ha van bármennyi meccs, MINDIG generálunk tippeket.
     """
-
     if not matches:
         # Extrém eset: semmi meccs
         return {
@@ -228,13 +284,21 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             ),
         }
 
+    # Meccsek szűrése és limitálása, hogy ne szálljunk el tokenben
+    selected_matches = _filter_and_limit_matches(matches)
+    print(f"OpenAI felé küldött meccsek száma: {len(selected_matches)}")
+
+    if not selected_matches:
+        # Ha valamiért minden kiszűrődött, akkor vegyük az első X meccset nyersen
+        selected_matches = matches[:MAX_MATCHES_FOR_OPENAI]
+
     user_content = {
         "risk_profile_public": "közepes",
         "risk_profile_vip": "közepes-agresszív",
         "max_public_picks": 3,
         "min_vip_picks": 5,
         "max_vip_picks": 8,
-        "matches": matches,
+        "matches": selected_matches,
     }
 
     user_message = json.dumps(user_content, ensure_ascii=False)
@@ -254,7 +318,6 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
-        # Ha valamiért nem tudtuk JSON-ként beolvasni, legyen egy alap fallback
         return {
             "public_bets": [],
             "vip_bets": [],
