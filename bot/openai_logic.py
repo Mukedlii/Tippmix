@@ -2,10 +2,11 @@ import os
 import json
 from openai import OpenAI
 
-# Az OPENAI_API_KEY-t környezeti változóból olvassa (GitHub Secretből jön)
+# Az OPENAI_API_KEY-t automatikusan a környezeti változóból veszi (GitHub Secret)
 client = OpenAI()
 
-SYSTEM_PROMPT = """    Te egy profi sportfogadási elemző vagy, a 'SZELVÉNYKIRÁLY' Telegram csatorna AI szakértője.
+SYSTEM_PROMPT = """\
+Te egy profi sportfogadási elemző vagy, a 'SZELVÉNYKIRÁLY' Telegram csatorna AI szakértője.
 Feladatod:
 - Az adott meccslistából válaszd ki a legígéretesebb tippeket.
 - Készíts egy nyilvános szelvényt (max 3 tipp, közepes kockázat).
@@ -23,7 +24,11 @@ A meccsadatok: id, league, home, away, start_time, odds, stats.
 
 
 def generate_tips(matches):
-    """OpenAI-t használva kiválasztjuk a tippeket, és megíratjuk a Telegram-posztokat."""
+    """
+    OpenAI-t használva kiválasztjuk a tippeket, és megíratjuk a Telegram-posztokat.
+    """
+
+    # Szűrés: csak olyan meccs, ahol van hazai odds, és reális tartományban van
     filtered = [
         m for m in matches
         if m.get("odds", {}).get("home") is not None
@@ -56,9 +61,11 @@ def generate_tips(matches):
         response_format={"type": "json_object"},
     )
 
+    # A válasz első outputjából olvassuk ki a JSON-t
     raw = response.output[0].content[0].text
     data = json.loads(raw)
 
+    # Biztonsági fallbackok
     data.setdefault("public_bets", [])
     data.setdefault("vip_bets", [])
     data.setdefault("telegram_public_text", "Hiba a nyilvános üzenet generálásánál.")
