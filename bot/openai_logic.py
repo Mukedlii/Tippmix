@@ -1,9 +1,9 @@
 import os
 import json
-import openai
+from openai import OpenAI
 
-# A kulcsot az OPENAI_API_KEY környezeti változóból vesszük (GitHub Secret)
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Új stílusú OpenAI kliens (openai>=1.0)
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 SYSTEM_PROMPT = """\
 Te egy profi sportfogadási elemző vagy, a 'SZELVÉNYKIRÁLY' Telegram csatorna AI szakértője.
@@ -82,29 +82,29 @@ def generate_tips(matches):
         }
 
     # VANNAK meccsek → átadjuk az összeset az OpenAI-nak, hogy válogasson.
-    filtered = matches
-
     user_content = {
         "risk_profile_public": "közepes",
         "risk_profile_vip": "közepes-agresszív",
         "max_public_picks": 3,
         "min_vip_picks": 5,
         "max_vip_picks": 8,
-        "matches": filtered,
+        "matches": matches,
     }
 
     user_message = json.dumps(user_content, ensure_ascii=False)
 
-    response = openai.ChatCompletion.create(
+    # ÚJ stílus: client.chat.completions.create (nem openai.ChatCompletion!)
+    response = client.chat.completions.create(
         model="gpt-4.1-mini",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_message},
         ],
+        response_format={"type": "json_object"},
         temperature=0.7,
     )
 
-    raw = response.choices[0].message["content"]
+    raw = response.choices[0].message.content
 
     try:
         data = json.loads(raw)
