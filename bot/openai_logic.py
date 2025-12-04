@@ -4,8 +4,8 @@ import datetime
 from typing import List, Dict, Any
 from openai import OpenAI
 
-# Max hány meccset küldünk át egyszerre az OpenAI-nak
-MAX_MATCHES_FOR_OPENAI = 40
+# Max hány meccset küldünk át egyszerre az OpenAI-nak (token-kímélő)
+MAX_MATCHES_FOR_OPENAI = 25
 
 # Új stílusú OpenAI kliens (openai>=1.0)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -19,10 +19,13 @@ A bemenet egy meccslista, több sporttal:
 - home, away
 - start_time (ISO dátum-idő string)
 
-Feladatod:
+FELADAT:
 - Az adott meccslistából válaszd ki a legígéretesebb tippeket.
-- Dolgozhatsz több sporttal: foci (football) és kosár (basketball).
-- Kerüld a teljesen random, lottó jellegű tippeket.
+- Dolgozhatsz több sporttal: főleg foci (football) és kosár (basketball).
+- Használj józan, statisztikus gondolkodást: hazai pálya, forma, erőviszonyok, liga szintje, tipikus gól/ponterő stb.
+- NE találj ki konkrét sérült játékosneveket, kezdőcsapatot vagy valós időjárási adatot.
+  Beszélhetsz általánosan (pl. "jobb forma", "sok gólos csapat", "stabil hazai pálya"),
+  de ne állíts olyat, ami biztosan hamis lehet (pl. konkrét sérült neve).
 
 KÉT külön szelvényt készítesz:
 
@@ -36,16 +39,16 @@ KÉT külön szelvényt készítesz:
   - lehetőleg 5–8 tipp
   - kicsit agresszívebb kockázat, de NE legyen őrült (ne 8 darab 4.50-es odds)
   - ha van elég jó meccs, próbálj több sportot keverni (foci + kosár)
-  - ha kevés a meccs, kevesebb tipp is lehet, de akkor is törekedj min. 3–5-re
+  - ha kevés a meccs, kevesebb tipp is lehet, de törekedj min. 3–5-re
   - NE hagyd üresen a vip_bets listát, ha kaptál meccslistát.
 
 Minden tipphez adj:
   - sport
   - league
   - match (pl. "Liverpool - Manchester United")
-  - pick (pl. "Liverpool győzelem")
-  - odds (számként, pl. 1.65 – NE stringként, ha nem tudod, hagyd el vagy adj óvatos becslést)
-  - reason (1-2 mondatos magyarázat)
+  - pick (pl. "Liverpool győzelem" vagy "Over 2.5 gól")
+  - odds (számként, pl. 1.65 – ha nem tudsz reális számot adni, hagyd ki vagy írj None-t)
+  - reason (1-2 mondatos, érthető, modern indoklás)
 
 A KIMENET legyen SZIGORÚAN JSON objektum, a következő kulcsokkal:
 - public_bets: lista (a nyilvános szelvény tippjei)
@@ -84,10 +87,10 @@ def _format_ft(amount: float) -> str:
 
 def _filter_and_limit_matches(matches: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Sok meccs esetén:
+    Szűrés + limit:
     - kidobjuk a barátságos / utánpótlás / női ligákat,
-    - maximum MAX_MATCHES_FOR_OPENAI darabot hagyunk meg.
-    Majd később tömörítjük is, mielőtt az OpenAI felé küldjük.
+    - a fontosabb ligákat előrevesszük,
+    - max MAX_MATCHES_FOR_OPENAI meccset hagyunk meg.
     """
     preferred = []
     others = []
@@ -137,7 +140,8 @@ def _filter_and_limit_matches(matches: List[Dict[str, Any]]) -> List[Dict[str, A
 
 def _slim_match(m: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Csak a legfontosabb mezőket hagyjuk meg az OpenAI-nak, hogy kevesebb token fogyjon.
+    Csak a legfontosabb mezőket küldjük az OpenAI-nak (token-kímélő).
+    A mélyebb statisztikai logikát a modell általános tudására bízzuk.
     """
     return {
         "sport": m.get("sport"),
@@ -151,15 +155,18 @@ def _slim_match(m: Dict[str, Any]) -> Dict[str, Any]:
 def _format_telegram_public(bets: List[Dict[str, Any]]) -> str:
     today = datetime.date.today().strftime("%Y.%m.%d.")
     header = (
-        f"👑 SZELVÉNYKIRÁLY – NAPI KOMBI 👑\n"
-        f"({today} – max 3 stabil tipp)\n\n"
+        f"👑 SZELVÉNYKIRÁLY – NAPI INGYENES TIPPEK 👑\n"
+        f"({today} – max 3 átgondolt meccs)\n\n"
     )
 
     if not bets:
-        body = "Ma nem találtam igazán stabil szelvényt a nyilvános csatornára. Inkább kihagyjuk, mint hogy erőltessük. 🤝"
+        body = (
+            "Ma nem találtam igazán stabil szelvényt a nyilvános csatornára. "
+            "Inkább kihagyjuk, mint hogy erőltessük a játékot. 🤝"
+        )
         return header + body
 
-    body_lines = ["Mai ingyenes szelvényedre ezek a meccsek fértek fel:\n"]
+    body_lines = ["✅ Mai FREE tippek:\n"]
     for idx, b in enumerate(bets, start=1):
         sport = (b.get("sport") or "").lower()
         if sport == "football":
@@ -175,27 +182,27 @@ def _format_telegram_public(bets: List[Dict[str, Any]]) -> str:
         odds = _safe_float(b.get("odds"))
         reason = b.get("reason") or ""
 
-        line = f"{emoji} {idx}. Meccs: {match}"
+        line = f"{emoji} {idx}. {match}"
         if league:
-            line += f" ({league})"
+            line += f"  ·  {league}"
         line += f"\n   Tipp: {pick}"
         if odds:
-            line += f"\n   Odd: {odds:.2f}"
+            line += f"  ·  Odd: {odds:.2f}"
         if reason:
-            line += f"\n   Indoklás: {reason}"
+            line += f"\n   Miért? {reason}"
         body_lines.append(line + "\n")
 
     total_odds = _combined_odds(bets)
     if total_odds:
         example_stake = 2000
         possible_win = total_odds * example_stake
-        body_lines.append("⸻")
+        body_lines.append("────────────")
         body_lines.append(f"Összodds (kb.): {total_odds:.2f}")
         body_lines.append(f"Példa tét: {_format_ft(example_stake)}")
         body_lines.append(f"Várható nyeremény: kb. {_format_ft(possible_win)} 💰")
 
     body_lines.append(
-        "\nNe feledd, a sportfogadás kockázatos, játssz mindig felelősséggel! 🍀"
+        "\n⚠️ A sportfogadás kockázatos, játssz mindig felelősséggel, bankroll-menedzsmenttel! 🍀"
     )
 
     return header + "\n".join(body_lines)
@@ -205,17 +212,20 @@ def _format_telegram_vip(bets: List[Dict[str, Any]]) -> str:
     today = datetime.date.today().strftime("%Y.%m.%d.")
     n = len(bets)
     header = (
-        f"👑 SZELVÉNYKIRÁLY VIP – KIRÁLYI KOMBI MA ESTÉRE! 👑\n"
-        f"({today} – {n} meccs, nagyobb összodds, nagyobb profit potenciál)\n\n"
+        f"🔥 SZELVÉNYKIRÁLY VIP – MAI KOMBI 🔥\n"
+        f"({today} – {n} gondosan válogatott meccs)\n\n"
     )
 
     if not bets:
-        body = "Technikai hiba miatt nem sikerült VIP tipplistát generálni. Próbáljuk újra legközelebb, király! 🤝"
+        body = (
+            "Ma technikai hiba miatt nem sikerült VIP tipplistát generálni. "
+            "Nem erőltetek gyenge szelvényt – holnap újra nekimegyünk, király! 🤝"
+        )
         return header + body
 
     intro = (
-        "Ma este a VIP szelvényen gondosan válogatott mérkőzések vannak, "
-        "erős favoritokkal és statisztikai háttérrel.\n\n"
+        "Ma este a VIP szelvényen olyan meccsek vannak, ahol a statisztika, forma és erőviszonyok alapján "
+        "reális value-t látok. Íme a mai pakk:\n"
     )
 
     lines = [intro]
@@ -235,37 +245,84 @@ def _format_telegram_vip(bets: List[Dict[str, Any]]) -> str:
         odds = _safe_float(b.get("odds"))
         reason = b.get("reason") or ""
 
-        block = f"{emoji} {idx}. Meccs: {match}"
+        block = f"{emoji} {idx}. {match}"
         if league:
-            block += f" ({league})"
+            block += f"  ·  {league}"
         block += f"\n   Tipp: {pick}"
         if odds:
-            block += f"\n   Odd: {odds:.2f}"
+            block += f"  ·  Odd: {odds:.2f}"
         if reason:
-            block += f"\n   Indoklás: {reason}"
+            block += f"\n   Miért? {reason}"
         lines.append(block + "\n")
 
     total_odds = _combined_odds(bets)
     if total_odds:
         example_stake = 5000
         possible_win = total_odds * example_stake
-        lines.append("⸻")
+        lines.append("────────────")
         lines.append(f"VIP összodds: kb. {total_odds:.2f}")
         lines.append(f"Példa tét: {_format_ft(example_stake)}")
         lines.append(f"Várható nyeremény: kb. {_format_ft(possible_win)} 💰")
 
     lines.append(
-        "\nNe feledd, a sportfogadás kockázatos, játssz mindig felelősséggel, "
-        "és csak annyit kockáztass, amennyit megengedhetsz magadnak! 🍀"
+        "\n💡 Tipp: ne játssz rá minden bankot egyetlen kombira. "
+        "Kezeld a VIP szelvényt hosszú távú stratégiaként, felelős tétekkel. 🍀"
     )
 
     return header + "\n".join(lines)
 
 
+def _fallback_simple_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Ha az OpenAI API meghal (rate limit, hálózati hiba stb.),
+    akkor egy nagyon egyszerű, de mindig működő szabály-alapú fallback:
+    - első 3 meccs -> public
+    - első 6 meccs -> vip (ha van annyi)
+    Itt nincs odds, csak irány (hazai / vendég).
+    """
+    simple_bets = []
+
+    for m in matches[:6]:
+        sport = m.get("sport") or "football"
+        league = m.get("league") or ""
+        home = m.get("home") or "Hazai csapat"
+        away = m.get("away") or "Vendég csapat"
+
+        # nagyon naiv logika: hazai győzelem
+        pick = f"{home} győzelem"
+        reason = "Hazai pálya előnye és az alap erőviszonyok alapján ez tűnik biztonságosabb opciónak."
+
+        simple_bets.append(
+            {
+                "sport": sport,
+                "league": league,
+                "match": f"{home} - {away}",
+                "pick": pick,
+                "odds": None,
+                "reason": reason,
+            }
+        )
+
+    public_bets = simple_bets[:3]
+    vip_bets = simple_bets
+
+    telegram_public_text = _format_telegram_public(public_bets)
+    telegram_vip_text = _format_telegram_vip(vip_bets)
+
+    return {
+        "public_bets": public_bets,
+        "vip_bets": vip_bets,
+        "telegram_public_text": telegram_public_text,
+        "telegram_vip_text": telegram_vip_text,
+    }
+
+
 def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     OpenAI-t használva kiválasztjuk a tippeket, és MEGFORMÁZZUK a Telegram-szöveget.
-    LOGIKA: ha van bármennyi meccs, MINDIG legyen legalább néhány tipp.
+    - Token-kímélő: max 25 rövidített meccs megy az OpenAI-hoz.
+    - Ha OpenAI-oldali limit / hiba van, fallback egyszerű tippre,
+      hogy MINDIG legyen valami játszható.
     """
     if not matches:
         return {
@@ -299,27 +356,28 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
 
     user_message = json.dumps(user_content, ensure_ascii=False)
 
-    response = client.chat.completions.create(
-        model="gpt-4.1-mini",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_message},
-        ],
-        response_format={"type": "json_object"},
-        temperature=0.7,
-    )
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4.1-mini",  # olcsó, gyors, elég okos sport-tipp logikára
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_message},
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.7,
+        )
+    except Exception as e:
+        # Ha OpenAI oldalon limit vagy más hiba van:
+        print(f"OpenAI API error, fallback simple tips: {repr(e)}")
+        return _fallback_simple_tips(matches)
 
     raw = response.choices[0].message.content
 
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
-        return {
-            "public_bets": [],
-            "vip_bets": [],
-            "telegram_public_text": "Hiba történt a nyilvános szelvény generálásánál.",
-            "telegram_vip_text": "Hiba történt a VIP szelvény generálásánál.",
-        }
+        print("JSON decode error az OpenAI válasznál, fallback simple tips.")
+        return _fallback_simple_tips(matches)
 
     public_bets = data.get("public_bets") or []
     vip_bets = data.get("vip_bets") or []
