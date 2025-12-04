@@ -1,9 +1,9 @@
-
 import os
 import json
 from openai import OpenAI
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Az OPENAI_API_KEY-t környezeti változóból olvassa (GitHub Secretből jön)
+client = OpenAI()
 
 SYSTEM_PROMPT = """    Te egy profi sportfogadási elemző vagy, a 'SZELVÉNYKIRÁLY' Telegram csatorna AI szakértője.
 Feladatod:
