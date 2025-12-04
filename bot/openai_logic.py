@@ -13,7 +13,7 @@ Feladatod:
   - max 3 tippel
   - inkább biztonságosabb, stabilabb meccsekből
 - Készíts egy VIP szelvényt:
-  - lehetőleg 5–7 tippel (minimum 5, ha van elég értelmes meccs)
+  - lehetőleg 6–8 tippel (minimum 5, ha van elég értelmes meccs)
   - kicsit agresszívebb kockázat, de ne legyen teljesen őrült
 - Mindig adj odds-ot és rövid magyarázatot (1-2 mondat).
 - Stílus: magyar, laza, de profi, felelős játékra figyelmeztető.
@@ -52,7 +52,7 @@ def generate_tips(matches):
         "risk_profile_vip": "közepes-agresszív",
         "max_public_picks": 3,
         "min_vip_picks": 5,
-        "max_vip_picks": 7,
+        "max_vip_picks": 8,
         "matches": filtered,
     }
 
@@ -75,7 +75,5 @@ def generate_tips(matches):
     data.setdefault("vip_bets", [])
     data.setdefault("telegram_public_text", "Hiba a nyilvános üzenet generálásánál.")
     data.setdefault("telegram_vip_text", "Hiba a VIP üzenet generálásánál.")
-
-    return data
 
     return data
