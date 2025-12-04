@@ -1,21 +1,26 @@
 name: Szelvenykiraly Cron
 
 on:
-  # Kézzel is futtatható marad
+  # Kézzel is futtatható
   workflow_dispatch:
 
-  # IDŐZÍTÉS – UTC-ben!
+  # IDŐZÍTÉS – UTC-ben (07, 13, 18 UTC ≈ 08, 14, 19 magyar idő)
   schedule:
-    # 07:00 UTC = 08:00 magyar idő (tél)
     - cron: "0 7 * * *"
-    # 13:00 UTC = 14:00 magyar idő
     - cron: "0 13 * * *"
-    # 18:00 UTC = 19:00 magyar idő
     - cron: "0 18 * * *"
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
+
+    # ITT adjuk át a secret-eket környezeti változóként
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      SPORT_API_KEY: ${{ secrets.SPORT_API_KEY }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
+      TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
 
     steps:
       - name: Checkout repo
