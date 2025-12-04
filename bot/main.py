@@ -1,4 +1,3 @@
-
 import os
 from telegram import Bot
 from bot.matches import fetch_matches_for_today
@@ -15,16 +14,22 @@ def main():
 
     bot = Bot(token=telegram_token)
 
+    # Meccsek lekérése az API-FOOTBALL-ból
     matches = fetch_matches_for_today()
+    print(f"Talált meccsek száma: {len(matches)}")
+
+    # Tipp generálás OpenAI-jal
     tips_data = generate_tips(matches)
 
-    public_text = tips_data["telegram_public_text"]
-    vip_text = tips_data["telegram_vip_text"]
+    public_text = tips_data.get("telegram_public_text")
+    vip_text = tips_data.get("telegram_vip_text")
 
-    if public_chat_id:
+    # Nyilvános csatorna – max 3 tipp
+    if public_chat_id and public_text:
         bot.send_message(chat_id=public_chat_id, text=public_text)
 
-    if vip_chat_id:
+    # VIP csatorna – több, agresszívebb tipp (min. 5, ha van elég meccs)
+    if vip_chat_id and vip_text:
         bot.send_message(chat_id=vip_chat_id, text=vip_text)
 
 
