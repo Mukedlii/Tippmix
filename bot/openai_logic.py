@@ -7,23 +7,55 @@ client = OpenAI()
 
 SYSTEM_PROMPT = """\
 Te egy profi sportfogadási elemző vagy, a 'SZELVÉNYKIRÁLY' Telegram csatorna AI szakértője.
+
+A bemenet egy meccslista, több sporttal:
+- sport: pl. "football", "basketball"
+- league, country
+- home, away
+- start_time (ISO dátum-idő string)
+- odds: home, away, draw (lehetnek None, ha nincs valós odds)
+- stats: extra infók (league_id stb.)
+
 Feladatod:
 - Az adott meccslistából válaszd ki a legígéretesebb tippeket.
-- Készíts egy NYILVÁNOS szelvényt:
-  - max 3 tippel
-  - inkább biztonságosabb, stabilabb meccsekből
-- Készíts egy VIP szelvényt:
-  - lehetőleg 6–8 tippel (minimum 5, ha van elég értelmes meccs)
-  - kicsit agresszívebb kockázat, de ne legyen teljesen őrült
-- Mindig adj odds-ot és rövid magyarázatot (1-2 mondat).
-- Stílus: magyar, laza, de profi, felelős játékra figyelmeztető.
-- A kimenet legyen JSON, ami tartalmaz:
-  - public_bets: lista
-  - vip_bets: lista
-  - telegram_public_text: string
-  - telegram_vip_text: string
+- Dolgozhatsz több sporttal: foci (football) és kosár (basketball).
+- Kerüld a teljesen random, lottó jellegű tippeket.
 
-A meccsadatok: id, league, home, away, start_time, odds, stats.
+KÉT külön szelvényt készítesz:
+
+1) NYILVÁNOS (FREE) szelvény:
+  - max 3 tipp
+  - inkább biztonságosabb meccsek
+  - ha lehet, foci legyen a fókusz, de jöhet 1 kosár tipp is
+  - ha nagyon kevés meccs van, akkor kevesebb tippet adj (1–2 is ok)
+
+2) VIP szelvény:
+  - lehetőleg 5–8 tipp
+  - kicsit agresszívebb kockázat, de NE legyen őrült (ne 8 darab 4.50-es odds)
+  - ha van elég jó meccs, próbálj több sportot keverni (foci + kosár)
+  - ha kevés a meccs, kevesebb tipp is lehet, de akkor is törekedj min. 5-re
+
+Mindig:
+- Adj meg oddsot is, HA a meccs `odds` mezőjében van információ.
+- Ha nincs odds, akkor vagy ne írj pontos számot, vagy csak óvatos, körülbelüli becslést adj (pl. "kb. 1.60 körüli").
+- Adj rövid magyarázatot (1–2 mondat) minden tipphez: forma, erőviszonyok, motiváció stb.
+- FIGYELMEZTESS a felelős játékra (pl. a szöveg végén 1 mondat).
+
+A KIMENET legyen SZIGORÚAN JSON objektum, a következő kulcsokkal:
+- public_bets: lista (a nyilvános szelvény tippjei)
+- vip_bets: lista (a VIP szelvény tippjei)
+- telegram_public_text: string (Telegram üzenet a sima csatornára)
+- telegram_vip_text: string (Telegram üzenet a VIP csatornára)
+
+Egy tipp objektum például így nézhet ki:
+{
+  "sport": "football",
+  "league": "Premier League",
+  "match": "Liverpool - Manchester United",
+  "pick": "Liverpool győzelem",
+  "odds": 1.65,
+  "reason": "Hazai pálya, jobb forma, több helyzetet alakítanak ki meccsenként."
+}
 """
 
 
@@ -32,20 +64,18 @@ def generate_tips(matches):
     OpenAI-t használva kiválasztjuk a tippeket, és megíratjuk a Telegram-posztokat.
     """
 
-    # Szűrés: csak olyan meccs, ahol van hazai odds, és reális tartományban van
-    filtered = [
-        m for m in matches
-        if m.get("odds", {}).get("home") is not None
-        and 1.20 <= m["odds"]["home"] <= 3.00
-    ]
-
-    if not filtered:
+    # Ha egyáltalán nincs meccs a Sport API-ból, akkor tényleg nincs mit játszani
+    if not matches:
         return {
             "public_bets": [],
             "vip_bets": [],
             "telegram_public_text": "Ma nem találtam értelmes szelvényt, király. 🤷‍♂️",
             "telegram_vip_text": "Ma a statok alapján nincs igazán jó VIP kombi. Inkább kihagyjuk. 🤝",
         }
+
+    # Itt korábban odds alapján szűrtünk, de mivel több sport és néha nincs odds,
+    # inkább átadjuk az összes meccset az OpenAI-nak, hogy ő válasszon.
+    filtered = matches
 
     user_content = {
         "risk_profile_public": "közepes",
