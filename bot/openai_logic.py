@@ -62,19 +62,26 @@ Egy tipp objektum például így nézhet ki:
 def generate_tips(matches):
     """
     OpenAI-t használva kiválasztjuk a tippeket, és megíratjuk a Telegram-posztokat.
+    LOGIKA: ha van bármennyi meccs, MINDIG generálunk tippeket.
     """
 
-    # Ha egyáltalán nincs meccs a Sport API-ból, akkor tényleg nincs mit játszani
+    # Ha az API SEMMILYEN meccset nem ad vissza (extrém eset),
+    # akkor jelezzük, hogy technikailag nincs mit játszani.
     if not matches:
         return {
             "public_bets": [],
             "vip_bets": [],
-            "telegram_public_text": "Ma nem találtam értelmes szelvényt, király. 🤷‍♂️",
-            "telegram_vip_text": "Ma a statok alapján nincs igazán jó VIP kombi. Inkább kihagyjuk. 🤝",
+            "telegram_public_text": (
+                "Ma technikai okból az API nem adott vissza egyetlen meccset sem, "
+                "ezért nem tudok felelős szelvényt összerakni. 🤷‍♂️"
+            ),
+            "telegram_vip_text": (
+                "Ma a Sport API nem szolgáltat meccsadatot (valószínűleg válogatott szünet "
+                "vagy technikai hiba), ezért nem erőltetek VIP kombit. 🤝"
+            ),
         }
 
-    # Most nem szűrünk odds alapján, hanem átadjuk az összes meccset az OpenAI-nak,
-    # hogy ő válassza ki a legjobbakat (max. 3 FREE, 5–8 VIP).
+    # VANNAK meccsek → átadjuk az összeset az OpenAI-nak, hogy válogasson.
     filtered = matches
 
     user_content = {
@@ -86,7 +93,6 @@ def generate_tips(matches):
         "matches": filtered,
     }
 
-    # A user üzenetben JSON-ként adjuk át a tartalmat
     user_message = json.dumps(user_content, ensure_ascii=False)
 
     response = openai.ChatCompletion.create(
