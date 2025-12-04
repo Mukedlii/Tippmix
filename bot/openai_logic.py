@@ -1,9 +1,9 @@
 import os
 import json
-from openai import OpenAI
+import openai
 
-# Az OPENAI_API_KEY-t automatikusan a környezeti változóból veszi (GitHub Secret)
-client = OpenAI()
+# A kulcsot az OPENAI_API_KEY környezeti változóból vesszük (GitHub Secret)
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 SYSTEM_PROMPT = """\
 Te egy profi sportfogadási elemző vagy, a 'SZELVÉNYKIRÁLY' Telegram csatorna AI szakértője.
@@ -73,8 +73,8 @@ def generate_tips(matches):
             "telegram_vip_text": "Ma a statok alapján nincs igazán jó VIP kombi. Inkább kihagyjuk. 🤝",
         }
 
-    # Itt korábban odds alapján szűrtünk, de mivel több sport és néha nincs odds,
-    # inkább átadjuk az összes meccset az OpenAI-nak, hogy ő válasszon.
+    # Most nem szűrünk odds alapján, hanem átadjuk az összes meccset az OpenAI-nak,
+    # hogy ő válassza ki a legjobbakat (max. 3 FREE, 5–8 VIP).
     filtered = matches
 
     user_content = {
@@ -86,19 +86,30 @@ def generate_tips(matches):
         "matches": filtered,
     }
 
-    response = client.responses.create(
+    # A user üzenetben JSON-ként adjuk át a tartalmat
+    user_message = json.dumps(user_content, ensure_ascii=False)
+
+    response = openai.ChatCompletion.create(
         model="gpt-4.1-mini",
-        reasoning={"effort": "medium"},
-        input=[
+        messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_content},
+            {"role": "user", "content": user_message},
         ],
-        response_format={"type": "json_object"},
+        temperature=0.7,
     )
 
-    # A válasz első outputjából olvassuk ki a JSON-t
-    raw = response.output[0].content[0].text
-    data = json.loads(raw)
+    raw = response.choices[0].message["content"]
+
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        # Ha valamiért nem tudtuk JSON-ként beolvasni, legyen egy alap fallback
+        return {
+            "public_bets": [],
+            "vip_bets": [],
+            "telegram_public_text": "Hiba történt a nyilvános szelvény generálásánál.",
+            "telegram_vip_text": "Hiba történt a VIP szelvény generálásánál.",
+        }
 
     # Biztonsági fallbackok
     data.setdefault("public_bets", [])
