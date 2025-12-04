@@ -38,7 +38,8 @@ KÉT külön szelvényt készítesz:
   - lehetőleg 5–8 tipp
   - kicsit agresszívebb kockázat, de NE legyen őrült (ne 8 darab 4.50-es odds)
   - ha van elég jó meccs, próbálj több sportot keverni (foci + kosár)
-  - ha kevés a meccs, kevesebb tipp is lehet, de akkor is törekedj min. 5-re
+  - ha kevés a meccs, kevesebb tipp is lehet, de akkor is törekedj min. 3–5-re
+  - NE hagyd üresen a vip_bets listát, ha kaptál meccslistát.
 
 Mindig:
 - Minden tipphez adj:
@@ -123,7 +124,7 @@ def _filter_and_limit_matches(matches: List[Dict[str, Any]]) -> List[Dict[str, A
         if any(k in league_name for k in bad_keywords):
             continue
 
-        # Topabb ligák előresorolása (pl. premier league, la liga, serie a, nba)
+        # Topabb ligák előresorolása
         top_keywords = [
             "premier league",
             "la liga",
@@ -212,7 +213,9 @@ def _format_telegram_vip(bets: List[Dict[str, Any]]) -> str:
     )
 
     if not bets:
-        body = "Ma kevés a valóban értelmes VIP lehetőség, úgyhogy inkább nem erőltetek kombit. Holnap újra nekimegyünk, király! 🤝"
+        # Ez elvileg nem fordul elő, mert generate_tips fallbackel,
+        # de ha mégis, jelezzük, hogy technikai gond volt.
+        body = "Technikai hiba miatt nem sikerült VIP tipplistát generálni. Próbáljuk újra legközelebb, király! 🤝"
         return header + body
 
     intro = (
@@ -267,7 +270,7 @@ def _format_telegram_vip(bets: List[Dict[str, Any]]) -> str:
 def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     OpenAI-t használva kiválasztjuk a tippeket, és MEGFORMÁZZUK a Telegram-szöveget.
-    LOGIKA: ha van bármennyi meccs, MINDIG generálunk tippeket.
+    LOGIKA: ha van bármennyi meccs, MINDIG legyen legalább néhány tipp.
     """
     if not matches:
         # Extrém eset: semmi meccs
@@ -327,6 +330,11 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
 
     public_bets = data.get("public_bets") or []
     vip_bets = data.get("vip_bets") or []
+
+    # 🔥 FONTOS: ha valamiért üres a VIP lista, de vannak meccsek,
+    # NE maradjon üres, használjuk legalább a public tippeket VIP-nek is.
+    if not vip_bets and public_bets:
+        vip_bets = public_bets[:]
 
     telegram_public_text = _format_telegram_public(public_bets)
     telegram_vip_text = _format_telegram_vip(vip_bets)
