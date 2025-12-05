@@ -3,9 +3,11 @@ name: Szelvenykiraly Cron
 on:
   workflow_dispatch:
 
-  # DEBUG: 5 percenként fusson
+  # IDŐZÍTÉS – UTC-ben (07, 13, 18 UTC ≈ 08, 14, 19 magyar idő)
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "0 7 * * *"
+    - cron: "0 13 * * *"
+    - cron: "0 18 * * *"
 
 
 jobs:
