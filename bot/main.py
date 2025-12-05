@@ -94,3 +94,29 @@ def main() -> None:
             label="PUBLIC",
         )
     else:
+        public_err = "PUBLIC_CHAT_ID nincs beállítva."
+        print(public_err)
+
+    # 4) VIP üzenet – ha a FREE-nél hiba volt, technikai infót csatolunk
+    if vip_chat_id:
+        if not public_ok and public_err:
+            vip_text_with_info = (
+                vip_text
+                + "\n\n⚠️ TECH INFO (FREE csatorna):\n"
+                + public_err
+            )
+        else:
+            vip_text_with_info = vip_text
+
+        send_telegram_message(
+            token=telegram_token,
+            chat_id=vip_chat_id,
+            text=vip_text_with_info,
+            label="VIP",
+        )
+    else:
+        print("VIP_CHAT_ID nincs beállítva, nem küldök VIP üzenetet.")
+
+
+if __name__ == "__main__":
+    main()
