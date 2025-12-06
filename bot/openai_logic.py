@@ -59,31 +59,88 @@ def _build_matches_prompt(matches: List[Dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
-def _derive_risk_from_confidence(conf: Any) -> str:
+def _odds_to_float(odds: Any) -> float | None:
     """
-    Bizalom (1–5) -> low / medium / high.
-    Ezt használjuk a színekhez, nem az AI 'risk' mezőjét.
+    Odds mezőt próbáljuk float-tá alakítani.
+    Elfogadjuk: 1.75, "1.75", "1,75" formákat.
+    """
+    if odds is None:
+        return None
+    if isinstance(odds, (int, float)):
+        return float(odds)
+    try:
+        s = str(odds).strip().replace(",", ".")
+        return float(s)
+    except Exception:
+        return None
+
+
+def _derive_risk_level(conf: Any, odds_float: float | None) -> str:
+    """
+    Bizalom (1–5) + odds alapján állapítjuk meg a kockázat szintjét:
+      - 'low'    -> zöld
+      - 'medium' -> narancs
+      - 'high'   -> piros
+    Logika:
+      - nagyon alacsony odds (~1.40 alatt) lehet zöld, ha a bizalom is magas
+      - 1.4–1.8 között többnyire közepes, ritkán zöld
+      - 1.8 fölött SOHA nem zöld
+      - 2.5 fölött mindig piros
     """
     try:
         c = int(conf)
     except Exception:
         c = 3
-    if c >= 4:
-        return "low"      # zöld
-    if c <= 2:
-        return "high"     # piros
-    return "medium"       # narancs
+
+    if odds_float is None:
+        # ha nincs odds, maradunk a sima confidence-alapú logikánál
+        if c >= 4:
+            return "low"
+        if c <= 2:
+            return "high"
+        return "medium"
+
+    o = odds_float
+
+    # Nagyon alacsony odds: elvileg stabilabb
+    if o <= 1.40:
+        if c >= 4:
+            return "low"     # zöld: kis odds + magas bizalom
+        if c <= 2:
+            return "medium"
+        return "medium"
+
+    # 1.40–1.80: általában közepes, néha enyhe kockázat
+    if o <= 1.80:
+        if c >= 4:
+            return "medium"  # már ne legyen zöld
+        if c <= 2:
+            return "high"
+        return "medium"
+
+    # 1.80–2.50: inkább közepes/kockázatos
+    if o <= 2.50:
+        if c >= 4:
+            return "medium"
+        if c <= 2:
+            return "high"
+        return "medium"
+
+    # 2.50 fölött: mindig kockázatosabb
+    return "high"
 
 
-def _risk_to_emoji(conf: Any) -> str:
+def _risk_to_emoji(conf: Any, odds_float: float | None) -> str:
     """
-    A kockázat színét a confidence (1–5) alapján döntjük el.
-    Zöld = stabilabb, narancs = közepes, piros = kockázatosabb.
+    A kockázat színét a confidence + odds alapján döntjük el.
+      - low    -> 🟢 alacsony (stabilabb)
+      - medium -> 🟠 közepes
+      - high   -> 🔴 magas (kockázatosabb)
     """
-    r = _derive_risk_from_confidence(conf)
-    if r == "low":
+    level = _derive_risk_level(conf, odds_float)
+    if level == "low":
         return "🟢 alacsony (stabilabb)"
-    if r == "high":
+    if level == "high":
         return "🔴 magas (kockázatosabb)"
     return "🟠 közepes"
 
@@ -116,9 +173,10 @@ def _build_public_text(data: Dict[str, Any]) -> str:
             match = bet.get("match") or "Ismeretlen meccs"
             tip = bet.get("tip") or "Óvatos hazai / döntetlen nélkül"
             odds = bet.get("odds")
+            odds_float = _odds_to_float(odds)
             reason = bet.get("reason") or "Statisztika és forma alapján értelmes választás."
             conf_val = bet.get("confidence", 3)
-            risk = _risk_to_emoji(conf_val)
+            risk = _risk_to_emoji(conf_val, odds_float)
             conf = _confidence_to_stars(conf_val)
 
             line_parts = [
@@ -169,9 +227,10 @@ def _build_vip_text(data: Dict[str, Any]) -> str:
             match = bet.get("match") or "Ismeretlen meccs"
             tip = bet.get("tip") or "Hazai győzelem / gólpiac"
             odds = bet.get("odds")
+            odds_float = _odds_to_float(odds)
             reason = bet.get("reason") or "Forma, statisztika és keret alapján jó esély mutatkozik."
             conf_val = bet.get("confidence", 3)
-            risk = _risk_to_emoji(conf_val)
+            risk = _risk_to_emoji(conf_val, odds_float)
             conf = _confidence_to_stars(conf_val)
 
             if isinstance(odds, (int, float)):
@@ -322,7 +381,7 @@ Feladatod:
        * Ne írj ellentmondó halmazt, pl. "döntetlen vagy hazai győzelem, most vagy nyer vagy döntetlen".
        * Ha dupla esélyt adsz, írd egyszerűen: "Hazai vagy döntetlen (1X)".
    - odds: reális decimális odd (pl. 1.75, 2.10), akár becsült érték – nem kell pontosan egyeznie bukmékerekkel
-   - risk: low / medium / high (kockázat szintje) – ezt használhatod, de a kockázat színét én a confidence alapján számolom.
+   - risk: low / medium / high (kockázat szintje) – ezt használhatod, de a kockázat színét én a confidence + odds alapján számolom.
    - confidence: 1–5 közötti szám, hogy mennyire bízol a tippedben
    - reason: maximum 1–2 mondatos indoklás (max ~220 karakter),
              forma, statisztika, hazai pálya, sérülések, motiváció, stb. alapján.
