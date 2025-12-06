@@ -189,6 +189,68 @@ def _build_vip_text(data: Dict[str, Any]) -> str:
     return header + body + total_odds_line + bankroll_hint + edu_block
 
 
+def _build_simple_bet_from_match(match: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Ha az AI nem ad elég tippet, mi gyártunk egy óvatos, 'stabil' jellegű sort,
+    hogy mindig legyen valami lehetőség.
+    """
+    desc = _format_match_for_prompt(match)
+    return {
+        "match": desc,
+        "tip": "Óvatos fogadás: hazai nem kap ki (1X) vagy 1.5 felett gól (óvatos tartomány).",
+        "odds": 1.40,
+        "risk": "low",
+        "confidence": 3,
+        "reason": "Hazai pálya vagy jobb forma miatt óvatos, stabil jellegű tipp.",
+    }
+
+
+def _truncate_reason(reason: str, max_len: int = 220) -> str:
+    """Ne legyenek végtelen hosszú magyarázatok – max ~2 mondat."""
+    reason = reason or ""
+    if len(reason) <= max_len:
+        return reason
+    return reason[: max_len - 3].rstrip() + "..."
+
+
+def _ensure_min_bets(data: Dict[str, Any], matches: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Gondoskodik róla, hogy mindig legyen legalább:
+      - 1 FREE tipp
+      - 5 VIP tipp (ha van elég meccs)
+    Ha az AI üres listát ad, mi töltjük fel óvatos tippekkel.
+    Plusz kicsit kitakarítjuk a reason szövegeket.
+    """
+    public = data.get("public_bets") or []
+    vip = data.get("vip_bets") or []
+
+    # Reason-ek rövidítése
+    for bet in public + vip:
+        if "reason" in bet:
+            bet["reason"] = _truncate_reason(str(bet.get("reason", "")))
+
+    # Ha teljesen üres, gyártunk minitippeket
+    if not public and matches:
+        for m in matches[:3]:
+            public.append(_build_simple_bet_from_match(m))
+
+    if len(vip) < 5 and matches:
+        # egészítsük ki 5–7 meccsig, ha van elég
+        already_used = {b.get("match") for b in vip}
+        for m in matches:
+            if len(vip) >= 5:
+                break
+            desc = _format_match_for_prompt(m)
+            if desc in already_used:
+                continue
+            vip.append(_build_simple_bet_from_match(m))
+            already_used.add(desc)
+
+    data["public_bets"] = public
+    data["vip_bets"] = vip
+    return data
+
+
 def _call_openai_for_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     Meghívja az OpenAI-t, és JSON-t vár vissza a tippekről.
@@ -218,15 +280,24 @@ A meccsek listája (röviden):
 
 Feladatod:
 
-1) Válaszd ki a legjobb maximum 3 mérkőzést a FREE csatornára.
-2) Válaszd ki a legjobb 5–7 mérkőzést a VIP csatornára (lehetnek átfedések a FREE-vel).
+1) Válaszd ki a legjobb LEGALÁBB 1 és legfeljebb 3 mérkőzést a FREE csatornára.
+2) Válaszd ki a legjobb LEGALÁBB 5 és legfeljebb 7 mérkőzést a VIP csatornára (lehetnek átfedések a FREE-vel, de ne mind).
 3) Minden kiválasztott meccshez add meg:
    - match: rövid leírás pl. "Manchester United vs West Ham (Premier League, 20:00)"
-   - tip: konkrét fogadási ötlet (pl. "Hazai győzelem", "Over 2.5 gól", "Hazai +1.5 gól")
+   - tip: EGYÉRTELMŰ, KONKRÉT fogadási ötlet (pl. "Hazai győzelem", "Over 2.5 gól", "Hazai vagy döntetlen (1X)")
+       * Ne írj ellentmondó halmazt, pl. "döntetlen vagy hazai győzelem, most vagy nyer vagy döntetlen".
+       * Ha dupla esélyt adsz, írd egyszerűen: "Hazai vagy döntetlen (1X)".
    - odds: reális decimális odd (pl. 1.75, 2.10), akár becsült érték – nem kell pontosan egyeznie bukmékerekkel
    - risk: low / medium / high (kockázat szintje)
    - confidence: 1–5 közötti szám, hogy mennyire bízol a tippedben
-   - reason: 1–2 mondatos indoklás (forma, statisztika, hazai pálya, sérülések, motiváció, stb.)
+   - reason: maximum 1–2 mondatos indoklás (max ~220 karakter),
+             forma, statisztika, hazai pálya, sérülések, motiváció, stb. alapján.
+
+Fontos korlátozások:
+
+- Ugyanaz a meccs a public_bets és vip_bets listában legfeljebb EGYSZER szerepelhet.
+  Ha mégis mindkettőbe beteszed, akkor más típusú tippet adj rá (pl. FREE: 1X, VIP: hazai győzelem).
+- Ne ismételd szó szerint ugyanazt az indoklást minden meccsnél, legyen természetes, de tömör.
 
 4) Adj egy nagyon rövid, 1 mondatos oktató tippet is:
    - edu_tip: pl. "Ne emeld a tétet csak azért, mert az előző szelvény vesztett."
@@ -269,7 +340,7 @@ Példa struktúra:
             {"role": "user", "content": user_msg},
         ],
         max_tokens=1300,
-        temperature=0.9,
+        temperature=0.6,  # kicsit alacsonyabb, kevesebb hülyeség
     )
 
     content = response.choices[0].message.content
@@ -277,6 +348,10 @@ Példa struktúra:
     print((content or "")[:500])
 
     data = json.loads(content)
+
+    # Biztosítsuk, hogy legyen elég tipp, és a reason-ök rendben legyenek
+    data = _ensure_min_bets(data, trimmed)
+
     return data
 
 
