@@ -19,6 +19,7 @@ def _format_match_for_prompt(match: Dict[str, Any]) -> str:
     """
     Meccs objektumot rövid, szöveges sorra alakítjuk.
     Nem baj, ha nem tökéletes – a lényeg, hogy érthető legyen a modellnek.
+    Ha van fixture_id, azt [ID=...] formában tesszük a végére.
     """
     sport = match.get("sport") or match.get("sport_name") or "football"
     home = (
@@ -43,11 +44,15 @@ def _format_match_for_prompt(match: Dict[str, Any]) -> str:
         or ""
     )
 
+    fixture_id = match.get("fixture_id") or match.get("id") or ""
+
     parts = [sport.capitalize(), f"{home} vs {away}"]
     if league or country:
         parts.append(f"{league} {country}".strip())
     if kickoff:
         parts.append(str(kickoff))
+    if fixture_id:
+        parts.append(f"[ID={fixture_id}]")
 
     return " | ".join(parts)
 
@@ -171,7 +176,6 @@ def _make_more_aggressive_tip(tip: str) -> str:
     Dupla esélyből csinál 'egyszínű' tippet:
       - 'hazai vagy döntetlen' -> 'Hazai győzelem'
       - 'vendég vagy döntetlen' -> 'Vendég győzelem'
-    Ha nem felismerhető, visszaadja az eredetit.
     """
     t = (tip or "").lower()
     if "hazai" in t and "döntetlen" in t or "1x" in t:
@@ -187,7 +191,7 @@ def _clean_reason(reason: str) -> str:
     """
     Tisztítja a magyarázatot:
       - kiszedi az 1X / X2 jelölést
-      - a 'biztonságosabb' szót 'óvatosabb'-ra cseréli (profi hangzás)
+      - a 'biztonságosabb' szót 'óvatosabb'-ra cseréli
     """
     r = reason or ""
     for pat in ["1x", "1X"]:
@@ -324,12 +328,12 @@ def _build_vip_text(data: Dict[str, Any]) -> str:
 
 def _build_simple_bet_from_match(match: Dict[str, Any]) -> Dict[str, Any]:
     """
-    FREE fallback: ha az AI nem ad elég tippet, mi gyártunk egy óvatos, 'stabil' jellegű sort.
+    FREE fallback: ha az AI nem ad elég tippet, mi gyártunk egy stabilabb sort.
     """
     desc = _format_match_for_prompt(match)
     return {
         "match": desc,
-        "tip": "Hazai győzelem",  # itt már nem használunk 1X-et
+        "tip": "Hazai győzelem",
         "odds": 1.40,
         "confidence": 3,
         "reason": "Hazai pálya és forma alapján vállalható stabilabb tipp.",
@@ -366,7 +370,7 @@ def _ensure_min_bets(data: Dict[str, Any], matches: List[Dict[str, Any]]) -> Dic
       - 5 VIP tipp (ha van elég meccs)
 
     Szabályok:
-      - FREE-ben NEM marad dupla esély: minden 1X / X2 / 12 típusú tippet tiszta 1 / 2-re írunk át.
+      - FREE-ben MINDEN dupla esélyt tiszta 1 / 2-re írunk át.
       - VIP-ben NINCS dupla esély: minden 1X / X2 / 12 típusú tippet eldobjuk,
         és fallback VIP tippekkel pótoljuk.
     """
@@ -454,15 +458,14 @@ Feladatod:
 1) FREE (public_bets):
    - Válaszd ki a legjobb LEGALÁBB 1 és legfeljebb 3 mérkőzést.
    - Itt inkább óvatosabb, stabilabb tippeket adj.
-   - MEHETNEK dupla esély tippek is (pl. 1X, X2), de a végső kommunikációban ezeket én át fogom írni tiszta hazai/vendég győzelemre.
 
 2) VIP (vip_bets):
    - Válaszd ki a legjobb LEGALÁBB 5 és legfeljebb 7 mérkőzést.
-   - Itt lehet bátrabb az odds, de NE adj dupla esély tippeket.
-   - VIP-ben NE használj ilyeneket: "1X", "X2", "12", "hazai vagy döntetlen", "vendég vagy döntetlen".
+   - Itt lehet bátrabb az odds, de továbbra is ésszerű keretek között.
 
 3) Minden kiválasztott meccshez add meg:
-   - match: rövid leírás pl. "Manchester United vs West Ham (Premier League, 20:00)"
+   - match: rövid leírás pl. "Manchester United vs West Ham (Premier League, 20:00) [ID=12345]"
+   - fixture_id: a fenti sorban szereplő [ID=12345] értéke számként (ha van ilyen)
    - tip: EGYÉRTELMŰ, KONKRÉT fogadási ötlet (pl. "Hazai győzelem", "Over 2.5 gól")
    - odds: reális decimális odd (pl. 1.75, 2.10), akár becsült érték
    - risk: low / medium / high (kockázat szintje)
@@ -473,7 +476,6 @@ Feladatod:
 Fontos korlátozások:
 
 - Ugyanaz a meccs a public_bets és vip_bets listában legfeljebb EGYSZER szerepelhet.
-  Ha mégis mindkettőbe beteszed, akkor más típusú tippet adj rá (pl. FREE: óvatosabb, VIP: bátrabb).
 - Ne ismételd szó szerint ugyanazt az indoklást minden meccsnél, legyen természetes, de tömör.
 
 4) Adj egy nagyon rövid, 1 mondatos oktató tippet is:
@@ -489,6 +491,7 @@ Példa struktúra:
   "public_bets": [
     {{
       "match": "...",
+      "fixture_id": 12345,
       "tip": "...",
       "odds": 1.75,
       "risk": "low",
@@ -499,6 +502,7 @@ Példa struktúra:
   "vip_bets": [
     {{
       "match": "...",
+      "fixture_id": 67890,
       "tip": "...",
       "odds": 1.60,
       "risk": "medium",
@@ -531,13 +535,14 @@ Példa struktúra:
     return data
 
 
-def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, str]:
+def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     Fő belépési pont a main.py számára.
     Visszaadja:
       - telegram_public_text
       - telegram_vip_text
-    Mindkettő kész, formázott üzenet Telegramra.
+      - public_bets (nyers lista, mérlegszámításhoz)
+      - vip_bets
     """
     try:
         data = _call_openai_for_tips(matches)
@@ -546,6 +551,8 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, str]:
         return {
             "telegram_public_text": public_text,
             "telegram_vip_text": vip_text,
+            "public_bets": data.get("public_bets", []),
+            "vip_bets": data.get("vip_bets", []),
         }
     except Exception as e:
         print("HIBA az OpenAI hívás során, fallback logikát használunk.")
@@ -591,7 +598,19 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, str]:
             + "\n\n🎓 Mini tanács: Technikai hiba esetén se erőltesd a játékot – a sportfogadás maradjon szórakozás."
         )
 
+        # fallbacknél is adjunk vissza nyers listákat (fixture_id nélkül)
+        fallback_public_bets = [
+            {"match": _format_match_for_prompt(m), "tip": "Hazai győzelem"}
+            for m in trimmed[:3]
+        ]
+        fallback_vip_bets = [
+            {"match": _format_match_for_prompt(m), "tip": "Hazai győzelem"}
+            for m in trimmed[:7]
+        ]
+
         return {
             "telegram_public_text": public_text,
             "telegram_vip_text": vip_text,
+            "public_bets": fallback_public_bets,
+            "vip_bets": fallback_vip_bets,
         }
