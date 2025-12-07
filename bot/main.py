@@ -1,11 +1,16 @@
 import os
 import datetime
+import json
+from pathlib import Path
 from typing import Any, Dict, Tuple
 
 import requests
 
 from bot.matches import fetch_matches_for_today
 from bot.openai_logic import generate_tips
+
+# Itt fogjuk tárolni a napi tippeket (csak a futás idejére)
+DATA_DIR = Path(__file__).resolve().parent / "data"
 
 
 def send_telegram_message(token: str, chat_id: str, text: str, label: str) -> Tuple[bool, str]:
@@ -52,6 +57,36 @@ def send_telegram_message(token: str, chat_id: str, text: str, label: str) -> Tu
     return True, ""
 
 
+def _save_bets_for_recap(date_str: str, public_bets, vip_bets) -> None:
+    """
+    Elmenti a napi public + VIP tippeket JSON fájlokba,
+    hogy a daily_recap_main.py később fel tudja dolgozni.
+    """
+    try:
+        DATA_DIR.mkdir(exist_ok=True)
+
+        public_payload = {
+            "date": date_str,
+            "bets": public_bets or [],
+        }
+        vip_payload = {
+            "date": date_str,
+            "bets": vip_bets or [],
+        }
+
+        with open(DATA_DIR / "public_bets.json", "w", encoding="utf-8") as f:
+            json.dump(public_payload, f, ensure_ascii=False, indent=2)
+
+        with open(DATA_DIR / "vip_bets.json", "w", encoding="utf-8") as f:
+            json.dump(vip_payload, f, ensure_ascii=False, indent=2)
+
+        print("Napi tippek elmentve:")
+        print(f"  - {DATA_DIR / 'public_bets.json'}")
+        print(f"  - {DATA_DIR / 'vip_bets.json'}")
+    except Exception as e:
+        print("Hiba a tippek mentésekor:", repr(e))
+
+
 def main() -> None:
     today = datetime.date.today()
     print(f"Meccsek lekérése erre a napra: {today.isoformat()}")
@@ -77,10 +112,17 @@ def main() -> None:
         print("Nincsenek meccsek mára, nem küldök tippet.")
         return
 
-    # 2) Tipp generálás (kímélő OpenAI + fallback)
+    # 2) Tipp generálás (OpenAI + fallback)
     tips_data = generate_tips(matches)
     public_text = tips_data.get("telegram_public_text") or "Hiba a FREE tippek generálásánál."
     vip_text = tips_data.get("telegram_vip_text") or "Hiba a VIP tippek generálásánál."
+
+    # <-- ÚJ: nyers tippek a mérleghez
+    public_bets = tips_data.get("public_bets", [])
+    vip_bets = tips_data.get("vip_bets", [])
+
+    # Napi tippek elmentése JSON-ba
+    _save_bets_for_recap(today.isoformat(), public_bets, vip_bets)
 
     # 3) FREE / PUBLIC üzenet küldése
     public_ok = False
