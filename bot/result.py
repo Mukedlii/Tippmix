@@ -1,10 +1,52 @@
 import os
 import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import requests
 
 API_FOOTBALL_KEY = os.getenv("SPORTS_API_KEY")  # nálad amire be van állítva
+
+
+def _normalize_fixture_id(fixture_id_value: Any, match_text: Optional[str] = None) -> Optional[int]:
+    """
+    Próbáljuk kinyerni a numerikus fixture ID-t több formából is:
+      - 1488772
+      - "1488772"
+      - "football-1488772"
+      - a match szöveg végéről: "... [ID=football-1488772]"
+    """
+    # 1) Ha van közvetlen fixture_id mező:
+    if fixture_id_value is not None:
+        try:
+            # ha pl. "football-1488772"
+            s = str(fixture_id_value)
+            # Levágjuk az esetleges "football-" részt
+            if "-" in s:
+                parts = s.split("-")
+                s = parts[-1]
+            return int(s)
+        except Exception:
+            pass
+
+    # 2) Ha nincs vagy nem jó, próbáljuk a match szövegből
+    if match_text:
+        text = str(match_text)
+        marker = "[ID="
+        if marker in text:
+            # pl. "... [ID=football-1488772]"
+            tail = text.split(marker, 1)[1]
+            # levágjuk az utána lévő részt egészen a ']' karakterig
+            if "]" in tail:
+                tail = tail.split("]", 1)[0]
+            # tail pl.: "football-1488772" vagy "1488772"
+            try:
+                if "-" in tail:
+                    tail = tail.split("-")[-1]
+                return int(tail)
+            except Exception:
+                pass
+
+    return None
 
 
 def _get_fixture_result(fixture_id: int) -> Dict[str, Any]:
@@ -55,6 +97,9 @@ def _settle_tip(tip: str, fixture: Dict[str, Any]) -> str:
         return "win" if home_goals > away_goals else "lose"
     if "vendég győzelem" in t:
         return "win" if away_goals > home_goals else "lose"
+    if "mindkét csapat szerez gólt" in t or "btts" in t:
+        both_scored = home_goals > 0 and away_goals > 0
+        return "win" if both_scored else "lose"
     if "over 2.5" in t:
         return "win" if total_goals > 2.5 else "lose"
     if "over 1.5" in t:
@@ -86,14 +131,19 @@ def evaluate_bets(bets: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
     for bet in bets:
-        fixture_id = bet.get("fixture_id")
+        raw_fixture_id = bet.get("fixture_id")
+        match_text = bet.get("match")
         tip = bet.get("tip")
+
+        fixture_id = _normalize_fixture_id(raw_fixture_id, match_text)
+
         if not fixture_id:
+            print(f"Figyelem: nincs használható fixture_id ehhez a tipphez: {match_text!r}")
             result = "unknown"
             fixture_data = {}
         else:
             try:
-                fixture_data = _get_fixture_result(int(fixture_id))
+                fixture_data = _get_fixture_result(fixture_id)
                 result = _settle_tip(tip, fixture_data)
             except Exception as e:
                 print(f"Hiba fixture {fixture_id} ellenőrzésekor: {repr(e)}")
@@ -108,7 +158,7 @@ def evaluate_bets(bets: List[Dict[str, Any]]) -> Dict[str, Any]:
 
         summary["details"].append(
             {
-                "match": bet.get("match"),
+                "match": match_text,
                 "tip": tip,
                 "result": result,
             }
