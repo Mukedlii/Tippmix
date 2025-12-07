@@ -373,13 +373,25 @@ A meccsek listája (röviden):
 
 Feladatod:
 
-1) Válaszd ki a legjobb LEGALÁBB 1 és legfeljebb 3 mérkőzést a FREE csatornára.
-2) Válaszd ki a legjobb LEGALÁBB 5 és legfeljebb 7 mérkőzést a VIP csatornára (lehetnek átfedések a FREE-vel, de ne mind).
+1) FREE (public_bets):
+   - Válaszd ki a legjobb LEGALÁBB 1 és legfeljebb 3 mérkőzést.
+   - Itt inkább óvatosabb, stabilabb tippeket adj.
+   - MEHETNEK dupla esély tippek is: pl. "Hazai vagy döntetlen (1X)", "Vendég vagy döntetlen (X2)".
+
+2) VIP (vip_bets):
+   - Válaszd ki a legjobb LEGALÁBB 5 és legfeljebb 7 mérkőzést.
+   - Itt lehet bátrabb az odds, de NE adj dupla esély tippeket.
+   - VIP-ben NE használj ilyeneket: "1X", "X2", "12".
+   - VIP-be inkább konkrét piacokat adj:
+        * "Hazai győzelem"
+        * "Vendég győzelem"
+        * "Over 2.5 gól"
+        * "Mindkét csapat szerez gólt"
+        * "Hazai 1.5 felett gól", stb.
+
 3) Minden kiválasztott meccshez add meg:
    - match: rövid leírás pl. "Manchester United vs West Ham (Premier League, 20:00)"
    - tip: EGYÉRTELMŰ, KONKRÉT fogadási ötlet (pl. "Hazai győzelem", "Over 2.5 gól", "Hazai vagy döntetlen (1X)")
-       * Ne írj ellentmondó halmazt, pl. "döntetlen vagy hazai győzelem, most vagy nyer vagy döntetlen".
-       * Ha dupla esélyt adsz, írd egyszerűen: "Hazai vagy döntetlen (1X)".
    - odds: reális decimális odd (pl. 1.75, 2.10), akár becsült érték – nem kell pontosan egyeznie bukmékerekkel
    - risk: low / medium / high (kockázat szintje) – ezt használhatod, de a kockázat színét én a confidence + odds alapján számolom.
    - confidence: 1–5 közötti szám, hogy mennyire bízol a tippedben
