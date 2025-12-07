@@ -219,6 +219,12 @@ def _build_public_text(data: Dict[str, Any]) -> str:
         lines: List[str] = []
         for i, bet in enumerate(public_bets, start=1):
             match = bet.get("match") or "Ismeretlen meccs"
+
+            # <<< ÚJ: ha van fixture_id, fűzzük hozzá az ID-t >>>
+            fixture_id = bet.get("fixture_id")
+            if fixture_id and "[ID=" not in match:
+                match = f"{match} [ID={fixture_id}]"
+
             tip = bet.get("tip") or "Hazai győzelem"
             odds = bet.get("odds")
             odds_float = _odds_to_float(odds)
@@ -274,6 +280,12 @@ def _build_vip_text(data: Dict[str, Any]) -> str:
 
         for i, bet in enumerate(vip_bets, start=1):
             match = bet.get("match") or "Ismeretlen meccs"
+
+            # <<< ÚJ: itt is fűzzük hozzá az ID-t >>>
+            fixture_id = bet.get("fixture_id")
+            if fixture_id and "[ID=" not in match:
+                match = f"{match} [ID={fixture_id}]"
+
             tip = bet.get("tip") or "Hazai győzelem / gólpiac"
             odds = bet.get("odds")
             odds_float = _odds_to_float(odds)
