@@ -154,6 +154,41 @@ def _confidence_to_stars(conf: Any) -> str:
     return "⭐" * c + f" ({c}/5)"
 
 
+def _is_double_chance_tip(tip: str) -> bool:
+    """
+    Eldönti, hogy a tipp dupla esély-e (1X, X2, 12, hazai vagy döntetlen, stb.).
+    """
+    t = (tip or "").lower()
+    patterns = [
+        "1x",
+        "x2",
+        "12",
+        "hazai vagy döntetlen",
+        "vendég vagy döntetlen",
+        "döntetlen vagy hazai",
+        "döntetlen vagy vendég",
+    ]
+    return any(p in t for p in patterns)
+
+
+def _make_more_aggressive_tip(tip: str) -> str:
+    """
+    Dupla esélyből csinál 'egyszínű' tippet:
+      - 'hazai vagy döntetlen' -> 'Hazai győzelem'
+      - 'vendég vagy döntetlen' -> 'Vendég győzelem'
+    Ha nem felismerhető, visszaadja az eredetit.
+    """
+    t = (tip or "").lower()
+    if "hazai" in t and "döntetlen" in t or "1x" in t:
+        return "Hazai győzelem"
+    if "vendég" in t and "döntetlen" in t or "x2" in t:
+        return "Vendég győzelem"
+    if "12" in t:
+        # ha csak annyi van, hogy "12", tegyük hazai győzelemre
+        return "Hazai győzelem"
+    return tip
+
+
 def _build_public_text(data: Dict[str, Any]) -> str:
     today = datetime.date.today().strftime("%Y.%m.%d.")
     public_bets = data.get("public_bets") or []
@@ -278,16 +313,33 @@ def _build_vip_text(data: Dict[str, Any]) -> str:
 
 def _build_simple_bet_from_match(match: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Ha az AI nem ad elég tippet, mi gyártunk egy óvatos, 'stabil' jellegű sort,
-    hogy mindig legyen valami lehetőség.
+    FREE fallback: ha az AI nem ad elég tippet, mi gyártunk egy óvatos, 'stabil' jellegű sort.
+    (Itt még maradhat 1X jellegű gondolat.)
     """
     desc = _format_match_for_prompt(match)
     return {
         "match": desc,
-        "tip": "Óvatos fogadás: hazai nem kap ki (1X) vagy 1.5 felett gól (óvatos tartomány).",
+        "tip": "Óvatos fogadás: hazai nem kap ki vagy 1.5 felett gól (óvatos tartomány).",
         "odds": 1.40,
         "confidence": 3,
         "reason": "Hazai pálya vagy jobb forma miatt óvatos, stabil jellegű tipp.",
+    }
+
+
+def _build_vip_fallback_bet(match: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    VIP fallback tipp, SOHA nem dupla esély.
+    Egyszerű, de egyértelmű piac: hazai győzelem vagy over 2.5 gól.
+    """
+    desc = _format_match_for_prompt(match)
+    # nagyon primitív logika: ha "vs" előtti rész pl. hazai csapat nevét tartalmazza,
+    # adhatunk "Hazai győzelem"-et, de ez csak fallback, stat nélkül is elmegy.
+    return {
+        "match": desc,
+        "tip": "Hazai győzelem",
+        "odds": 1.80,
+        "confidence": 3,
+        "reason": "Hazai pálya előnye és alapvetően erősebb keret miatt vállalható VIP tipp.",
     }
 
 
@@ -304,8 +356,12 @@ def _ensure_min_bets(data: Dict[str, Any], matches: List[Dict[str, Any]]) -> Dic
     Gondoskodik róla, hogy mindig legyen legalább:
       - 3 FREE tipp
       - 5 VIP tipp (ha van elég meccs)
-    Ha az AI üres vagy kevés tippet ad, mi töltjük fel óvatos tippekkel.
-    Plusz kicsit kitakarítjuk a reason szövegeket.
+
+    Szabályok:
+      - FREE-ben maradhat dupla esély, de NE legyen mind a 3 ilyen:
+        ha több mint 1 dupla esély van, a 2..n-t átírjuk tiszta 1 / 2 tippé.
+      - VIP-ben NINCS dupla esély: minden 1X / X2 / 12 típusú tippet eldobjuk,
+        és fallback VIP tippekkel pótoljuk.
     """
     public = data.get("public_bets") or []
     vip = data.get("vip_bets") or []
@@ -314,6 +370,18 @@ def _ensure_min_bets(data: Dict[str, Any], matches: List[Dict[str, Any]]) -> Dic
     for bet in public + vip:
         if "reason" in bet:
             bet["reason"] = _truncate_reason(str(bet.get("reason", "")))
+
+    # --- FREE: dupla esély limitálása (max 1) ---
+    double_chance_indices = []
+    for idx, bet in enumerate(public):
+        if _is_double_chance_tip(str(bet.get("tip", ""))):
+            double_chance_indices.append(idx)
+
+    # Ha 2 vagy több dupla esély, az első marad, a többit átírjuk agresszívebbre
+    if len(double_chance_indices) > 1:
+        for idx in double_chance_indices[1:]:
+            tip_old = str(public[idx].get("tip", ""))
+            public[idx]["tip"] = _make_more_aggressive_tip(tip_old)
 
     # PUBLIC – töltsük fel 3-ig, ha kevesebb van
     already_used_public = {b.get("match") for b in public}
@@ -327,7 +395,17 @@ def _ensure_min_bets(data: Dict[str, Any], matches: List[Dict[str, Any]]) -> Dic
         public.append(bet)
         already_used_public.add(desc)
 
-    # VIP – töltsük fel 5-ig
+    # --- VIP: dupla esély TILOS ---
+    vip_filtered: List[Dict[str, Any]] = []
+    for bet in vip:
+        tip = str(bet.get("tip", ""))
+        if _is_double_chance_tip(tip):
+            # ezt kidobjuk, mert dupla esély
+            continue
+        vip_filtered.append(bet)
+    vip = vip_filtered
+
+    # VIP – töltsük fel 5-ig fallback VIP tippekkel
     already_used_vip = {b.get("match") for b in vip}
     for m in matches:
         if len(vip) >= VIP_MIN_TIPS:
@@ -335,7 +413,7 @@ def _ensure_min_bets(data: Dict[str, Any], matches: List[Dict[str, Any]]) -> Dic
         desc = _format_match_for_prompt(m)
         if desc in already_used_vip:
             continue
-        bet = _build_simple_bet_from_match(m)
+        bet = _build_vip_fallback_bet(m)
         vip.append(bet)
         already_used_vip.add(desc)
 
@@ -381,13 +459,7 @@ Feladatod:
 2) VIP (vip_bets):
    - Válaszd ki a legjobb LEGALÁBB 5 és legfeljebb 7 mérkőzést.
    - Itt lehet bátrabb az odds, de NE adj dupla esély tippeket.
-   - VIP-ben NE használj ilyeneket: "1X", "X2", "12".
-   - VIP-be inkább konkrét piacokat adj:
-        * "Hazai győzelem"
-        * "Vendég győzelem"
-        * "Over 2.5 gól"
-        * "Mindkét csapat szerez gólt"
-        * "Hazai 1.5 felett gól", stb.
+   - VIP-ben NE használj ilyeneket: "1X", "X2", "12", "hazai vagy döntetlen", "vendég vagy döntetlen".
 
 3) Minden kiválasztott meccshez add meg:
    - match: rövid leírás pl. "Manchester United vs West Ham (Premier League, 20:00)"
