@@ -1,18 +1,18 @@
 import os
 import json
-from pathlib import Path
-from typing import Any, Dict, Tuple
+import datetime
+from typing import Any, Dict, List, Tuple
 
 import requests
 
-from bot.results import evaluate_bets, build_daily_report_text
 
-DATA_DIR = Path(__file__).resolve().parent / "data"
+# --- TELEGRAM KÜLDŐ -------------------------------------------------
 
 
 def send_telegram_message(token: str, chat_id: str, text: str, label: str) -> Tuple[bool, str]:
     """
-    Ugyanaz a Telegram küldő, mint a main.py-ban, csak itt a recaphez használjuk.
+    Egyszerű Telegram küldés + részletes log.
+    Visszaadja: (sikeres-e, hiba_szöveg_vagy_üres).
     """
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload: Dict[str, Any] = {
@@ -53,71 +53,241 @@ def send_telegram_message(token: str, chat_id: str, text: str, label: str) -> Tu
     return True, ""
 
 
-def _load_bets_from_json(filename: str):
+# --- API-FOOTBALL (api-sports.io) EREDMÉNY LEKÉRÉS ------------------
+
+
+SPORTS_API_KEY = os.getenv("SPORTS_API_KEY")
+
+
+def fetch_fixture_result(fixture_id: int) -> Tuple[int | None, int | None, str]:
     """
-    Beolvassa a public_bets.json / vip_bets.json fájlokat.
-    Visszaad: (date_str, bets_list)
+    Visszaadja: (home_goals, away_goals, status_short)
+    Ha hiba van, minden None / "ERR".
     """
-    path = DATA_DIR / filename
-    if not path.exists():
-        print(f"Figyelem: {filename} nem található ({path}).")
-        return None, []
+    if not SPORTS_API_KEY:
+        print("Nincs SPORTS_API_KEY beállítva, nem tudok eredményt lekérni.")
+        return None, None, "ERR"
+
+    url = "https://v3.football.api-sports.io/fixtures"
+    headers = {
+        "x-apisports-key": SPORTS_API_KEY,
+    }
+    params = {"id": fixture_id}
 
     try:
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        date_str = data.get("date")
-        bets = data.get("bets", [])
-        return date_str, bets
+        resp = requests.get(url, headers=headers, params=params, timeout=20)
     except Exception as e:
-        print(f"Hiba a {filename} beolvasásakor:", repr(e))
-        return None, []
+        print(f"Fixture {fixture_id} lekérési hiba:", repr(e))
+        return None, None, "ERR"
+
+    if resp.status_code != 200:
+        print(f"Fixture {fixture_id} HTTP hiba:", resp.status_code, resp.text)
+        return None, None, "ERR"
+
+    try:
+        data = resp.json()
+    except Exception as e:
+        print("JSON hiba fixture resultnál:", repr(e))
+        return None, None, "ERR"
+
+    if not data.get("response"):
+        print(f"Fixture {fixture_id} üres response.")
+        return None, None, "ERR"
+
+    item = data["response"][0]
+    goals = item.get("goals") or {}
+    fixture = item.get("fixture") or {}
+    status = (fixture.get("status") or {}).get("short") or "UNK"
+
+    home_goals = goals.get("home")
+    away_goals = goals.get("away")
+    return home_goals, away_goals, status
+
+
+# --- TIPP KIÉRTÉKELÉS -----------------------------------------------
+
+
+def _evaluate_tip(tip: str, home_goals: int | None, away_goals: int | None, status: str) -> str:
+    """
+    Visszatér: 'win', 'lose' vagy 'pending'.
+
+    Csak néhány alap tippet ismer:
+      - Hazai győzelem / Vendég győzelem / Döntetlen
+      - 1X / X2 / 12, 'hazai vagy döntetlen' stb.
+      - Over/Under 2.5 gól
+      - Mindkét csapat szerez gólt
+    Ha a meccs még nincs kész, 'pending'.
+    Ismeretlen tippre is 'pending'.
+    """
+    t = (tip or "").lower().strip()
+
+    if home_goals is None or away_goals is None:
+        return "pending"
+
+    if status not in {"FT", "AET", "PEN"}:
+        return "pending"
+
+    total_goals = home_goals + away_goals
+
+    # 1X2 alap
+    if "hazai" in t and "győzelem" in t and "vagy" not in t:
+        return "win" if home_goals > away_goals else "lose"
+
+    if ("vendég" in t or "idegen" in t) and "győzelem" in t and "vagy" not in t:
+        return "win" if away_goals > home_goals else "lose"
+
+    if "döntetlen" in t and "vagy" not in t:
+        return "win" if home_goals == away_goals else "lose"
+
+    # dupla esély
+    if "1x" in t or ("hazai" in t and "döntetlen" in t):
+        return "win" if home_goals >= away_goals else "lose"
+
+    if "x2" in t or ("vendég" in t and "döntetlen" in t):
+        return "win" if away_goals >= home_goals else "lose"
+
+    if "12" in t:
+        return "win" if home_goals != away_goals else "lose"
+
+    # Over / Under 2.5 gól
+    if "over 2.5" in t or "2.5 gól felett" in t or "2,5 gól felett" in t:
+        return "win" if total_goals > 2.5 else "lose"
+
+    if "under 2.5" in t or "2.5 gól alatt" in t or "2,5 gól alatt" in t:
+        return "win" if total_goals < 2.5 else "lose"
+
+    # BTTS – Mindkét csapat szerez gólt
+    if "mindkét csapat szerez gólt" in t or "btts" in t:
+        return "win" if home_goals > 0 and away_goals > 0 else "lose"
+
+    # ha semmit nem ismertünk fel:
+    return "pending"
+
+
+def _load_bets(path: str) -> List[Dict[str, Any]]:
+    if not os.path.exists(path):
+        print(f"{path} nem létezik, nem tudok belőle olvasni.")
+        return []
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Hiba a {path} beolvasásánál:", repr(e))
+        return []
+
+
+def _build_recap_text(label: str, bets: List[Dict[str, Any]]) -> str:
+    """
+    Egy listányi tippből recap szöveget csinál.
+    """
+    today = datetime.date.today().strftime("%Y.%m.%d.")
+    lines: List[str] = []
+
+    win = lose = pend = 0
+
+    for idx, bet in enumerate(bets, start=1):
+        match = bet.get("match") or "Ismeretlen meccs"
+        tip = bet.get("tip") or "N/A"
+        fixture_id = bet.get("fixture_id")
+
+        if not fixture_id:
+            status_emoji = "❓"
+            result_text = "Nincs fixture_id, nem tudtam kiértékelni."
+            pend += 1
+        else:
+            try:
+                fixture_id_int = int(fixture_id)
+            except Exception:
+                fixture_id_int = None
+
+            if fixture_id_int is None:
+                status_emoji = "❓"
+                result_text = "Érvénytelen fixture_id, nem tudtam kiértékelni."
+                pend += 1
+            else:
+                home_goals, away_goals, status = fetch_fixture_result(fixture_id_int)
+
+                if home_goals is None or away_goals is None:
+                    status_emoji = "❓"
+                    result_text = f"Nem elérhető eredmény (status={status})."
+                    pend += 1
+                else:
+                    outcome = _evaluate_tip(tip, home_goals, away_goals, status)
+                    score_str = f"{home_goals}–{away_goals}"
+
+                    if outcome == "win":
+                        status_emoji = "✅"
+                        result_text = f"Nyert ({score_str})"
+                        win += 1
+                    elif outcome == "lose":
+                        status_emoji = "❌"
+                        result_text = f"Vesztett ({score_str})"
+                        lose += 1
+                    else:
+                        status_emoji = "⏳"
+                        result_text = f"Még nincs végeredmény vagy nem értelmezett piac ({score_str})"
+                        pend += 1
+
+        lines.append(
+            f"{idx}. {match}\n"
+            f"Tipp: {tip}\n"
+            f"Eredmény: {status_emoji} {result_text}"
+        )
+
+    total_played = win + lose
+    hit_rate = (win / total_played * 100) if total_played > 0 else 0.0
+
+    header = (
+        f"📊 SZELVÉNYKIRÁLY – NAPI MÉRLEG ({label})\n"
+        f"Dátum: {today}\n\n"
+    )
+
+    summary = (
+        f"Összefoglaló:\n"
+        f"✅ Nyertes tippek: {win}\n"
+        f"❌ Vesztes tippek: {lose}\n"
+        f"⏳ Függő / nem értékelt: {pend}\n"
+        f"🎯 Találati arány (csak eldöntött tippek): {hit_rate:.1f}%\n\n"
+    )
+
+    body = "\n\n".join(lines) if lines else "Ma nem találtam kiértékelhető tippet ebben a kategóriában."
+
+    return header + summary + body
+
+
+# --- FŐFÜGGVÉNY -----------------------------------------------------
 
 
 def main() -> None:
     telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
-    # Döntsd el, hova menjen a napi mérleg – pl. VIP csatornába:
-    recap_chat_id = os.getenv("TELEGRAM_VIP_CHAT_ID") or os.getenv("TELEGRAM_PUBLIC_CHAT_ID")
+    public_chat_id = os.getenv("TELEGRAM_PUBLIC_CHAT_ID")
+    vip_chat_id = os.getenv("TELEGRAM_VIP_CHAT_ID")
 
-    print("\n=== NAPI MÉRLEG FUTÁS – TELEGRAM BEÁLLÍTÁSOK ===")
+    print("=== DAILY RECAP INDUL ===")
     print("TELEGRAM_BOT_TOKEN be van állítva:", bool(telegram_token))
-    print("RECAP_CHAT_ID =", repr(recap_chat_id))
 
     if not telegram_token:
-        print("NINCS TELEGRAM_BOT_TOKEN, kilépek.")
-        return
-    if not recap_chat_id:
-        print("NINCS TELEGRAM_VIP_CHAT_ID vagy TELEGRAM_PUBLIC_CHAT_ID, kilépek.")
+        print("Nincs TELEGRAM_BOT_TOKEN, kilépek.")
         return
 
-    # 1) Public + VIP tippek beolvasása
-    date_public, public_bets = _load_bets_from_json("public_bets.json")
-    date_vip, vip_bets = _load_bets_from_json("vip_bets.json")
+    public_bets = _load_bets("public_bets.json")
+    vip_bets = _load_bets("vip_bets.json")
 
-    date_str = date_public or date_vip
-    if not date_str:
-        print("Nem található dátum egyik JSON-ban sem – valószínűleg még nem futott a main.py.")
+    if not public_bets and not vip_bets:
+        print("Nincs public_bets.json és vip_bets.json sem – nincs mit kiértékelni.")
         return
 
-    # 2) Kiértékelés (win/lose/pending/unknown)
-    public_summary = evaluate_bets(public_bets)
-    vip_summary = evaluate_bets(vip_bets)
+    # FREE recap (ha van tipp ÉS van public chat id)
+    if public_bets and public_chat_id:
+        text_public = _build_recap_text("FREE", public_bets)
+        send_telegram_message(telegram_token, public_chat_id, text_public, "RECAP_PUBLIC")
 
-    # 3) Napi mérleg szöveg generálása
-    recap_text = build_daily_report_text(date_str, public_summary, vip_summary)
+    # VIP recap (ha van tipp ÉS VIP chat id)
+    if vip_bets and vip_chat_id:
+        text_vip = _build_recap_text("VIP", vip_bets)
+        send_telegram_message(telegram_token, vip_chat_id, text_vip, "RECAP_VIP")
 
-    # 4) Üzenet küldése Telegramra
-    ok, err = send_telegram_message(
-        token=telegram_token,
-        chat_id=recap_chat_id,
-        text=recap_text,
-        label="DAILY_RECAP",
-    )
-
-    if not ok:
-        print("Hiba a napi mérleg üzenet küldésekor:", err)
-    else:
-        print("Napi mérleg üzenet elküldve.")
+    print("=== DAILY RECAP VÉGE ===")
 
 
 if __name__ == "__main__":
