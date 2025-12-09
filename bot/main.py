@@ -75,8 +75,36 @@ def main() -> None:
     matches = fetch_matches_for_today()
     print(f"Talált meccsek száma: {len(matches)}")
 
+    # Ha az API 0 meccset ad vissza, NEM tippelünk hasraütésre.
+    # Ilyenkor is küldünk üzenetet, hogy TECHNIKAI okból nincs tipp – nem marad csend.
     if not matches:
-        print("Nincsenek meccsek mára, nem küldök tippet.")
+        no_match_text = (
+            "👑 SZELVÉNYKIRÁLY – TECHNIKAI NAP 👑\n"
+            f"({today.strftime('%Y.%m.%d.')})\n\n"
+            "A mai napon a sportadat API nem adott használható mérkőzéslistát, "
+            "ezért NEM adok mesterséges vagy kitalált tippeket.\n\n"
+            "A bot csak valós, statisztikailag értékelhető meccsekre ad elemzést. "
+            "Holnap újra nekimegyünk az igazi adatok alapján. 🤝"
+        )
+
+        # Free csatorna értesítés
+        if public_chat_id:
+            send_telegram_message(
+                token=telegram_token,
+                chat_id=public_chat_id,
+                text=no_match_text,
+                label="PUBLIC_NO_MATCH",
+            )
+
+        # VIP csatorna értesítés
+        if vip_chat_id:
+            send_telegram_message(
+                token=telegram_token,
+                chat_id=vip_chat_id,
+                text=no_match_text,
+                label="VIP_NO_MATCH",
+            )
+
         return
 
     # 2) Tipp generálás (OpenAI + fallback)
