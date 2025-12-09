@@ -1,0 +1,38 @@
+[
+  {
+    "match": "Manchester City vs Arsenal (Premier League, 20:00) [ID=11223]",
+    "fixture_id": 11223,
+    "tip": "Over 2.5 gól",
+    "odds": 2.1,
+    "risk": "medium",
+    "confidence": 4,
+    "reason": "Mindkét gárda erős támadójátékkal bír, a meccs gyakran hoz sok gólt."
+  },
+  {
+    "match": "New York Knicks vs Boston Celtics (NBA, 02:00) [ID=33445]",
+    "fixture_id": 33445,
+    "tip": "Boston Celtics győzelem",
+    "odds": 1.95,
+    "risk": "medium",
+    "confidence": 4,
+    "reason": "Celtics jobb formában, Knicks több kulcsjátékosát nélkülözi sérülés miatt."
+  },
+  {
+    "match": "Toronto Maple Leafs vs Montreal Canadiens (NHL, 01:00) [ID=55667]",
+    "fixture_id": 55667,
+    "tip": "Hazai győzelem",
+    "odds": 1.8,
+    "risk": "medium",
+    "confidence": 4,
+    "reason": "Toronto otthon erős, Montreal idegenben gyengélkedik, stabil védekezés várható."
+  },
+  {
+    "match": "Paris Saint-Germain vs Lyon (Ligue 1, 21:00) [ID=99001]",
+    "fixture_id": 99001,
+    "tip": "PSG győzelem és over 2.5 gól",
+    "odds": 2.3,
+    "risk": "medium",
+    "confidence": 3,
+    "reason": "PSG otthon agresszív támadójátékot mutat, Lyon védekezése nem mindig stabil."
+  }
+]

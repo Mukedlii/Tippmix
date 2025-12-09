@@ -1,0 +1,20 @@
+[
+  {
+    "match": "Barcelona vs Sevilla (La Liga, 21:00) [ID=54321]",
+    "fixture_id": 54321,
+    "tip": "Hazai győzelem",
+    "odds": 1.7,
+    "risk": "low",
+    "confidence": 4,
+    "reason": "Barcelona hazai pályán erős, Sevilla idegenben gyengébben teljesít, stabil forma a katalánoknál."
+  },
+  {
+    "match": "Bayern München vs Borussia Dortmund (Bundesliga, 18:30) [ID=98765]",
+    "fixture_id": 98765,
+    "tip": "Mindkét csapat szerez gólt",
+    "odds": 1.85,
+    "risk": "low",
+    "confidence": 4,
+    "reason": "Mindkét csapat támadó szellemben játszik, gyakori a gólváltás ebben a rangadóban."
+  }
+]
