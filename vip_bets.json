@@ -1,38 +1,47 @@
 [
   {
-    "match": "Manchester City vs Arsenal (Premier League, 20:00) [ID=11223]",
-    "fixture_id": 11223,
-    "tip": "Over 2.5 gól",
-    "odds": 2.1,
-    "risk": "medium",
-    "confidence": 4,
-    "reason": "Mindkét gárda erős támadójátékkal bír, a meccs gyakran hoz sok gólt."
-  },
-  {
-    "match": "New York Knicks vs Boston Celtics (NBA, 02:00) [ID=33445]",
-    "fixture_id": 33445,
-    "tip": "Boston Celtics győzelem",
+    "match": "Manchester United vs West Ham (Premier League, 20:00) [ID=33012]",
+    "fixture_id": 33012,
+    "tip": "Hazai győzelem",
     "odds": 1.95,
     "risk": "medium",
     "confidence": 4,
-    "reason": "Celtics jobb formában, Knicks több kulcsjátékosát nélkülözi sérülés miatt."
+    "reason": "MU hazai pályán jobb formában, West Ham több sérülttel, motiváció nagy a pontszerzésre."
   },
   {
-    "match": "Toronto Maple Leafs vs Montreal Canadiens (NHL, 01:00) [ID=55667]",
-    "fixture_id": 55667,
-    "tip": "Hazai győzelem",
+    "match": "Bayern München vs Borussia Dortmund (Bundesliga, 18:30) [ID=44022]",
+    "fixture_id": 44022,
+    "tip": "Mindkét csapat szerez gólt",
     "odds": 1.8,
     "risk": "medium",
     "confidence": 4,
-    "reason": "Toronto otthon erős, Montreal idegenben gyengélkedik, stabil védekezés várható."
+    "reason": "Két erős támadó csapat, rendszeresen betalálnak egymásnak, szoros meccs várható."
   },
   {
-    "match": "Paris Saint-Germain vs Lyon (Ligue 1, 21:00) [ID=99001]",
-    "fixture_id": 99001,
-    "tip": "PSG győzelem és over 2.5 gól",
-    "odds": 2.3,
+    "match": "Toronto Maple Leafs vs Montreal Canadiens (NHL, 01:00) [ID=55033]",
+    "fixture_id": 55033,
+    "tip": "Hazai győzelem",
+    "odds": 2.1,
     "risk": "medium",
     "confidence": 3,
-    "reason": "PSG otthon agresszív támadójátékot mutat, Lyon védekezése nem mindig stabil."
+    "reason": "Maple Leafs otthon stabilabb, Canadiens sérültek miatt gyengébb kerettel."
+  },
+  {
+    "match": "Paris Saint-Germain vs Lyon (Ligue 1, 21:00) [ID=66044]",
+    "fixture_id": 66044,
+    "tip": "Over 2.5 gól",
+    "odds": 2.0,
+    "risk": "medium",
+    "confidence": 4,
+    "reason": "PSG erős támadósorral, Lyon is képes gólt szerezni, gyakori magas gólszám a párharcaikban."
+  },
+  {
+    "match": "Golden State Warriors vs Los Angeles Lakers (NBA, 04:00) [ID=77055]",
+    "fixture_id": 77055,
+    "tip": "Golden State győzelem",
+    "odds": 2.2,
+    "risk": "medium",
+    "confidence": 3,
+    "reason": "Warriors hazai pályán formában, Lakers kulcsjátékosai hiányoznak sérülés miatt."
   }
 ]

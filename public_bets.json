@@ -1,20 +1,20 @@
 [
   {
-    "match": "Barcelona vs Sevilla (La Liga, 21:00) [ID=54321]",
-    "fixture_id": 54321,
+    "match": "Real Madrid vs Sevilla (La Liga, 21:00) [ID=11001]",
+    "fixture_id": 11001,
     "tip": "Hazai győzelem",
     "odds": 1.7,
     "risk": "low",
     "confidence": 4,
-    "reason": "Barcelona hazai pályán erős, Sevilla idegenben gyengébben teljesít, stabil forma a katalánoknál."
+    "reason": "Real Madrid otthon erős, Sevilla több kulcsjátékos nélkül, stabil forma a hazaiaknál."
   },
   {
-    "match": "Bayern München vs Borussia Dortmund (Bundesliga, 18:30) [ID=98765]",
-    "fixture_id": 98765,
-    "tip": "Mindkét csapat szerez gólt",
+    "match": "Boston Celtics vs Miami Heat (NBA, 02:00) [ID=22045]",
+    "fixture_id": 22045,
+    "tip": "Over 210.5 pont",
     "odds": 1.85,
     "risk": "low",
     "confidence": 4,
-    "reason": "Mindkét csapat támadó szellemben játszik, gyakori a gólváltás ebben a rangadóban."
+    "reason": "Mindkét csapat támadó formában, erős ponttermelés, gyors tempójú mérkőzés várható."
   }
 ]
