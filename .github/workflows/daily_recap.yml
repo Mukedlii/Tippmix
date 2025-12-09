@@ -1,33 +1,41 @@
 name: Szelvenykiraly Daily Recap
 
 on:
-  # kézzel is indítható
+  # Kézi indítás GitHubról (Run workflow gomb)
   workflow_dispatch:
 
-  # minden nap 21:00 UTC (kb. 22:00 magyar idő télen)
+  # AUTOMATA IDŐZÍTÉS
+  # 22:30 magyar idő ≈ 21:30 UTC
   schedule:
-    - cron: "0 21 * * *"
+    - cron: "30 21 * * *"
 
 jobs:
   run-daily-recap:
     runs-on: ubuntu-latest
 
     steps:
+      # Repo letöltése
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      # Python környezet
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
+      # Python csomagok
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
+      # Napi mérleg bot futtatása
       - name: Run daily recap bot
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
           TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
           SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
-        run: python -m bot.daily_recap_main
+        run: |
+          python -m bot.daily_recap_main
