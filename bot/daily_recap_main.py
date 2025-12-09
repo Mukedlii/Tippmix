@@ -110,14 +110,6 @@ def fetch_fixture_result(fixture_id: int) -> Tuple[int | None, int | None, str]:
 def _evaluate_tip(tip: str, home_goals: int | None, away_goals: int | None, status: str) -> str:
     """
     Visszatér: 'win', 'lose' vagy 'pending'.
-
-    Csak néhány alap tippet ismer:
-      - Hazai győzelem / Vendég győzelem / Döntetlen
-      - 1X / X2 / 12, 'hazai vagy döntetlen' stb.
-      - Over/Under 2.5 gól
-      - Mindkét csapat szerez gólt
-    Ha a meccs még nincs kész, 'pending'.
-    Ismeretlen tippre is 'pending'.
     """
     t = (tip or "").lower().strip()
 
@@ -273,8 +265,19 @@ def main() -> None:
     public_bets = _load_bets("public_bets.json")
     vip_bets = _load_bets("vip_bets.json")
 
+    # ⬇️ ÚJ: ha semmilyen JSON nincs, akkor is küldünk egy rövid infót VIP-re
     if not public_bets and not vip_bets:
         print("Nincs public_bets.json és vip_bets.json sem – nincs mit kiértékelni.")
+        today = datetime.date.today().strftime("%Y.%m.%d.")
+        text = (
+            "📊 SZELVÉNYKIRÁLY – NAPI MÉRLEG 📊\n"
+            f"{today}\n\n"
+            "Ma nem találtam elmentett tippeket (valószínűleg nem futott a fő bot, "
+            "vagy technikai/pihenő nap volt).\n"
+            "Holnap újra nekimegyünk! 🤝"
+        )
+        if vip_chat_id:
+            send_telegram_message(telegram_token, vip_chat_id, text, "RECAP_EMPTY")
         return
 
     # FREE recap (ha van tipp ÉS van public chat id)
