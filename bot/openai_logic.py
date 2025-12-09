@@ -18,7 +18,6 @@ VIP_MIN_TIPS = 5
 def _format_match_for_prompt(match: Dict[str, Any]) -> str:
     """
     Meccs objektumot rövid, szöveges sorra alakítjuk.
-    Nem baj, ha nem tökéletes – a lényeg, hogy érthető legyen a modellnek.
     Ha van fixture_id, azt [ID=...] formában tesszük a végére.
     """
     sport = match.get("sport") or match.get("sport_name") or "football"
@@ -86,6 +85,7 @@ def _derive_risk_level(conf: Any, odds_float: float | None) -> str:
       - 'low'    -> zöld
       - 'medium' -> narancs
       - 'high'   -> piros
+
     Logika:
       - nagyon alacsony odds (~1.40 alatt) lehet zöld, ha a bizalom is magas
       - 1.4–1.8 között többnyire közepes, ritkán zöld
@@ -219,12 +219,6 @@ def _build_public_text(data: Dict[str, Any]) -> str:
         lines: List[str] = []
         for i, bet in enumerate(public_bets, start=1):
             match = bet.get("match") or "Ismeretlen meccs"
-
-            # <<< ÚJ: ha van fixture_id, fűzzük hozzá az ID-t >>>
-            fixture_id = bet.get("fixture_id")
-            if fixture_id and "[ID=" not in match:
-                match = f"{match} [ID={fixture_id}]"
-
             tip = bet.get("tip") or "Hazai győzelem"
             odds = bet.get("odds")
             odds_float = _odds_to_float(odds)
@@ -280,12 +274,6 @@ def _build_vip_text(data: Dict[str, Any]) -> str:
 
         for i, bet in enumerate(vip_bets, start=1):
             match = bet.get("match") or "Ismeretlen meccs"
-
-            # <<< ÚJ: itt is fűzzük hozzá az ID-t >>>
-            fixture_id = bet.get("fixture_id")
-            if fixture_id and "[ID=" not in match:
-                match = f"{match} [ID={fixture_id}]"
-
             tip = bet.get("tip") or "Hazai győzelem / gólpiac"
             odds = bet.get("odds")
             odds_float = _odds_to_float(odds)
@@ -341,10 +329,13 @@ def _build_vip_text(data: Dict[str, Any]) -> str:
 def _build_simple_bet_from_match(match: Dict[str, Any]) -> Dict[str, Any]:
     """
     FREE fallback: ha az AI nem ad elég tippet, mi gyártunk egy stabilabb sort.
+    Itt MÁR mentjük a fixture_id-t is, hogy a napi recap ki tudja értékelni.
     """
     desc = _format_match_for_prompt(match)
+    fixture_id = match.get("fixture_id") or match.get("id")
     return {
         "match": desc,
+        "fixture_id": fixture_id,
         "tip": "Hazai győzelem",
         "odds": 1.40,
         "confidence": 3,
@@ -356,10 +347,13 @@ def _build_vip_fallback_bet(match: Dict[str, Any]) -> Dict[str, Any]:
     """
     VIP fallback tipp, SOHA nem dupla esély.
     Egyszerű, de egyértelmű piac: hazai győzelem.
+    Itt is mentjük a fixture_id-t a recaphez.
     """
     desc = _format_match_for_prompt(match)
+    fixture_id = match.get("fixture_id") or match.get("id")
     return {
         "match": desc,
+        "fixture_id": fixture_id,
         "tip": "Hazai győzelem",
         "odds": 1.80,
         "confidence": 3,
