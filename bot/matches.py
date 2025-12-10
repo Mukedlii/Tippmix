@@ -1,163 +1,203 @@
 import os
 import datetime
-from typing import List, Dict, Any
+from typing import Any, Dict, List, Tuple
 
 import requests
 
-SPORT_API_KEY = os.getenv("SPORT_API_KEY")
+SPORTS_API_KEY = os.getenv("SPORTS_API_KEY")
+BASE_URL = "https://v3.football.api-sports.io"
 
-FOOTBALL_BASE_URL = "https://v3.football.api-sports.io"
-BASKETBALL_BASE_URL = "https://v1.basketball.api-sports.io"
-
-
-class ApiSportsError(RuntimeError):
-    pass
+# Ennyi meccset „gazdagon” elemzünk (form + gólátlag)
+MAX_ENRICHED_FIXTURES = 10
 
 
-def _api_get(base_url: str, path: str, params: Dict[str, Any]) -> Dict[str, Any]:
+def _api_get(path: str, params: Dict[str, Any] | None = None) -> Dict[str, Any]:
     """
-    Egységes GET wrapper az API-SPORTS-hoz.
+    Egyszerű GET wrapper az api-football-hoz.
     """
-    if not SPORT_API_KEY:
-        raise ApiSportsError("Hiányzik a SPORT_API_KEY környezeti változó.")
+    if not SPORTS_API_KEY:
+        raise RuntimeError("SPORTS_API_KEY nincs beállítva.")
 
+    url = BASE_URL + path
     headers = {
-        "x-apisports-key": SPORT_API_KEY,
+        "x-apisports-key": SPORTS_API_KEY,
     }
 
-    url = base_url.rstrip("/") + path
-    resp = requests.get(url, headers=headers, params=params, timeout=20)
+    resp = requests.get(url, headers=headers, params=params or {}, timeout=20)
     resp.raise_for_status()
-    data = resp.json()
+    try:
+        data = resp.json()
+    except Exception as e:
+        raise RuntimeError(f"API JSON hiba: {repr(e)}")
 
     if data.get("errors"):
-        raise ApiSportsError(f"API hiba: {data['errors']}")
+        # api-sports tipikus hiba mező
+        raise RuntimeError(f"API error: {data['errors']}")
 
     return data
 
 
-def _get_football_matches_for_date(date_str: str) -> List[Dict[str, Any]]:
+def _get_fixtures_for_today() -> List[Dict[str, Any]]:
     """
-    AZ ÖSSZES mai focimeccs lekérése (nem csak top ligák).
+    Mai focimeccsek lekérése api-football-ból.
+    Csak 'football' sport, napi dátum alapján.
     """
-    matches: List[Dict[str, Any]] = []
+    today = datetime.date.today().isoformat()
+
+    params = {
+        "date": today,
+        "timezone": "Europe/Budapest",
+    }
+
+    data = _api_get("/fixtures", params)
+    fixtures = data.get("response", []) or []
+    print(f"_get_fixtures_for_today: {len(fixtures)} raw fixture")
+
+    return fixtures
+
+
+def _get_team_stats(
+    league_id: int,
+    season: int,
+    team_id: int,
+    cache: Dict[Tuple[int, int, int], Dict[str, Any]],
+) -> Dict[str, Any]:
+    """
+    Egy csapat ligastatisztikája:
+      - form (pl. 'WDWLW')
+      - átlag lőtt gól (total)
+      - átlag kapott gól (total)
+
+    Cache-t használunk (league_id, season, team_id) kulcson,
+    hogy ne hívjuk fölöslegesen az API-t.
+    """
+    key = (league_id, season, team_id)
+    if key in cache:
+        return cache[key]
+
+    params = {
+        "league": league_id,
+        "season": season,
+        "team": team_id,
+    }
 
     try:
-        data = _api_get(
-            FOOTBALL_BASE_URL,
-            "/fixtures",
-            {
-                "date": date_str,
-            },
-        )
+        data = _api_get("/teams/statistics", params)
     except Exception as e:
-        print(f"Foci lekérés hiba: {repr(e)}")
-        return matches
+        print(f"_get_team_stats hiba (team={team_id}, league={league_id}):", repr(e))
+        cache[key] = {}
+        return cache[key]
 
-    for item in data.get("response", []):
-        fixture = item.get("fixture", {})
-        league = item.get("league", {})
-        teams = item.get("teams", {})
+    resp = data.get("response") or {}
+    form = resp.get("form")  # pl. "WDWLW"
+    goals = resp.get("goals") or {}
+    goals_for = (goals.get("for") or {}).get("average") or {}
+    goals_against = (goals.get("against") or {}).get("average") or {}
 
-        home_team = teams.get("home", {}).get("name")
-        away_team = teams.get("away", {}).get("name")
-        fixture_id = fixture.get("id")
-        start_time = fixture.get("date")
+    def _to_float(x: Any) -> float | None:
+        if x is None:
+            return None
+        if isinstance(x, (int, float)):
+            return float(x)
+        try:
+            return float(str(x).replace(",", "."))
+        except Exception:
+            return None
 
-        if not home_team or not away_team or not fixture_id:
-            continue
+    avg_for_total = _to_float(goals_for.get("total"))
+    avg_against_total = _to_float(goals_against.get("total"))
 
-        match = {
-            "id": f"football-{fixture_id}",
-            "sport": "football",
-            "league": league.get("name"),
-            "country": league.get("country"),
-            "home": home_team,
-            "away": away_team,
-            "start_time": start_time,
-            "odds": {
-                "home": None,
-                "away": None,
-                "draw": None,
-            },
-            "stats": {
-                "league_id": league.get("id"),
-                "season": league.get("season"),
-            },
-        }
-        matches.append(match)
+    stats = {
+        "form": form,  # pl. "WDWLW"
+        "avg_goals_for": avg_for_total,
+        "avg_goals_against": avg_against_total,
+    }
 
-    return matches
-
-
-def _get_basketball_matches_for_date(date_str: str) -> List[Dict[str, Any]]:
-    """
-    AZ ÖSSZES mai kosármeccs lekérése.
-    """
-    matches: List[Dict[str, Any]] = []
-
-    try:
-        data = _api_get(
-            BASKETBALL_BASE_URL,
-            "/games",
-            {
-                "date": date_str,
-            },
-        )
-    except Exception as e:
-        print(f"Kosár lekérés hiba: {repr(e)}")
-        return matches
-
-    for item in data.get("response", []):
-        league = item.get("league", {})
-        teams = item.get("teams", {})
-        home_team = teams.get("home", {}).get("name")
-        away_team = teams.get("away", {}).get("name")
-        game_id = item.get("id") or item.get("game", {}).get("id")
-        start_time = item.get("date")
-
-        if not home_team or not away_team or not game_id:
-            continue
-
-        match = {
-            "id": f"basketball-{game_id}",
-            "sport": "basketball",
-            "league": league.get("name"),
-            "country": league.get("country"),
-            "home": home_team,
-            "away": away_team,
-            "start_time": start_time,
-            "odds": {
-                "home": None,
-                "away": None,
-                "draw": None,
-            },
-            "stats": {
-                "league_id": league.get("id"),
-            },
-        }
-        matches.append(match)
-
-    return matches
+    cache[key] = stats
+    return stats
 
 
 def fetch_matches_for_today() -> List[Dict[str, Any]]:
     """
-    Összegyűjti a mai foci + kosár meccseket (minden ligából).
+    A main.py innen kapja a feldolgozott meccslistát.
+
+    Egy elem például:
+
+    {
+      "sport": "football",
+      "fixture_id": 123456,
+      "league_name": "Premier League",
+      "country_name": "England",
+      "kickoff_local": "2025-12-06T20:00:00+01:00",
+      "home_team": "Manchester United",
+      "away_team": "West Ham",
+      "home_form": "WDWLW",
+      "away_form": "LLDWD",
+      "home_avg_goals_for": 1.8,
+      "home_avg_goals_against": 1.1,
+      "away_avg_goals_for": 1.2,
+      "away_avg_goals_against": 1.6,
+    }
+
+    Az AI ezeket az extra mezőket is látni fogja a promptban.
     """
-    today = datetime.datetime.utcnow().date()
-    date_str = today.isoformat()
-    print(f"Meccsek lekérése erre a napra: {date_str}")
+    fixtures = _get_fixtures_for_today()
+    matches: List[Dict[str, Any]] = []
 
-    all_matches: List[Dict[str, Any]] = []
+    stats_cache: Dict[Tuple[int, int, int], Dict[str, Any]] = {}
 
-    football_matches = _get_football_matches_for_date(date_str)
-    print(f"Foci meccsek: {len(football_matches)}")
-    all_matches.extend(football_matches)
+    for idx, fx in enumerate(fixtures):
+        fixture = fx.get("fixture") or {}
+        league = fx.get("league") or {}
+        teams = fx.get("teams") or {}
 
-    basketball_matches = _get_basketball_matches_for_date(date_str)
-    print(f"Kosár meccsek: {len(basketball_matches)}")
-    all_matches.extend(basketball_matches)
+        fixture_id = fixture.get("id")
+        kickoff = fixture.get("date")
+        league_name = league.get("name")
+        country_name = league.get("country")
+        league_id = league.get("id")
+        season = league.get("season")
 
-    print(f"Összesített meccsszám (multi-sport): {len(all_matches)}")
-    return all_matches
+        home = (teams.get("home") or {})
+        away = (teams.get("away") or {})
+
+        home_name = home.get("name")
+        away_name = away.get("name")
+        home_id = home.get("id")
+        away_id = away.get("id")
+
+        match: Dict[str, Any] = {
+            "sport": "football",
+            "fixture_id": fixture_id,
+            "league_name": league_name,
+            "country_name": country_name,
+            "kickoff_local": kickoff,
+            "home_team": home_name,
+            "away_team": away_name,
+        }
+
+        # Az első MAX_ENRICHED_FIXTURES meccshez húzunk be extra statot.
+        if (
+            idx < MAX_ENRICHED_FIXTURES
+            and league_id is not None
+            and season is not None
+            and home_id is not None
+            and away_id is not None
+        ):
+            home_stats = _get_team_stats(league_id, season, home_id, stats_cache)
+            away_stats = _get_team_stats(league_id, season, away_id, stats_cache)
+
+            match["home_form"] = home_stats.get("form")
+            match["home_avg_goals_for"] = home_stats.get("avg_goals_for")
+            match["home_avg_goals_against"] = home_stats.get("avg_goals_against")
+
+            match["away_form"] = away_stats.get("form")
+            match["away_avg_goals_for"] = away_stats.get("avg_goals_for")
+            match["away_avg_goals_against"] = away_stats.get("avg_goals_against")
+
+        matches.append(match)
+
+    print(f"fetch_matches_for_today: {len(matches)} meccs, "
+          f"{min(len(matches), MAX_ENRICHED_FIXTURES)} extra statisztikával.")
+
+    return matches
