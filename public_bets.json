@@ -1,20 +1,28 @@
 [
   {
-    "match": "Real Madrid vs Sevilla (La Liga, 21:00) [ID=11001]",
-    "fixture_id": 11001,
+    "match": "Canberra United W vs Sydney FC W (A-League Women Australia, 07:00) [ID=1484493]",
+    "fixture_id": 1484493,
     "tip": "Hazai győzelem",
     "odds": 1.7,
     "risk": "low",
     "confidence": 4,
-    "reason": "Real Madrid otthon erős, Sevilla több kulcsjátékos nélkül, stabil forma a hazaiaknál."
+    "reason": "Canberra United W jó formában van (WDWLW), hazai pályán erősek, míg Sydney W gyengébb idegenben."
   },
   {
-    "match": "Boston Celtics vs Miami Heat (NBA, 02:00) [ID=22045]",
-    "fixture_id": 22045,
-    "tip": "Over 210.5 pont",
-    "odds": 1.85,
+    "match": "FC Seoul vs Melbourne City (AFC Champions League World, 11:00) [ID=1438954]",
+    "fixture_id": 1438954,
+    "tip": "Hazai győzelem",
+    "odds": 1.75,
     "risk": "low",
     "confidence": 4,
-    "reason": "Mindkét csapat támadó formában, erős ponttermelés, gyors tempójú mérkőzés várható."
+    "reason": "FC Seoul stabilabb formában és hazai pályán erősebb, míg Melbourne City idegenben kevésbé meggyőző."
+  },
+  {
+    "match": "Football | América Mineiro U20 vs São Paulo U20 | Copa do Brasil U20 Brazil | 2025-12-10T00:00:00+01:00 | [ID=1489236]",
+    "fixture_id": 1489236,
+    "tip": "Hazai győzelem",
+    "odds": 1.4,
+    "confidence": 3,
+    "reason": "Hazai pálya és forma alapján vállalható stabilabb tipp."
   }
 ]

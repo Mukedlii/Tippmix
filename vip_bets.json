@@ -1,47 +1,65 @@
 [
   {
-    "match": "Manchester United vs West Ham (Premier League, 20:00) [ID=33012]",
-    "fixture_id": 33012,
+    "match": "Benfica U19 vs Napoli U19 (UEFA Youth League World, 12:00) [ID=1469145]",
+    "fixture_id": 1469145,
     "tip": "Hazai győzelem",
-    "odds": 1.95,
+    "odds": 1.85,
     "risk": "medium",
     "confidence": 4,
-    "reason": "MU hazai pályán jobb formában, West Ham több sérülttel, motiváció nagy a pontszerzésre."
+    "reason": "Benfica U19 jobb formában, hazai pályán erősebb, Napoli U19 idegenben kevésbé meggyőző."
   },
   {
-    "match": "Bayern München vs Borussia Dortmund (Bundesliga, 18:30) [ID=44022]",
-    "fixture_id": 44022,
-    "tip": "Mindkét csapat szerez gólt",
+    "match": "Athletic U19 vs PSG U19 (UEFA Youth League World, 13:00) [ID=1469171]",
+    "fixture_id": 1469171,
+    "tip": "Hazai győzelem",
+    "odds": 1.9,
+    "risk": "medium",
+    "confidence": 3,
+    "reason": "Athletic U19 hazai pályán stabil, PSG U19 idegenben hullámzó formát mutat."
+  },
+  {
+    "match": "Persib Bandung vs Bangkok United (AFC Cup World, 13:15) [ID=1438648]",
+    "fixture_id": 1438648,
+    "tip": "Hazai győzelem",
+    "odds": 1.7,
+    "risk": "medium",
+    "confidence": 4,
+    "reason": "Persib Bandung hazai pályán erős, jobb formában, Bangkok United idegenben gyengébb."
+  },
+  {
+    "match": "Aluminium Arak vs Sepahan FC (Persian Gulf Pro League Iran, 14:00) [ID=1483268]",
+    "fixture_id": 1483268,
+    "tip": "Hazai győzelem",
     "odds": 1.8,
     "risk": "medium",
     "confidence": 4,
-    "reason": "Két erős támadó csapat, rendszeresen betalálnak egymásnak, szoros meccs várható."
+    "reason": "Aluminium Arak hazai pályán stabil, jobb formában, Sepahan FC idegenben ingadozó."
   },
   {
-    "match": "Toronto Maple Leafs vs Montreal Canadiens (NHL, 01:00) [ID=55033]",
-    "fixture_id": 55033,
+    "match": "Midtjylland U19 vs Köln U19 (UEFA Youth League World, 13:30) [ID=1485564]",
+    "fixture_id": 1485564,
     "tip": "Hazai győzelem",
-    "odds": 2.1,
+    "odds": 1.85,
     "risk": "medium",
     "confidence": 3,
-    "reason": "Maple Leafs otthon stabilabb, Canadiens sérültek miatt gyengébb kerettel."
+    "reason": "Midtjylland U19 hazai pályán erősebb, Köln U19 idegenben kevésbé meggyőző."
   },
   {
-    "match": "Paris Saint-Germain vs Lyon (Ligue 1, 21:00) [ID=66044]",
-    "fixture_id": 66044,
-    "tip": "Over 2.5 gól",
-    "odds": 2.0,
+    "match": "Sanfrece Hiroshima vs Shanghai Shenhua (AFC Champions League World, 11:00) [ID=1438955]",
+    "fixture_id": 1438955,
+    "tip": "Hazai győzelem",
+    "odds": 1.9,
+    "risk": "medium",
+    "confidence": 3,
+    "reason": "Sanfrecce Hiroshima hazai pályán jobb formában, Shanghai Shenhua idegenben gyengébb."
+  },
+  {
+    "match": "Jorge Wilstermann vs Gualberto Villarroel SJ (Primera División Bolivia, 00:00) [ID=1489291]",
+    "fixture_id": 1489291,
+    "tip": "Hazai győzelem",
+    "odds": 1.6,
     "risk": "medium",
     "confidence": 4,
-    "reason": "PSG erős támadósorral, Lyon is képes gólt szerezni, gyakori magas gólszám a párharcaikban."
-  },
-  {
-    "match": "Golden State Warriors vs Los Angeles Lakers (NBA, 04:00) [ID=77055]",
-    "fixture_id": 77055,
-    "tip": "Golden State győzelem",
-    "odds": 2.2,
-    "risk": "medium",
-    "confidence": 3,
-    "reason": "Warriors hazai pályán formában, Lakers kulcsjátékosai hiányoznak sérülés miatt."
+    "reason": "Jorge Wilstermann jobb formában, hazai pályán erősebb, Gualberto Villarroel SJ gyengébb idegenben."
   }
 ]
