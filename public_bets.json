@@ -1,21 +1,21 @@
 [
   {
-    "match": "América Mineiro U20 vs São Paulo U20 (Copa do Brasil U20 Brazil, 00:00) [ID=1489236]",
-    "fixture_id": 1489236,
-    "tip": "Vendég győzelem",
-    "odds": 1.7,
-    "risk": "low",
-    "confidence": 4,
-    "reason": "São Paulo U20 jobb formában és stabilabb támadójátékkal rendelkezik, vendégként is eredményes."
-  },
-  {
     "match": "FC Seoul vs Melbourne City (AFC Champions League World, 11:00) [ID=1438954]",
     "fixture_id": 1438954,
+    "tip": "Vendég győzelem",
+    "odds": 1.75,
+    "risk": "low",
+    "confidence": 4,
+    "reason": "Melbourne City jobb formában és erősebb kerettel rendelkezik, vendégként is stabil teljesítményre képes."
+  },
+  {
+    "match": "Canberra United W vs Sydney FC W (A-League Women Australia, 07:00) [ID=1484493]",
+    "fixture_id": 1484493,
     "tip": "Hazai győzelem",
     "odds": 1.65,
     "risk": "low",
     "confidence": 4,
-    "reason": "FC Seoul hazai pályán erős, jobb formában, míg Melbourne City idegenben kevésbé meggyőző."
+    "reason": "Canberra United W jobb formában van, hazai pályán átlagosan több gólt szereznek, stabil favorit."
   },
   {
     "match": "Football | América Mineiro U20 vs São Paulo U20 | Copa do Brasil U20 Brazil | 2025-12-10T00:00:00+01:00 | [ID=1489236]",

@@ -1,56 +1,65 @@
 [
   {
-    "match": "Sanfrecce Hiroshima vs Shanghai Shenhua (AFC Champions League World, 11:00) [ID=1438955]",
-    "fixture_id": 1438955,
-    "tip": "Over 2.5 gól",
-    "odds": 1.9,
-    "risk": "medium",
-    "confidence": 4,
-    "reason": "Mindkét csapat támadó formában, átlagosan 2.5 gól felett játszanak, támadószellem várható."
-  },
-  {
-    "match": "Jorge Wilstermann vs Gualberto Villarroel SJ (Primera División Bolivia, 00:00) [ID=1489291]",
-    "fixture_id": 1489291,
-    "tip": "Hazai győzelem",
-    "odds": 1.55,
-    "risk": "medium",
-    "confidence": 3,
-    "reason": "Jorge Wilstermann jobb formában, hazai pályán stabilabb teljesítményt nyújt."
-  },
-  {
     "match": "Benfica U19 vs Napoli U19 (UEFA Youth League World, 12:00) [ID=1469145]",
     "fixture_id": 1469145,
+    "tip": "Over 2.5 gól",
+    "odds": 1.85,
+    "risk": "medium",
+    "confidence": 4,
+    "reason": "Mindkét csapat támadó szellemben játszik, magas gólátlagokkal, jó esély a több mint 2.5 gólra."
+  },
+  {
+    "match": "Sanfrecce Hiroshima vs Shanghai Shenhua (AFC Champions League World, 11:00) [ID=1438955]",
+    "fixture_id": 1438955,
     "tip": "Hazai győzelem",
     "odds": 1.7,
     "risk": "medium",
-    "confidence": 4,
-    "reason": "Benfica U19 jobb formában és hazai pályán erősebb, Napoli U19 idegenben gyengébb."
+    "confidence": 3,
+    "reason": "Sanfrecce Hiroshima hazai pályán erősebb, jobb formában, míg a vendégek ingadozóak."
   },
   {
     "match": "Iraq U23 vs UAE U23 (Arabian Gulf Cup U23 World, 13:00) [ID=1489192]",
     "fixture_id": 1489192,
-    "tip": "Mindkét csapat szerez gólt",
-    "odds": 1.85,
+    "tip": "Vendég győzelem",
+    "odds": 1.9,
     "risk": "medium",
     "confidence": 3,
-    "reason": "Mindkét válogatott kiegyensúlyozott támadójátékkal rendelkezik, gólváltás valószínű."
+    "reason": "UAE U23 jobb formában és kiegyensúlyozottabb csapat, esélyes a győzelemre idegenben."
+  },
+  {
+    "match": "Athletic U19 vs PSG U19 (UEFA Youth League World, 13:00) [ID=1469171]",
+    "fixture_id": 1469171,
+    "tip": "Mindkét csapat szerez gólt",
+    "odds": 1.75,
+    "risk": "medium",
+    "confidence": 3,
+    "reason": "Mindkét fiatal csapat támadó jellegű, rendszeresen betalálnak, jó esély a mindkét csapat góljára."
   },
   {
     "match": "Chainat vs Songkhla (Thai League 2 Thailand, 12:00) [ID=1423222]",
     "fixture_id": 1423222,
-    "tip": "Vendég győzelem",
-    "odds": 1.75,
-    "risk": "medium",
-    "confidence": 3,
-    "reason": "Songkhla jobb formában, idegenben is eredményesebb, Chainat gyengébb hazai mérleggel."
-  },
-  {
-    "match": "Midtjylland U19 vs Köln U19 (UEFA Youth League World, 13:30) [ID=1485564]",
-    "fixture_id": 1485564,
-    "tip": "Over 2.5 gól",
-    "odds": 1.8,
+    "tip": "Hazai győzelem",
+    "odds": 1.6,
     "risk": "medium",
     "confidence": 4,
-    "reason": "Mindkét csapat támadó szellemű, több gól várható a mérkőzésen."
+    "reason": "Chainat jobb formában, hazai pályán stabilabb, esélyes a győzelemre."
+  },
+  {
+    "match": "Baku Sportinq vs Şahdağ (Birinci Dasta Azerbaijan, 11:30) [ID=1466897]",
+    "fixture_id": 1466897,
+    "tip": "Over 2.5 gól",
+    "odds": 2.1,
+    "risk": "medium",
+    "confidence": 3,
+    "reason": "Mindkét csapat támadó szellemben játszik, átlagosan több mint 2.5 gólt hoznak a meccseik."
+  },
+  {
+    "match": "UE Santa Coloma vs Ranger's (1a Divisió Andorra, 11:00) [ID=1396652]",
+    "fixture_id": 1396652,
+    "tip": "Vendég győzelem",
+    "odds": 1.85,
+    "risk": "medium",
+    "confidence": 3,
+    "reason": "Ranger's jobb formában és stabilabb vendégként, esélyes a győzelemre."
   }
 ]
