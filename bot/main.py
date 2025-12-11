@@ -1,7 +1,7 @@
 import os
 import json
 import datetime
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, List, Optional
 
 import requests
 
@@ -53,9 +53,89 @@ def send_telegram_message(token: str, chat_id: str, text: str, label: str) -> Tu
     return True, ""
 
 
+def _extract_kickoff_hour(match: Dict[str, Any]) -> Optional[int]:
+    """
+    Megpróbáljuk kivenni az órát a meccs kezdési idejéből (helyi idő szerint).
+    Először kickoff_local, kickoff, datetime, date mezőkből próbál.
+    Elfogad:
+      - datetime objektumot
+      - ISO stringet (2025-12-10T11:00:00)
+      - sima 'HH:MM' stringet
+    Ha nem tudjuk, None-t ad vissza.
+    """
+    dt = (
+        match.get("kickoff_local")
+        or match.get("kickoff")
+        or match.get("datetime")
+        or match.get("date")
+    )
+
+    if dt is None:
+        return None
+
+    if isinstance(dt, datetime.datetime):
+        return dt.hour
+
+    if isinstance(dt, str):
+        s = dt.strip()
+        # Próbáljuk ISO datetime-ként
+        try:
+            parsed = datetime.datetime.fromisoformat(s)
+            return parsed.hour
+        except Exception:
+            pass
+
+        # Próbáljuk HH:MM formaként
+        parts = s.split(":")
+        if len(parts) >= 1:
+            try:
+                return int(parts[0])
+            except Exception:
+                return None
+
+    return None
+
+
+def _filter_matches_for_slot(matches: List[Dict[str, Any]], slot: str) -> List[Dict[str, Any]]:
+    """
+    Két idősáv:
+      - DAY:   9:00–16:00 (9 <= óra < 16)
+      - EVENING: 16:00–23:00 (16 <= óra <= 23)
+    Ha nem tudjuk kivenni az órát, bent hagyjuk (hogy inkább legyen tipp).
+    Ha a szűrés után üres, visszaadjuk az eredeti listát.
+    """
+    slot = (slot or "DAY").upper()
+    filtered: List[Dict[str, Any]] = []
+
+    for m in matches:
+        h = _extract_kickoff_hour(m)
+        if h is None:
+            # Nem tudtuk eldönteni, akkor hagyjuk bent
+            filtered.append(m)
+            continue
+
+        if slot == "DAY":
+            if 9 <= h < 16:
+                filtered.append(m)
+        else:  # EVENING
+            if 16 <= h <= 23:
+                filtered.append(m)
+
+    if not filtered:
+        print(f"[DEBUG] Az idősáv szűrés üres eredményt adott (slot={slot}), visszaadom az összes meccset.")
+        return matches
+
+    print(f"[DEBUG] Szűrt meccsszám slot={slot}: {len(filtered)} (eredeti: {len(matches)})")
+    return filtered
+
+
 def main() -> None:
     today = datetime.date.today()
     print(f"Meccsek lekérése erre a napra: {today.isoformat()}")
+
+    # SLOT: DAY vagy EVENING (GitHub Actions env-ből állítjuk)
+    slot = os.getenv("TIPPMIX_SLOT", "DAY").upper()
+    print(f"Aktuális idősáv (TIPPMIX_SLOT): {slot}")
 
     telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
     # Ha nincs PUBLIC_CHAT_ID setelve, fallback a megadott csatorna ID-re:
@@ -71,15 +151,20 @@ def main() -> None:
         print("NINCS TELEGRAM_BOT_TOKEN, kilépek.")
         return
 
-    # 1) Meccsek lekérése
+    # 1) Meccsek lekérése (összes mai)
     matches = fetch_matches_for_today()
-    print(f"Talált meccsek száma: {len(matches)}")
+    print(f"Talált meccsek száma (összes): {len(matches)}")
 
-    # ⬇️ NINCS több early return: akkor is továbbmegyünk, ha matches üres.
-    # Ilyenkor a generate_tips() saját fallback szöveget fog gyártani.
+    if not matches:
+        print("Nincsenek meccsek mára, nem küldök tippet.")
+        return
 
-    # 2) Tipp generálás (OpenAI + fallback)
-    tips_data = generate_tips(matches)
+    # 1/b) Csak az adott idősáv (DAY / EVENING) meccsei
+    slot_matches = _filter_matches_for_slot(matches, slot)
+    print(f"Idősávra szűrt meccsek száma: {len(slot_matches)}")
+
+    # 2) Tipp generálás (OpenAI + fallback) az idősávra
+    tips_data = generate_tips(slot_matches)
 
     public_text = tips_data.get("telegram_public_text") or "Hiba a FREE tippek generálásánál."
     vip_text = tips_data.get("telegram_vip_text") or "Hiba a VIP tippek generálásánál."
@@ -88,12 +173,17 @@ def main() -> None:
     public_bets = tips_data.get("public_bets", [])
     vip_bets = tips_data.get("vip_bets", [])
 
+    # SLOT-alapú fájlnevek:
+    suffix = "day" if slot == "DAY" else "evening"
+    public_json_path = f"public_bets_{suffix}.json"
+    vip_json_path = f"vip_bets_{suffix}.json"
+
     try:
-        with open("public_bets.json", "w", encoding="utf-8") as f:
+        with open(public_json_path, "w", encoding="utf-8") as f:
             json.dump(public_bets, f, ensure_ascii=False, indent=2)
-        with open("vip_bets.json", "w", encoding="utf-8") as f:
+        with open(vip_json_path, "w", encoding="utf-8") as f:
             json.dump(vip_bets, f, ensure_ascii=False, indent=2)
-        print("Napi tippek elmentve: public_bets.json, vip_bets.json")
+        print(f"Napi tippek elmentve: {public_json_path}, {vip_json_path}")
     except Exception as e:
         print("Nem sikerült a tippeket JSON-ba menteni:", repr(e))
 
@@ -106,7 +196,7 @@ def main() -> None:
             token=telegram_token,
             chat_id=public_chat_id,
             text=public_text,
-            label="PUBLIC",
+            label=f"PUBLIC_{slot}",
         )
     else:
         public_err = "PUBLIC_CHAT_ID nincs beállítva."
@@ -127,7 +217,7 @@ def main() -> None:
             token=telegram_token,
             chat_id=vip_chat_id,
             text=vip_text_with_info,
-            label="VIP",
+            label=f"VIP_{slot}",
         )
     else:
         print("VIP_CHAT_ID nincs beállítva, nem küldök VIP üzenetet.")
