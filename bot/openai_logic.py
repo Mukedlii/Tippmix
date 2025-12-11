@@ -253,12 +253,11 @@ def _normalize_tip(tip: str) -> str:
     if "gólpiac" in t_low:
         tip = tip.replace("gólpiac", "").replace("Gólpiac", "").strip()
 
-    # ha túl általános lett, hagyjuk az eredetit
     return tip if tip else original
 
 
 # -------------------------------------------------------------------
-#  FREE szöveg
+#  FREE szöveg – szebb forma
 # -------------------------------------------------------------------
 
 
@@ -266,11 +265,15 @@ def _build_public_text(data: Dict[str, Any]) -> str:
     today = datetime.date.today().strftime("%Y.%m.%d.")
     public_bets = data.get("public_bets") or []
 
+    tippszam = len(public_bets)
+
     header = (
-        f"👑 SZELVÉNYKIRÁLY – FREE TIPPEK MA ESTÉRE 👑\n"
-        f"({today} – max 3 stabilabb tipp)\n\n"
+        "👑 SZELVÉNYKIRÁLY – FREE TIPPEK MA ESTÉRE 👑\n"
+        f"📅 Dátum: {today}\n"
+        f"🎟 Tippek száma: {tippszam} (max. 3 stabilabb)\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
         "Az alábbi meccsek a statisztika, forma és keretek alapján ígéretesek "
-        "egy stabilabb, ésszerű kombira:\n"
+        "egy óvatosabb, ésszerű kombira:\n\n"
     )
 
     if not public_bets:
@@ -293,24 +296,30 @@ def _build_public_text(data: Dict[str, Any]) -> str:
             conf = _confidence_to_stars(conf_val)
 
             line_parts = [
-                f"{i}. Meccs: {match}",
-                f"Tipp: {tip}",
+                f"{i}. {match}",
+                f"   🎯 Tipp: {tip}",
             ]
             if odds:
-                line_parts.append(f"Odd: {odds}")
-            line_parts.append(f"Kockázat: {risk}")
-            line_parts.append(f"Bizalom: {conf}")
-            line_parts.append(f"Miért? {reason}")
+                line_parts.append(f"   📈 Odd: {odds}")
+            line_parts.append(f"   ⚠️ Kockázat: {risk}")
+            line_parts.append(f"   ⭐ Bizalom: {conf}")
+            line_parts.append(f"   🧠 Miért? {reason}")
 
             lines.append("\n".join(line_parts))
 
         body = "\n\n".join(lines)
 
-    return header + body
+    footer = (
+        "\n\n━━━━━━━━━━━━━━━━━━━━\n"
+        "⚠️ A tippek statisztikán és AI elemzésen alapulnak, de NEM garantálnak nyereményt.\n"
+        "Mindig felelősen fogadj, csak olyan pénzzel, amit megengedhetsz magadnak elveszíteni."
+    )
+
+    return header + body + footer
 
 
 # -------------------------------------------------------------------
-#  VIP szöveg + 3 kiemelt meccs
+#  VIP szöveg – 7 tipp, 3 kiemelt + szebb forma
 # -------------------------------------------------------------------
 
 
@@ -321,11 +330,15 @@ def _build_vip_text(data: Dict[str, Any]) -> str:
         "Soha ne fogadj nagyobb összeggel csak azért, mert az előző szelvény nyert vagy vesztett."
     )
 
+    tippszam = len(vip_bets)
+
     header = (
-        f"🔥 SZELVÉNYKIRÁLY VIP – KIRÁLYI KOMBI MA ESTÉRE 🔥\n"
-        f"({today} – 5–7 gondosan válogatott tipp, nagyobb összodds)\n\n"
+        "🔥 SZELVÉNYKIRÁLY VIP – KIRÁLYI KOMBI MA ESTÉRE 🔥\n"
+        f"📅 Dátum: {today}\n"
+        f"🎟 Tippek száma: {tippszam} (cél: 7 tipp)\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
         "Ezek a meccsek kombinálva erősebb, de még ésszerűen vállalható "
-        "kockázatú VIP szelvényt adnak:\n"
+        "kockázatú VIP szelvényt adnak:\n\n"
     )
 
     if not vip_bets:
@@ -336,7 +349,7 @@ def _build_vip_text(data: Dict[str, Any]) -> str:
         total_odds_line = ""
         highlight_block = ""
     else:
-        # Ha az AI adott highlight mezőt, használjuk; különben mi választunk.
+        # Ha az AI adott highlight mezőt, használjuk; különben mi választunk 3-at.
         has_highlight_flag = any("highlight" in b for b in vip_bets)
 
         highlight_indices: set[int]
@@ -345,6 +358,7 @@ def _build_vip_text(data: Dict[str, Any]) -> str:
                 idx for idx, b in enumerate(vip_bets) if b.get("highlight")
             }
         else:
+            # saját logika: minél magasabb confidence, minél alacsonyabb odds → annál inkább kiemelt
             scores: List[tuple[int, int, float]] = []
             for idx, bet in enumerate(vip_bets):
                 try:
@@ -366,9 +380,10 @@ def _build_vip_text(data: Dict[str, Any]) -> str:
         lines: List[str] = []
         approx_total_odds = 1.0
 
+        # Részletes vip lista, jelölve a kiemelt tippeket
         for i, bet in enumerate(vip_bets, start=1):
             match = bet.get("match") or "Ismeretlen meccs"
-            tip = _normalize_tip(bet.get("tip") or "Hazai győzelem / gólpiac")
+            tip = _normalize_tip(bet.get("tip") or "Hazai győzelem")
             odds = bet.get("odds")
             odds_float = _odds_to_float(odds)
             reason = _truncate_reason(
@@ -378,35 +393,34 @@ def _build_vip_text(data: Dict[str, Any]) -> str:
             risk = _risk_to_emoji(conf_val, odds_float)
             conf = _confidence_to_stars(conf_val)
 
-            if isinstance(odds, (int, float)):
-                approx_total_odds *= float(odds)
-            else:
-                try:
-                    approx_total_odds *= float(str(odds).replace(",", "."))
-                except Exception:
-                    pass
+            if odds_float is not None:
+                approx_total_odds *= odds_float
 
             is_highlight = (i - 1) in highlight_indices
-            title_line = f"{i}. Meccs: {match}"
-            if is_highlight:
-                title_line += "  🔥 KIEMELT"
+            prefix = "💎 KIEMELT – " if is_highlight else ""
+
+            title_line = f"{i}. {prefix}{match}"
 
             line_parts = [
                 title_line,
-                f"Tipp: {tip}",
+                f"   🎯 Tipp: {tip}",
             ]
             if odds:
-                line_parts.append(f"Odd: {odds}")
-            line_parts.append(f"Kockázat: {risk}")
-            line_parts.append(f"Bizalom: {conf}")
-            line_parts.append(f"Miért? {reason}")
+                line_parts.append(f"   📈 Odd: {odds}")
+            line_parts.append(f"   ⚠️ Kockázat: {risk}")
+            line_parts.append(f"   ⭐ Bizalom: {conf}")
+            line_parts.append(f"   🧠 Miért? {reason}")
 
             lines.append("\n".join(line_parts))
 
         body = "\n\n".join(lines)
 
+        # VIP összodds (példa tét nélkül, csak infóként)
         if approx_total_odds > 1.01:
-            total_odds_line = f"\n\n📊 VIP összodds (hozzávetőleges): kb. {approx_total_odds:.2f}"
+            total_odds_line = (
+                "\n\n━━━━━━━━━━━━━━━━━━━━\n"
+                f"📊 VIP összodds (hozzávetőleges): kb. {approx_total_odds:.2f}"
+            )
         else:
             total_odds_line = ""
 
@@ -430,7 +444,13 @@ def _build_vip_text(data: Dict[str, Any]) -> str:
 
     edu_block = f"\n\n🎓 Napi mini tanács:\n{edu_tip}"
 
-    return header + body + highlight_block + total_odds_line + edu_block
+    footer = (
+        "\n\n━━━━━━━━━━━━━━━━━━━━\n"
+        "⚠️ A tippek statisztikán és AI elemzésen alapulnak, de nem garantálnak nyereményt.\n"
+        "Mindig felelősen fogadj, és kezeld a játékot szórakozásként."
+    )
+
+    return header + body + highlight_block + (total_odds_line if vip_bets else "") + edu_block + footer
 
 
 # -------------------------------------------------------------------
