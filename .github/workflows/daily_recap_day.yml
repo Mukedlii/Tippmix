@@ -3,27 +3,31 @@ name: Tippmix Day Recap
 on:
   workflow_dispatch:
   schedule:
-    # 15:00 UTC ≈ 16:00 magyar idő
+    # 16:00 magyar idő ~ 15:00 UTC
     - cron: "0 15 * * *"
 
 jobs:
   recap-day:
     runs-on: ubuntu-latest
+
     env:
       TIPPMIX_SLOT: DAY
       SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
       TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run day recap (9–16 meccsek)
-        run: python -m bot.daily_recap
+      - name: Run day recap (09–16 meccsek)
+        run: python -m bot.daily_recap_main
