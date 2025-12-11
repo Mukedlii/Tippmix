@@ -12,18 +12,18 @@ MAX_MATCHES_FOR_OPENAI = 40
 
 # Cél darabszámok
 PUBLIC_MIN_TIPS = 3
-VIP_MIN_TIPS = 7  # 7 VIP tipp + ebből 3 kiemelt
+VIP_MIN_TIPS = 5
 
 
-# ----------------------------------------------------------------------
-# MECCS FORMÁZÁS A PROMPTHOZ
-# ----------------------------------------------------------------------
+# -------------------------------------------------------------------
+# SEGÉDFÜGGVÉNYEK – MECCS FORMÁZÁS
+# -------------------------------------------------------------------
 
 
 def _format_match_for_prompt(match: Dict[str, Any]) -> str:
     """
     Meccs objektumot rövid, szöveges sorra alakítjuk.
-    A végére tesszük [ID=...] formában a fixture_id-t, ha van.
+    Ha van fixture_id, azt [ID=...] formában tesszük a végére.
     """
     sport = match.get("sport") or match.get("sport_name") or "football"
     home = (
@@ -68,9 +68,9 @@ def _build_matches_prompt(matches: List[Dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
-# ----------------------------------------------------------------------
-# ODDS / KOCKÁZAT / BIZALOM SEGÉDFÜGGVÉNYEK
-# ----------------------------------------------------------------------
+# -------------------------------------------------------------------
+# ODDS / RISK / CONFIDENCE
+# -------------------------------------------------------------------
 
 
 def _odds_to_float(odds: Any) -> float | None:
@@ -98,7 +98,7 @@ def _derive_risk_level(conf: Any, odds_float: float | None) -> str:
 
     Logika:
       - nagyon alacsony odds (~1.40 alatt) lehet zöld, ha a bizalom is magas
-      - 1.4–1.8 között többnyire közepes
+      - 1.4–1.8 között többnyire közepes, ritkán zöld
       - 1.8 fölött SOHA nem zöld
       - 2.5 fölött mindig piros
     """
@@ -164,9 +164,9 @@ def _confidence_to_stars(conf: Any) -> str:
     return "⭐" * c + f" ({c}/5)"
 
 
-# ----------------------------------------------------------------------
-# TIPP TÍPUSOK KEZELÉSE
-# ----------------------------------------------------------------------
+# -------------------------------------------------------------------
+# DUPLA ESÉLY FELISMERÉS / ÁTÍRÁS
+# -------------------------------------------------------------------
 
 
 def _is_double_chance_tip(tip: str) -> bool:
@@ -225,9 +225,9 @@ def _truncate_reason(reason: str, max_len: int = 220) -> str:
     return _clean_reason(reason)
 
 
-# ----------------------------------------------------------------------
+# -------------------------------------------------------------------
 # TELEGRAM SZÖVEG – FREE
-# ----------------------------------------------------------------------
+# -------------------------------------------------------------------
 
 
 def _build_public_text(data: Dict[str, Any]) -> str:
@@ -242,7 +242,10 @@ def _build_public_text(data: Dict[str, Any]) -> str:
     )
 
     if not public_bets:
-        body = "Ma kevés igazán stabil FREE lehetőséget találtunk, ezért inkább visszafogottan játssz. 🙂"
+        body = (
+            "Ma kevés igazán stabil FREE lehetőséget találtunk, ezért inkább "
+            "visszafogottan játssz. 🙂"
+        )
     else:
         lines: List[str] = []
         for i, bet in enumerate(public_bets, start=1):
@@ -250,7 +253,9 @@ def _build_public_text(data: Dict[str, Any]) -> str:
             tip = bet.get("tip") or "Hazai győzelem"
             odds = bet.get("odds")
             odds_float = _odds_to_float(odds)
-            reason = _truncate_reason(str(bet.get("reason", "")))
+            reason = _truncate_reason(
+                bet.get("reason") or "Statisztika és forma alapján értelmes választás."
+            )
             conf_val = bet.get("confidence", 3)
             risk = _risk_to_emoji(conf_val, odds_float)
             conf = _confidence_to_stars(conf_val)
@@ -269,19 +274,13 @@ def _build_public_text(data: Dict[str, Any]) -> str:
 
         body = "\n\n".join(lines)
 
-    bankroll_hint = (
-        "\n\n💰 Bankroll tipp (FREE):\n"
-        "Egy szelvényre legfeljebb a teljes kereted 1–2%-át tedd fel.\n"
-        "Ha pl. 100.000 Ft a bankrollod, akkor 1–2.000 Ft/szelvény az ésszerű tartomány.\n"
-        "Ne üldözd a veszteségeket, gondolkodj hosszú távon. 🍀"
-    )
-
-    return header + body + bankroll_hint
+    # Bankroll blokkot kivettük – csak a tippek mennek ki
+    return header + body
 
 
-# ----------------------------------------------------------------------
-# TELEGRAM SZÖVEG – VIP + KIEMELT TIPPEK
-# ----------------------------------------------------------------------
+# -------------------------------------------------------------------
+# TELEGRAM SZÖVEG – VIP
+# -------------------------------------------------------------------
 
 
 def _build_vip_text(data: Dict[str, Any]) -> str:
@@ -293,88 +292,51 @@ def _build_vip_text(data: Dict[str, Any]) -> str:
 
     header = (
         f"🔥 SZELVÉNYKIRÁLY VIP – KIRÁLYI KOMBI MA ESTÉRE 🔥\n"
-        f"({today} – 7 gondosan válogatott tipp, nagyobb összodds)\n\n"
+        f"({today} – 5–7 gondosan válogatott tipp, nagyobb összodds)\n\n"
         "Ezek a meccsek kombinálva erősebb, de még ésszerűen vállalható kockázatú VIP szelvényt adnak:\n"
     )
 
     if not vip_bets:
-        body = "Ma kevés az igazán jó VIP kombinációs lehetőség – ilyenkor jobb a kisebb akció, mint az erőltetett nagy odds. 🤝"
+        body = (
+            "Ma kevés az igazán jó VIP kombinációs lehetőség – ilyenkor jobb a "
+            "kisebb akció, mint az erőltetett nagy odds. 🤝"
+        )
         total_odds_line = ""
     else:
-        featured = [b for b in vip_bets if b.get("featured")]
-        non_featured = [b for b in vip_bets if not b.get("featured")]
-
         lines: List[str] = []
         approx_total_odds = 1.0
-        idx = 1
 
-        # --- KIEMELT TIPPEK BLOKK ---
-        if featured:
-            lines.append("⭐ KIEMELT VIP TIPPEK (3/nap):")
-            for bet in featured:
-                match = bet.get("match") or "Ismeretlen meccs"
-                tip = bet.get("tip") or "Hazai győzelem"
-                odds = bet.get("odds")
-                odds_float = _odds_to_float(odds)
-                reason = _truncate_reason(str(bet.get("reason", "")))
-                conf_val = bet.get("confidence", 3)
-                risk = _risk_to_emoji(conf_val, odds_float)
-                conf = _confidence_to_stars(conf_val)
+        for i, bet in enumerate(vip_bets, start=1):
+            match = bet.get("match") or "Ismeretlen meccs"
+            tip = bet.get("tip") or "Hazai győzelem / gólpiac"
+            odds = bet.get("odds")
+            odds_float = _odds_to_float(odds)
+            reason = _truncate_reason(
+                bet.get("reason") or "Forma, statisztika és keret alapján jó esély mutatkozik."
+            )
+            conf_val = bet.get("confidence", 3)
+            risk = _risk_to_emoji(conf_val, odds_float)
+            conf = _confidence_to_stars(conf_val)
 
-                if isinstance(odds, (int, float)):
-                    approx_total_odds *= float(odds)
-                else:
-                    try:
-                        approx_total_odds *= float(str(odds).replace(",", "."))
-                    except Exception:
-                        pass
+            if isinstance(odds, (int, float)):
+                approx_total_odds *= float(odds)
+            else:
+                try:
+                    approx_total_odds *= float(str(odds).replace(",", "."))
+                except Exception:
+                    pass
 
-                line_parts = [
-                    f"{idx}. Meccs: {match}",
-                    f"Tipp: {tip}",
-                ]
-                if odds:
-                    line_parts.append(f"Odd: {odds}")
-                line_parts.append(f"Kockázat: {risk}")
-                line_parts.append(f"Bizalom: {conf}")
-                line_parts.append(f"Miért? {reason}")
-                lines.append("\n".join(line_parts))
-                idx += 1
+            line_parts = [
+                f"{i}. Meccs: {match}",
+                f"Tipp: {tip}",
+            ]
+            if odds:
+                line_parts.append(f"Odd: {odds}")
+            line_parts.append(f"Kockázat: {risk}")
+            line_parts.append(f"Bizalom: {conf}")
+            line_parts.append(f"Miért? {reason}")
 
-            lines.append("")  # üres sor elválasztásnak
-
-        # --- TOVÁBBI VIP TIPPEK ---
-        if non_featured:
-            lines.append("További VIP tippek a kombiba:")
-            for bet in non_featured:
-                match = bet.get("match") or "Ismeretlen meccs"
-                tip = bet.get("tip") or "Hazai győzelem"
-                odds = bet.get("odds")
-                odds_float = _odds_to_float(odds)
-                reason = _truncate_reason(str(bet.get("reason", "")))
-                conf_val = bet.get("confidence", 3)
-                risk = _risk_to_emoji(conf_val, odds_float)
-                conf = _confidence_to_stars(conf_val)
-
-                if isinstance(odds, (int, float)):
-                    approx_total_odds *= float(odds)
-                else:
-                    try:
-                        approx_total_odds *= float(str(odds).replace(",", "."))
-                    except Exception:
-                        pass
-
-                line_parts = [
-                    f"{idx}. Meccs: {match}",
-                    f"Tipp: {tip}",
-                ]
-                if odds:
-                    line_parts.append(f"Odd: {odds}")
-                line_parts.append(f"Kockázat: {risk}")
-                line_parts.append(f"Bizalom: {conf}")
-                line_parts.append(f"Miért? {reason}")
-                lines.append("\n".join(line_parts))
-                idx += 1
+            lines.append("\n".join(line_parts))
 
         body = "\n\n".join(lines)
 
@@ -387,38 +349,35 @@ def _build_vip_text(data: Dict[str, Any]) -> str:
         else:
             total_odds_line = ""
 
-    bankroll_hint = (
-        "\n\n💰 Bankroll tipp (VIP):\n"
-        "VIP szelvényre maximum a bankrollod 1–3%-át érdemes tenni.\n"
-        "Ha pl. 200.000 Ft a kereted, akkor 2–6.000 Ft/szelvény még ésszerű.\n"
-        "Kerüld a tétemelést csak azért, mert az előző szelvény nyert vagy vesztett."
-    )
-
     edu_block = f"\n\n🎓 Napi mini tanács:\n{edu_tip}"
 
-    return header + body + total_odds_line + bankroll_hint + edu_block
+    # Bankroll blokk nélkül
+    return header + body + total_odds_line + edu_block
 
 
-# ----------------------------------------------------------------------
-# FALLBACK TIPPEK (ha az AI elszúrja a JSON-t)
-# ----------------------------------------------------------------------
+# -------------------------------------------------------------------
+# FALLBACK TIPPEK (HA OPENAI HIBA VAN)
+# -------------------------------------------------------------------
 
 
-def _build_public_fallback_bet(match: Dict[str, Any]) -> Dict[str, Any]:
+def _build_simple_bet_from_match(match: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    FREE fallback: ha az AI nem ad elég tippet, mi gyártunk egy stabilabb sort.
+    """
     desc = _format_match_for_prompt(match)
     return {
         "match": desc,
         "tip": "Hazai győzelem",
         "odds": 1.40,
         "confidence": 3,
-        "reason": "Hazai pálya és forma alapján vállalhatóbb stabilabb tipp.",
+        "reason": "Hazai pálya és forma alapján vállalható stabilabb tipp.",
     }
 
 
 def _build_vip_fallback_bet(match: Dict[str, Any]) -> Dict[str, Any]:
     """
-    VIP fallback tipp:
-      - mindig KONKRÉT piac (nem 'hazai vagy gólpiac')
+    VIP fallback tipp, SOHA nem dupla esély.
+    Egyszerű, de egyértelmű piac: hazai győzelem.
     """
     desc = _format_match_for_prompt(match)
     return {
@@ -426,75 +385,20 @@ def _build_vip_fallback_bet(match: Dict[str, Any]) -> Dict[str, Any]:
         "tip": "Hazai győzelem",
         "odds": 1.80,
         "confidence": 3,
-        "reason": "Hazai pálya előnye és erősebb keret miatt vállalható VIP tipp.",
+        "reason": "Hazai pálya előnye és alapvetően erősebb keret miatt vállalható VIP tipp.",
     }
-
-
-# ----------------------------------------------------------------------
-# KIEMELT VIP TIPPEK KIVÁLASZTÁSA
-# ----------------------------------------------------------------------
-
-
-def _mark_featured_vip_bets(vip_bets: List[Dict[str, Any]], max_featured: int = 3) -> List[Dict[str, Any]]:
-    """
-    A VIP tippek közül kijelöljük a 3 legfontosabbat: bet['featured'] = True.
-
-    Szempont:
-      - magasabb bizalom
-      - odds kb. 1.4–2.2 között (se túl pici, se túl nagy)
-      - túl magas odds (2.5+) inkább NE legyen kiemelt
-    """
-    scored: List[tuple[float, Dict[str, Any]]] = []
-
-    for bet in vip_bets:
-        odds_f = _odds_to_float(bet.get("odds"))
-        try:
-            conf = int(bet.get("confidence", 3))
-        except Exception:
-            conf = 3
-
-        score = conf * 2.0
-
-        if odds_f is not None:
-            if 1.40 <= odds_f <= 2.20:
-                score += 2.0
-            elif odds_f < 1.30:
-                score -= 1.0
-            elif odds_f > 2.50:
-                score -= 2.0
-
-        scored.append((score, bet))
-
-    # rendezzük pontszám szerint
-    scored.sort(key=lambda x: x[0], reverse=True)
-
-    featured_set = set()
-    for idx, (_, bet) in enumerate(scored):
-        if idx >= max_featured:
-            break
-        featured_set.add(id(bet))
-
-    for bet in vip_bets:
-        bet["featured"] = id(bet) in featured_set
-
-    return vip_bets
-
-
-# ----------------------------------------------------------------------
-# MINIMUM TIPP DARABSZÁM BIZTOSÍTÁSA
-# ----------------------------------------------------------------------
 
 
 def _ensure_min_bets(data: Dict[str, Any], matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     Gondoskodik róla, hogy mindig legyen legalább:
       - 3 FREE tipp
-      - 7 VIP tipp (ha van elég meccs)
+      - 5 VIP tipp (ha van elég meccs)
 
     Szabályok:
-      - FREE-ben minden dupla esélyt agresszívabbra írunk át.
-      - VIP-ben a dupla esélyű tippeket eldobjuk, és konkrét 1 / 2 / gólpiac
-        fallback tippekkel pótoljuk.
+      - FREE-ben MINDEN dupla esélyt agresszívabbra írunk át.
+      - VIP-ben NINCS dupla esély: minden 1X / X2 / 12 típusú tippet eldobjuk,
+        és fallback VIP tippekkel pótoljuk.
     """
     public = data.get("public_bets") or []
     vip = data.get("vip_bets") or []
@@ -504,7 +408,7 @@ def _ensure_min_bets(data: Dict[str, Any], matches: List[Dict[str, Any]]) -> Dic
         if "reason" in bet:
             bet["reason"] = _truncate_reason(str(bet.get("reason", "")))
 
-    # --- FREE: dupla esély átírva konkrét 1 / 2-re ---
+    # --- FREE: minden dupla esélyt agresszívabbra írunk át ---
     for bet in public:
         tip_old = str(bet.get("tip", ""))
         if _is_double_chance_tip(tip_old):
@@ -518,7 +422,7 @@ def _ensure_min_bets(data: Dict[str, Any], matches: List[Dict[str, Any]]) -> Dic
         desc = _format_match_for_prompt(m)
         if desc in already_used_public:
             continue
-        bet = _build_public_fallback_bet(m)
+        bet = _build_simple_bet_from_match(m)
         public.append(bet)
         already_used_public.add(desc)
 
@@ -531,7 +435,7 @@ def _ensure_min_bets(data: Dict[str, Any], matches: List[Dict[str, Any]]) -> Dic
         vip_filtered.append(bet)
     vip = vip_filtered
 
-    # VIP – töltsük fel 7-ig fallback VIP tippekkel
+    # VIP – töltsük fel 5-ig fallback VIP tippekkel
     already_used_vip = {b.get("match") for b in vip}
     for m in matches:
         if len(vip) >= VIP_MIN_TIPS:
@@ -543,17 +447,14 @@ def _ensure_min_bets(data: Dict[str, Any], matches: List[Dict[str, Any]]) -> Dic
         vip.append(bet)
         already_used_vip.add(desc)
 
-    # Kiemelt tippek kijelölése
-    vip = _mark_featured_vip_bets(vip, max_featured=3)
-
     data["public_bets"] = public
     data["vip_bets"] = vip
     return data
 
 
-# ----------------------------------------------------------------------
+# -------------------------------------------------------------------
 # OPENAI HÍVÁS
-# ----------------------------------------------------------------------
+# -------------------------------------------------------------------
 
 
 def _call_openai_for_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -571,7 +472,7 @@ def _call_openai_for_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     system_msg = (
         "Te egy felelős sportfogadás-elemző asszisztens vagy. "
         "Nem ígérsz biztos nyereményt, hanem statisztika, forma, sérülések, "
-        "pályaelőny, motiváció és oddsok alapján próbálsz ÉSSZERŰ tippeket adni. "
+        "pályaelőny alapján próbálsz ÉSSZERŰ tippeket adni. "
         "Mindig hangsúlyozd, hogy a sportfogadás kockázatos."
     )
 
@@ -590,16 +491,13 @@ Feladatod:
    - Itt inkább óvatosabb, stabilabb tippeket adj.
 
 2) VIP (vip_bets):
-   - Válaszd ki a legjobb LEGALÁBB 5 és legfeljebb 9 mérkőzést.
-   - Ezek közül a rendszer utólag 7-et fog felhasználni, és 3-at kiemelt tippnek jelöl.
+   - Válaszd ki a legjobb LEGALÁBB 5 és legfeljebb 7 mérkőzést.
    - Itt lehet bátrabb az odds, de továbbra is ésszerű keretek között.
 
 3) Minden kiválasztott meccshez add meg:
    - match: rövid leírás pl. "Manchester United vs West Ham (Premier League, 20:00) [ID=12345]"
    - fixture_id: a fenti sorban szereplő [ID=12345] értéke számként (ha van ilyen)
-   - tip: EGYÉRTELMŰ, KONKRÉT fogadási ötlet (pl. "Hazai győzelem", "Vendég győzelem",
-           "Over 2.5 gól", "Mindkét csapat szerez gólt").
-           NE adj homályos tippeket, mint "hazai győzelem vagy gólpiac".
+   - tip: EGYÉRTELMŰ, KONKRÉT fogadási ötlet (pl. "Hazai győzelem", "Over 2.5 gól")
    - odds: reális decimális odd (pl. 1.75, 2.10), akár becsült érték
    - risk: low / medium / high (kockázat szintje)
    - confidence: 1–5 közötti szám, hogy mennyire bízol a tippedben
@@ -617,34 +515,6 @@ Fontos korlátozások:
 FORMÁTUM:
 
 Kizárólag ÉRVÉNYES JSON-t adj vissza, minden egyéb szöveg nélkül!
-
-Példa struktúra:
-
-{{
-  "public_bets": [
-    {{
-      "match": "...",
-      "fixture_id": 12345,
-      "tip": "...",
-      "odds": 1.75,
-      "risk": "low",
-      "confidence": 4,
-      "reason": "..."
-    }}
-  ],
-  "vip_bets": [
-    {{
-      "match": "...",
-      "fixture_id": 67890,
-      "tip": "...",
-      "odds": 1.60,
-      "risk": "medium",
-      "confidence": 3,
-      "reason": "..."
-    }}
-  ],
-  "edu_tip": "Rövid 1 mondatos tanács..."
-}}
 """
 
     response = client.chat.completions.create(
@@ -663,14 +533,15 @@ Példa struktúra:
 
     data = json.loads(content)
 
+    # biztosítsuk a min. darabszámokat + dupla esély szabályokat
     data = _ensure_min_bets(data, trimmed)
 
     return data
 
 
-# ----------------------------------------------------------------------
-# FŐ FÜGGVÉNY – main.py innen hívja
-# ----------------------------------------------------------------------
+# -------------------------------------------------------------------
+# FŐ BELÉPÉSI FÜGGVÉNY – main.py EZT HÍVJA
+# -------------------------------------------------------------------
 
 
 def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -699,7 +570,7 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         today = datetime.date.today().strftime("%Y.%m.%d.")
         trimmed = matches[:10]
 
-        # --- FREE fallback ---
+        # Fallback – FREE
         lines_public: List[str] = []
         for i, m in enumerate(trimmed[:3], start=1):
             desc = _format_match_for_prompt(m)
@@ -715,16 +586,15 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             f"({today})\n\n"
             "Technikai hiba miatt most egyszerűsített tippek érkeznek, részletes AI elemzés nélkül.\n\n"
             + public_body
-            + "\n\n💰 Bankroll tipp: max 1–2% keret tétben, és mindig felelősen játssz."
         )
 
-        # --- VIP fallback ---
+        # Fallback – VIP
         lines_vip: List[str] = []
         for i, m in enumerate(trimmed[:7], start=1):
             desc = _format_match_for_prompt(m)
             lines_vip.append(
                 f"{i}. Meccs: {desc}\n"
-                f"Tipp: Hazai győzelem (kicsit bátrabb oddszal)."
+                f"Tipp: Hazai győzelem vagy gólpiac (kicsit bátrabb oddszal)."
             )
 
         vip_body = "\n\n".join(lines_vip) if lines_vip else "Ma kevés VIP lehetőség látszik."
@@ -734,8 +604,6 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             f"({today})\n\n"
             "Az AI elemzés most technikai okokból nem elérhető, ezért egyszerűbb, óvatos VIP ötleteket kapsz.\n\n"
             + vip_body
-            + "\n\n💰 Bankroll tipp: VIP-ben se lépd túl a bankrollod 1–3%-át szelvényenként."
-            + "\n\n🎓 Mini tanács: Technikai hiba esetén se erőltesd a játékot – a sportfogadás maradjon szórakozás."
         )
 
         # fallbacknél is adjunk vissza nyers listákat (fixture_id nélkül)
