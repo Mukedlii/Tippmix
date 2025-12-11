@@ -138,7 +138,6 @@ def main() -> None:
     print(f"Aktuális idősáv (TIPPMIX_SLOT): {slot}")
 
     telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
-    # Ha nincs PUBLIC_CHAT_ID setelve, fallback a megadott csatorna ID-re:
     public_chat_id = os.getenv("TELEGRAM_PUBLIC_CHAT_ID") or "-1003307981597"
     vip_chat_id = os.getenv("TELEGRAM_VIP_CHAT_ID")
 
@@ -151,9 +150,35 @@ def main() -> None:
         print("NINCS TELEGRAM_BOT_TOKEN, kilépek.")
         return
 
-    # 1) Meccsek lekérése (összes mai)
-    matches = fetch_matches_for_today()
-    print(f"Talált meccsek száma (összes): {len(matches)}")
+    # 1) Meccsek lekérése sport API-ból – most try/except-tel
+    try:
+        matches = fetch_matches_for_today()
+        print(f"Talált meccsek száma (összes): {len(matches)}")
+    except Exception as e:
+        err_msg = (
+            "⚠️ SPORT API HIBA ⚠️\n\n"
+            "Ma nem tudtam meccseket lekérni az API-FOOTBALL rendszertől.\n"
+            "Valószínűleg a sport API fiók fel van függesztve vagy limitet ért el.\n\n"
+            f"Technikai info:\n{repr(e)}"
+        )
+        print("Meccslekérés közben hiba történt:", repr(e))
+
+        # Küldjük ki FREE + VIP csatornára, hogy tudjanak róla
+        if public_chat_id:
+            send_telegram_message(
+                token=telegram_token,
+                chat_id=public_chat_id,
+                text=err_msg,
+                label=f"PUBLIC_API_ERROR_{slot}",
+            )
+        if vip_chat_id:
+            send_telegram_message(
+                token=telegram_token,
+                chat_id=vip_chat_id,
+                text=err_msg,
+                label=f"VIP_API_ERROR_{slot}",
+            )
+        return
 
     if not matches:
         print("Nincsenek meccsek mára, nem küldök tippet.")
@@ -173,7 +198,6 @@ def main() -> None:
     public_bets = tips_data.get("public_bets", [])
     vip_bets = tips_data.get("vip_bets", [])
 
-    # SLOT-alapú fájlnevek:
     suffix = "day" if slot == "DAY" else "evening"
     public_json_path = f"public_bets_{suffix}.json"
     vip_json_path = f"vip_bets_{suffix}.json"
