@@ -1,30 +1,46 @@
 name: Tippmix Evening Tips
 
 on:
-  workflow_dispatch:
   schedule:
-    # 15:00 UTC ≈ 16:00 magyar idő (tél)
-    - cron: "0 15 * * *"
+    # 18:00-kor fusson minden nap (GMT+1)
+    - cron: "0 17 * * *"
+  workflow_dispatch:
 
 jobs:
-  run-tips-evening:
+  tippmix-evening:
     runs-on: ubuntu-latest
-    env:
-      TIPPMIX_SLOT: EVENING
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
-      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
-      TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - name: Run evening tips (16–23 közti meccsek)
-        run: python -m bot.main
+      - name: Run evening tips (16–23 meccsek)
+        env:
+          SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
+          TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
+          TIPPMIX_SLOT: EVENING
+        run: |
+          python -m bot.main
+
+      - name: Run evening recap (16–23 meccsek)
+        env:
+          SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
+          TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
+          TIPPMIX_SLOT: EVENING
+        run: |
+          python -m bot.daily_recap_main
