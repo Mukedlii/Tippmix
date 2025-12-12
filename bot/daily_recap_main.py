@@ -9,10 +9,6 @@ import requests
 
 
 def send_telegram_message(token: str, chat_id: str, text: str, label: str) -> Tuple[bool, str]:
-    """
-    Egyszerű Telegram küldés + részletes log.
-    Visszaadja: (sikeres-e, hiba_szöveg_vagy_üres).
-    """
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload: Dict[str, Any] = {
         "chat_id": chat_id,
@@ -52,7 +48,7 @@ def send_telegram_message(token: str, chat_id: str, text: str, label: str) -> Tu
     return True, ""
 
 
-# --- API-FOOTBALL EREDMÉNY LEKÉRÉS ----------------------------------
+# --- API-FOOTBALL / SPORTS API EREDMÉNY LEKÉRÉS ---------------------
 
 
 SPORTS_API_KEY = os.getenv("SPORTS_API_KEY")
@@ -68,9 +64,7 @@ def fetch_fixture_result(fixture_id: int) -> Tuple[int | None, int | None, str]:
         return None, None, "ERR"
 
     url = "https://v3.football.api-sports.io/fixtures"
-    headers = {
-        "x-apisports-key": SPORTS_API_KEY,
-    }
+    headers = {"x-apisports-key": SPORTS_API_KEY}
     params = {"id": fixture_id}
 
     try:
@@ -109,14 +103,6 @@ def fetch_fixture_result(fixture_id: int) -> Tuple[int | None, int | None, str]:
 def _evaluate_tip(tip: str, home_goals: int | None, away_goals: int | None, status: str) -> str:
     """
     Visszatér: 'win', 'lose' vagy 'pending'.
-
-    Csak néhány alap tippet ismer:
-      - Hazai győzelem / Vendég győzelem / Döntetlen
-      - 1X / X2 / 12, 'hazai vagy döntetlen' stb.
-      - Over/Under 2.5 gól
-      - Mindkét csapat szerez gólt
-    Ha a meccs még nincs kész, 'pending'.
-    Ismeretlen tippre is 'pending'.
     """
     t = (tip or "").lower().strip()
 
@@ -155,11 +141,10 @@ def _evaluate_tip(tip: str, home_goals: int | None, away_goals: int | None, stat
     if "under 2.5" in t or "2.5 gól alatt" in t or "2,5 gól alatt" in t:
         return "win" if total_goals < 2.5 else "lose"
 
-    # BTTS – Mindkét csapat szerez gólt
+    # BTTS
     if "mindkét csapat szerez gólt" in t or "btts" in t:
         return "win" if home_goals > 0 and away_goals > 0 else "lose"
 
-    # ha semmit nem ismertünk fel:
     return "pending"
 
 
@@ -176,9 +161,6 @@ def _load_bets(path: str) -> List[Dict[str, Any]]:
 
 
 def _build_recap_text(label: str, bets: List[Dict[str, Any]]) -> str:
-    """
-    Egy listányi tippből recap szöveget csinál.
-    """
     today = datetime.date.today().strftime("%Y.%m.%d.")
     lines: List[str] = []
 
@@ -242,7 +224,7 @@ def _build_recap_text(label: str, bets: List[Dict[str, Any]]) -> str:
     )
 
     summary = (
-        f"Összefoglaló:\n"
+        "Összefoglaló:\n"
         f"✅ Nyertes tippek: {win}\n"
         f"❌ Vesztes tippek: {lose}\n"
         f"⏳ Függő / nem értékelt: {pend}\n"
@@ -262,25 +244,30 @@ def main() -> None:
     public_chat_id = os.getenv("TELEGRAM_PUBLIC_CHAT_ID")
     vip_chat_id = os.getenv("TELEGRAM_VIP_CHAT_ID")
 
-    # opcionális idősáv kezelése (DAY / EVENING), fájlnév suffix
-    slot = os.getenv("TIPPMIX_SLOT", "").upper().strip()
-    if slot == "DAY":
-        suffix = "_day"
-    elif slot == "EVENING":
-        suffix = "_evening"
-    else:
-        suffix = ""
-
-    public_path = f"public_bets{suffix}.json"
-    vip_path = f"vip_bets{suffix}.json"
+    slot = (os.getenv("TIPPMIX_SLOT") or "DAY").upper()
 
     print("=== DAILY RECAP INDUL ===")
+    print("TIPPMIX_SLOT:", slot)
     print("TELEGRAM_BOT_TOKEN be van állítva:", bool(telegram_token))
-    print("Bet JSON-ok:", public_path, vip_path)
 
     if not telegram_token:
         print("Nincs TELEGRAM_BOT_TOKEN, kilépek.")
         return
+
+    if slot == "DAY":
+        public_path = "public_bets_day.json"
+        vip_path = "vip_bets_day.json"
+        label_suffix = " (délelőtt / nappal)"
+    elif slot == "EVENING":
+        public_path = "public_bets_evening.json"
+        vip_path = "vip_bets_evening.json"
+        label_suffix = " (este)"
+    else:
+        public_path = "public_bets.json"
+        vip_path = "vip_bets.json"
+        label_suffix = ""
+
+    print(f"Bet JSON-ok: {public_path} {vip_path}")
 
     public_bets = _load_bets(public_path)
     vip_bets = _load_bets(vip_path)
@@ -289,22 +276,15 @@ def main() -> None:
         print("Nincs kiértékelhető tipp ebben az idősávban.")
         return
 
-    # FREE recap (ha van tipp ÉS van public chat id)
+    # FREE recap
     if public_bets and public_chat_id:
-        text_public = _build_recap_text("FREE", public_bets)
+        text_public = _build_recap_text("FREE" + label_suffix, public_bets)
         send_telegram_message(telegram_token, public_chat_id, text_public, "RECAP_PUBLIC")
 
-    # VIP recap (ha van tipp ÉS VIP chat id)
+    # VIP recap
     if vip_bets and vip_chat_id:
-        # teljes VIP recap
-        text_vip = _build_recap_text("VIP", vip_bets)
+        text_vip = _build_recap_text("VIP" + label_suffix, vip_bets)
         send_telegram_message(telegram_token, vip_chat_id, text_vip, "RECAP_VIP")
-
-        # kiemelt VIP tippek (ha vannak featured flaggel)
-        featured_vip = [b for b in vip_bets if b.get("featured")]
-        if featured_vip:
-            text_vip_feat = _build_recap_text("VIP – KIEMELT TIPPEK", featured_vip)
-            send_telegram_message(telegram_token, vip_chat_id, text_vip_feat, "RECAP_VIP_FEATURED")
 
     print("=== DAILY RECAP VÉGE ===")
 
