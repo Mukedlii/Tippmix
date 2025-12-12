@@ -2,13 +2,18 @@ name: Tippmix Day Tips
 
 on:
   schedule:
-    # 09:00-kor fusson minden nap (GMT+1)
-    - cron: "0 8 * * *"
+    # 09:00 Europe/Budapest -> 08:00 UTC (télen)
+    - cron: '0 8 * * *'
   workflow_dispatch:
 
 jobs:
-  tippmix-day:
+  tips-day:
     runs-on: ubuntu-latest
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
+      TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
+      SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
 
     steps:
       - name: Checkout repo
@@ -17,30 +22,21 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.11'
 
       - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
-      - name: Run daytime tips (09–16 meccsek)
+      - name: Run day tips bot (09–16 meccsek)
         env:
-          SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
-          TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
           TIPPMIX_SLOT: DAY
-        run: |
-          python -m bot.main
+        run: python -m bot.main
 
-      - name: Run daytime recap (09–16 meccsek)
-        env:
-          SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
-          TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
-          TIPPMIX_SLOT: DAY
-        run: |
-          python -m bot.daily_recap_main
+      - name: Upload day bets JSON (for later recap)
+        uses: actions/upload-artifact@v4
+        with:
+          name: bets_day
+          path: |
+            public_bets_day.json
+            vip_bets_day.json
+          if-no-files-found: ignore
