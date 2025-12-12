@@ -57,10 +57,12 @@ def _extract_kickoff_hour(match: Dict[str, Any]) -> Optional[int]:
     """
     Megpróbáljuk kivenni az órát a meccs kezdési idejéből (helyi idő szerint).
     Először kickoff_local, kickoff, datetime, date mezőkből próbál.
+
     Elfogad:
       - datetime objektumot
       - ISO stringet (2025-12-10T11:00:00)
       - sima 'HH:MM' stringet
+
     Ha nem tudjuk, None-t ad vissza.
     """
     dt = (
@@ -99,8 +101,9 @@ def _extract_kickoff_hour(match: Dict[str, Any]) -> Optional[int]:
 def _filter_matches_for_slot(matches: List[Dict[str, Any]], slot: str) -> List[Dict[str, Any]]:
     """
     Két idősáv:
-      - DAY:   9:00–16:00 (9 <= óra < 16)
+      - DAY:      9:00–16:00 (9 <= óra < 16)
       - EVENING: 16:00–23:00 (16 <= óra <= 23)
+
     Ha nem tudjuk kivenni az órát, bent hagyjuk (hogy inkább legyen tipp).
     Ha a szűrés után üres, visszaadjuk az eredeti listát.
     """
@@ -134,7 +137,7 @@ def main() -> None:
     print(f"Meccsek lekérése erre a napra: {today.isoformat()}")
 
     # SLOT: DAY vagy EVENING (GitHub Actions env-ből állítjuk)
-    slot = os.getenv("TIPPMIX_SLOT", "DAY").upper()
+    slot = (os.getenv("TIPPMIX_SLOT") or "DAY").upper()
     print(f"Aktuális idősáv (TIPPMIX_SLOT): {slot}")
 
     telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -150,9 +153,15 @@ def main() -> None:
         print("NINCS TELEGRAM_BOT_TOKEN, kilépek.")
         return
 
-    # 1) Meccsek lekérése sport API-ból – most try/except-tel
+    # 1) Meccsek lekérése sport API-ból – slot támogatás + hibatűrés
     try:
-        matches = fetch_matches_for_today()
+        # Ha a matches.fetch_matches_for_today slot paramétert ismer, használjuk:
+        try:
+            matches = fetch_matches_for_today(slot=slot)
+        except TypeError:
+            # Ha a régi verzió nem ismeri a slot paramétert:
+            matches = fetch_matches_for_today()
+
         print(f"Talált meccsek száma (összes): {len(matches)}")
     except Exception as e:
         err_msg = (
@@ -184,7 +193,7 @@ def main() -> None:
         print("Nincsenek meccsek mára, nem küldök tippet.")
         return
 
-    # 1/b) Csak az adott idősáv (DAY / EVENING) meccsei
+    # 1/b) Csak az adott idősáv (DAY / EVENING) meccsei – biztos ami biztos
     slot_matches = _filter_matches_for_slot(matches, slot)
     print(f"Idősávra szűrt meccsek száma: {len(slot_matches)}")
 
@@ -194,10 +203,11 @@ def main() -> None:
     public_text = tips_data.get("telegram_public_text") or "Hiba a FREE tippek generálásánál."
     vip_text = tips_data.get("telegram_vip_text") or "Hiba a VIP tippek generálásánál."
 
-    # NAPI TIPPEK MENTÉSE JSON-BA – recap-hez
+    # 3) NAPI TIPPEK MENTÉSE JSON-BA – recap-hez
     public_bets = tips_data.get("public_bets", [])
     vip_bets = tips_data.get("vip_bets", [])
 
+    # fájlnevek: public_bets_day.json / public_bets_evening.json stb.
     suffix = "day" if slot == "DAY" else "evening"
     public_json_path = f"public_bets_{suffix}.json"
     vip_json_path = f"vip_bets_{suffix}.json"
@@ -211,7 +221,7 @@ def main() -> None:
     except Exception as e:
         print("Nem sikerült a tippeket JSON-ba menteni:", repr(e))
 
-    # 3) FREE / PUBLIC üzenet küldése
+    # 4) FREE / PUBLIC üzenet küldése
     public_ok = False
     public_err = ""
 
@@ -226,7 +236,7 @@ def main() -> None:
         public_err = "PUBLIC_CHAT_ID nincs beállítva."
         print(public_err)
 
-    # 4) VIP üzenet – ha a FREE-nél hiba volt, technikai infót csatolunk
+    # 5) VIP üzenet – ha a FREE-nél hiba volt, technikai infót csatolunk
     if vip_chat_id:
         if not public_ok and public_err:
             vip_text_with_info = (
