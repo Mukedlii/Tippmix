@@ -1,14 +1,19 @@
-name: Tippmix Evening Tips
+name: Tippmix Evening Tips + Day Recap
 
 on:
   schedule:
-    # 18:00-kor fusson minden nap (GMT+1)
-    - cron: "0 17 * * *"
+    # 16:00 Europe/Budapest -> 15:00 UTC (télen)
+    - cron: '0 15 * * *'
   workflow_dispatch:
 
 jobs:
-  tippmix-evening:
+  tips-evening:
     runs-on: ubuntu-latest
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
+      TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
+      SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
 
     steps:
       - name: Checkout repo
@@ -17,30 +22,33 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.11'
 
       - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
-      - name: Run evening tips (16–23 meccsek)
-        env:
-          SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
-          TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
-          TIPPMIX_SLOT: EVENING
-        run: |
-          python -m bot.main
+      - name: Download day bets JSON (for recap)
+        uses: actions/download-artifact@v4
+        with:
+          name: bets_day
+          path: .
+        continue-on-error: true
 
-      - name: Run evening recap (16–23 meccsek)
+      - name: Run day recap (09–16 meccsek)
         env:
-          SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
-          TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
+          TIPPMIX_SLOT: DAY
+        run: python -m bot.daily_recap_main
+
+      - name: Run evening tips bot (16–23 meccsek)
+        env:
           TIPPMIX_SLOT: EVENING
-        run: |
-          python -m bot.daily_recap_main
+        run: python -m bot.main
+
+      - name: Upload evening bets JSON (for 23:00 recap)
+        uses: actions/upload-artifact@v4
+        with:
+          name: bets_evening
+          path: |
+            public_bets_evening.json
+            vip_bets_evening.json
+          if-no-files-found: ignore
