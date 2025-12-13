@@ -1,0 +1,66 @@
+[
+  {
+    "match": "Cercle Brugge vs KV Mechelen (Jupiler Pro League Belgium, 16:00) [ID=1382566]",
+    "fixture_id": 1382566,
+    "tip": "Over 2.5 gól",
+    "odds": 2.1,
+    "risk": "medium",
+    "confidence": 3,
+    "reason": "Mindkét csapat támadó jellegű, az utóbbi meccseiken több gól esett."
+  },
+  {
+    "match": "Chelsea vs Everton (Premier League England, 16:00) [ID=1379122]",
+    "fixture_id": 1379122,
+    "tip": "Ázsiai hendikep Chelsea -1",
+    "odds": 1.85,
+    "risk": "medium",
+    "confidence": 4,
+    "highlight": true,
+    "reason": "Chelsea hazai pályán erősebb, Everton védekezése gyengébb mostanában."
+  },
+  {
+    "match": "Dundee Utd vs Motherwell (Premiership Scotland, 16:00) [ID=1382763]",
+    "fixture_id": 1382763,
+    "tip": "Mindkét csapat szerez gólt",
+    "odds": 1.65,
+    "risk": "medium",
+    "confidence": 4,
+    "highlight": true,
+    "reason": "Mindkét csapat kiegyensúlyozott támadójátékkal rendelkezik, sok gólos mérkőzést ígér."
+  },
+  {
+    "match": "Linfield vs Crusaders FC (Premiership Northern-Ireland, 16:00) [ID=1385249]",
+    "fixture_id": 1385249,
+    "tip": "Hazai győzelem",
+    "odds": 1.8,
+    "risk": "medium",
+    "confidence": 4,
+    "highlight": true,
+    "reason": "Linfield hazai pályán stabil, Crusaders idegenben bizonytalanabb."
+  },
+  {
+    "match": "Accrington ST vs Bromley (League Two England, 16:00) [ID=1386224]",
+    "fixture_id": 1386224,
+    "tip": "Over 1.5 gól",
+    "odds": 1.55,
+    "risk": "low",
+    "confidence": 3,
+    "reason": "Mindkét csapat képes gólt szerezni, és a mérkőzések általában nem túl alacsony gólszámúak."
+  },
+  {
+    "match": "Morton vs Airdrie United (Championship Scotland, 16:00) [ID=1382951]",
+    "fixture_id": 1382951,
+    "tip": "Döntetlen",
+    "odds": 3.2,
+    "risk": "medium",
+    "confidence": 3,
+    "reason": "Mindkét csapat hasonló formában van, gyakoriak a döntetlen eredményeik."
+  },
+  {
+    "match": "Football | Chelsea vs Everton | Premier League England | 2025-12-13T16:00:00+01:00 | [ID=1379122]",
+    "tip": "Hazai győzelem",
+    "odds": 1.8,
+    "confidence": 3,
+    "reason": "Hazai pálya előnye és alapvetően erősebb keret miatt vállalható VIP tipp."
+  }
+]
