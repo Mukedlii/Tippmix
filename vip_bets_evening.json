@@ -1,66 +1,68 @@
 [
   {
-    "match": "Cercle Brugge vs KV Mechelen (Jupiler Pro League Belgium, 16:00) [ID=1382566]",
-    "fixture_id": 1382566,
-    "tip": "Over 2.5 gól",
-    "odds": 2.1,
-    "risk": "medium",
-    "confidence": 3,
-    "reason": "Mindkét csapat támadó jellegű, az utóbbi meccseiken több gól esett."
-  },
-  {
-    "match": "Chelsea vs Everton (Premier League England, 16:00) [ID=1379122]",
-    "fixture_id": 1379122,
-    "tip": "Ázsiai hendikep Chelsea -1",
-    "odds": 1.85,
-    "risk": "medium",
-    "confidence": 4,
-    "highlight": true,
-    "reason": "Chelsea hazai pályán erősebb, Everton védekezése gyengébb mostanában."
-  },
-  {
     "match": "Dundee Utd vs Motherwell (Premiership Scotland, 16:00) [ID=1382763]",
     "fixture_id": 1382763,
-    "tip": "Mindkét csapat szerez gólt",
+    "tip": "Hazai győzelem",
     "odds": 1.65,
     "risk": "medium",
     "confidence": 4,
     "highlight": true,
-    "reason": "Mindkét csapat kiegyensúlyozott támadójátékkal rendelkezik, sok gólos mérkőzést ígér."
+    "reason": "Dundee Utd otthon erős, jobb formában van, és hazai pályán stabil teljesítményt nyújt."
+  },
+  {
+    "match": "Livingston vs Dundee (Premiership Scotland, 16:00) [ID=1382766]",
+    "fixture_id": 1382766,
+    "tip": "Over 2.5 gól",
+    "odds": 1.85,
+    "risk": "medium",
+    "confidence": 3,
+    "reason": "Mindkét csapat támadó szellemű, több gól esélyes ebben a találkozóban."
   },
   {
     "match": "Linfield vs Crusaders FC (Premiership Northern-Ireland, 16:00) [ID=1385249]",
     "fixture_id": 1385249,
     "tip": "Hazai győzelem",
-    "odds": 1.8,
+    "odds": 1.75,
     "risk": "medium",
-    "confidence": 4,
+    "confidence": 5,
     "highlight": true,
-    "reason": "Linfield hazai pályán stabil, Crusaders idegenben bizonytalanabb."
+    "reason": "Linfield otthon nagyon erős, és a Crusaders idegenben sokszor pontokat veszít."
+  },
+  {
+    "match": "Queen's Park vs Dunfermline (Championship Scotland, 16:00) [ID=1382952]",
+    "fixture_id": 1382952,
+    "tip": "Mindkét csapat szerez gólt",
+    "odds": 1.7,
+    "risk": "medium",
+    "confidence": 3,
+    "reason": "Mindkét csapat támadó fókuszú, a védelem pedig nem mindig stabil."
   },
   {
     "match": "Accrington ST vs Bromley (League Two England, 16:00) [ID=1386224]",
     "fixture_id": 1386224,
-    "tip": "Over 1.5 gól",
-    "odds": 1.55,
-    "risk": "low",
-    "confidence": 3,
-    "reason": "Mindkét csapat képes gólt szerezni, és a mérkőzések általában nem túl alacsony gólszámúak."
+    "tip": "Ázsiai hendikep -0.25 hazai",
+    "odds": 1.9,
+    "risk": "medium",
+    "confidence": 4,
+    "highlight": true,
+    "reason": "Accrington otthon jobb formában van, és általában dominálja a mérkőzéseket."
   },
   {
-    "match": "Morton vs Airdrie United (Championship Scotland, 16:00) [ID=1382951]",
-    "fixture_id": 1382951,
-    "tip": "Döntetlen",
-    "odds": 3.2,
+    "match": "Cove Rangers vs East Fife (League One Scotland, 16:00) [ID=1383125]",
+    "fixture_id": 1383125,
+    "tip": "Hazai győzelem",
+    "odds": 1.7,
     "risk": "medium",
     "confidence": 3,
-    "reason": "Mindkét csapat hasonló formában van, gyakoriak a döntetlen eredményeik."
+    "reason": "Cove Rangers hazai pályán erős, East Fife idegenben gyengébben teljesít."
   },
   {
-    "match": "Football | Chelsea vs Everton | Premier League England | 2025-12-13T16:00:00+01:00 | [ID=1379122]",
-    "tip": "Hazai győzelem",
-    "odds": 1.8,
+    "match": "Arbroath vs Partick (Championship Scotland, 16:00) [ID=1382949]",
+    "fixture_id": 1382949,
+    "tip": "Mindkét csapat szerez gólt",
+    "odds": 1.85,
+    "risk": "medium",
     "confidence": 3,
-    "reason": "Hazai pálya előnye és alapvetően erősebb keret miatt vállalható VIP tipp."
+    "reason": "Mindkét csapat támadó szellemű, és általában nyitott mérkőzéseket játszanak."
   }
 ]

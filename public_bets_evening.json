@@ -1,27 +1,29 @@
 [
   {
-    "match": "Liverpool vs Brighton (Premier League England, 16:00) [ID=1379124]",
-    "fixture_id": 1379124,
+    "match": "Chelsea vs Everton (Premier League England, 16:00) [ID=1379122]",
+    "fixture_id": 1379122,
     "tip": "Hazai győzelem",
     "odds": 1.75,
     "risk": "low",
     "confidence": 4,
-    "reason": "Liverpool otthon erős, jó formában vannak, Brighton idegenben gyengélkedik."
+    "reason": "Chelsea otthon erős, Everton idegenben gyengébb, a hazai pálya és forma miatt reális az esély a győzelemre."
   },
   {
-    "match": "Queen's Park vs Dunfermline (Championship Scotland, 16:00) [ID=1382952]",
-    "fixture_id": 1382952,
-    "tip": "Mindkét csapat szerez gólt",
-    "odds": 1.7,
+    "match": "Liverpool vs Brighton (Premier League England, 16:00) [ID=1379124]",
+    "fixture_id": 1379124,
+    "tip": "Over 2.5 gól",
+    "odds": 1.8,
     "risk": "medium",
     "confidence": 3,
-    "reason": "Mindkét csapat támadó szellemű, hazai pályán a Queen's Park ritkán tartja kapott gól nélkül a meccset."
+    "reason": "Mindkét csapat támadó szellemű, Liverpool hazai pályán általában sok gólt szerez."
   },
   {
-    "match": "Football | Chelsea vs Everton | Premier League England | 2025-12-13T16:00:00+01:00 | [ID=1379122]",
-    "tip": "Hazai győzelem",
-    "odds": 1.4,
+    "match": "Cercle Brugge vs KV Mechelen (Jupiler Pro League Belgium, 16:00) [ID=1382566]",
+    "fixture_id": 1382566,
+    "tip": "Mindkét csapat szerez gólt",
+    "odds": 1.7,
+    "risk": "low",
     "confidence": 3,
-    "reason": "Hazai pálya és forma alapján vállalható stabilabb tipp."
+    "reason": "Mindkét csapat kiegyensúlyozott támadójátékot mutat, és a védelem sem mindig stabil."
   }
 ]
