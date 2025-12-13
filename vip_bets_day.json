@@ -1,0 +1,68 @@
+[
+  {
+    "match": "Chindia Targoviste vs CS Dinamo București (Liga II Romania, 10:00) [ID=1418335]",
+    "fixture_id": 1418335,
+    "tip": "Mindkét csapat szerez gólt",
+    "odds": 1.75,
+    "risk": "medium",
+    "confidence": 4,
+    "highlight": true,
+    "reason": "Két kiegyensúlyozott csapat, amelyek rendszeresen kapnak és rúgnak is gólt."
+  },
+  {
+    "match": "Kryvbas KR vs Kolos Kovalivka (Premier League Ukraine, 12:00) [ID=1391539]",
+    "fixture_id": 1391539,
+    "tip": "Ázsiai hendikep Kolos Kovalivka +0",
+    "odds": 1.6,
+    "risk": "medium",
+    "confidence": 5,
+    "highlight": true,
+    "reason": "Kolos stabil idegenbeli teljesítményt nyújt, így a hendikep biztosabb opció."
+  },
+  {
+    "match": "Slavia Sofia vs CSKA 1948 (Cup Bulgaria, 11:00) [ID=1485575]",
+    "fixture_id": 1485575,
+    "tip": "Hazai győzelem",
+    "odds": 1.85,
+    "risk": "medium",
+    "confidence": 4,
+    "highlight": true,
+    "reason": "Slavia erős hazai pályán, a kupameccsek motiváltak számukra."
+  },
+  {
+    "match": "Perth Glory vs Sydney (A-League Australia, 11:45) [ID=1469603]",
+    "fixture_id": 1469603,
+    "tip": "Mindkét csapat szerez gólt",
+    "odds": 1.7,
+    "risk": "medium",
+    "confidence": 3,
+    "reason": "Mindkét együttes támadó futballt játszik, gyakran mindkét oldalon eredményesek."
+  },
+  {
+    "match": "Slavia Sofia vs CSKA 1948 (Cup Bulgaria, 11:00) [ID=1485575]",
+    "fixture_id": 1485575,
+    "tip": "Over 2.5 gól",
+    "odds": 1.9,
+    "risk": "medium",
+    "confidence": 3,
+    "reason": "Kupamérkőzésen gyakran több gól születik, főleg ilyen kiegyensúlyozott csapatok között."
+  },
+  {
+    "match": "Viitorul Şelimbăr vs Politehnica Iasi (Liga II Romania, 10:00) [ID=1418330]",
+    "fixture_id": 1418330,
+    "tip": "Ázsiai hendikep Viitorul Şelimbăr -0.25",
+    "odds": 1.65,
+    "risk": "medium",
+    "confidence": 3,
+    "reason": "Viitorul otthon meggyőző, a hendikep enyhe kockázatot mérsékel."
+  },
+  {
+    "match": "SC Freiburg W vs SGS Essen W (Frauen Bundesliga Germany, 12:00) [ID=1401295]",
+    "fixture_id": 1401295,
+    "tip": "Hazai győzelem",
+    "odds": 1.55,
+    "risk": "low",
+    "confidence": 4,
+    "reason": "Freiburg női csapata hazai pályán erős, Essen idegenben gyengébb."
+  }
+]

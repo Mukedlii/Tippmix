@@ -1,0 +1,27 @@
+[
+  {
+    "match": "Melbourne Victory vs Adelaide United (A-League Australia, 09:35) [ID=1469602]",
+    "fixture_id": 1469602,
+    "tip": "Over 2.5 gól",
+    "odds": 1.8,
+    "risk": "medium",
+    "confidence": 4,
+    "reason": "Mindkét csapat támadó formában vannak, és az A-League-ben gyakori a sok gólos mérkőzés."
+  },
+  {
+    "match": "CSA Steaua Bucureşti vs Gloria Bistriţa (Liga II Romania, 10:00) [ID=1418331]",
+    "fixture_id": 1418331,
+    "tip": "Hazai győzelem",
+    "odds": 1.7,
+    "risk": "low",
+    "confidence": 4,
+    "reason": "A Steaua hazai pályán erős, míg a vendégek gyenge idegenbeli formát mutatnak."
+  },
+  {
+    "match": "Football | Fakirerpool vs Abahani | Premier League Bangladesh | 2025-12-13T09:30:00+01:00 | [ID=1482440]",
+    "tip": "Hazai győzelem",
+    "odds": 1.4,
+    "confidence": 3,
+    "reason": "Hazai pálya és forma alapján vállalható stabilabb tipp."
+  }
+]
