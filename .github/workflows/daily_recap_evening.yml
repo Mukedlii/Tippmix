@@ -2,7 +2,7 @@ name: Tippmix Evening Recap
 
 on:
   schedule:
-    # 23:00 Europe/Budapest -> 22:00 UTC (télen)
+    # 23:00 Europe/Budapest -> 22:00 UTC
     - cron: '0 22 * * *'
   workflow_dispatch:
 
@@ -26,13 +26,6 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
-
-      - name: Download evening bets JSON
-        uses: actions/download-artifact@v4
-        with:
-          name: bets_evening
-          path: .
-        continue-on-error: true
 
       - name: Run evening recap (16–23 meccsek)
         env:
