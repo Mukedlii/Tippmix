@@ -2,9 +2,12 @@ name: Tippmix Day Tips
 
 on:
   schedule:
-    # 09:00 Europe/Budapest -> 08:00 UTC (télen)
+    # 09:00 Europe/Budapest -> 08:00 UTC (téli időszámításnál)
     - cron: '0 8 * * *'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   tips-day:
@@ -33,11 +36,23 @@ jobs:
           TIPPMIX_SLOT: DAY
         run: python -m bot.main
 
-      - name: Upload day bets JSON (for later recap)
-        uses: actions/upload-artifact@v4
-        with:
-          name: bets_day
-          path: |
-            public_bets_day.json
-            vip_bets_day.json
-          if-no-files-found: ignore
+      - name: Commit day bets JSON to repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # csak akkor add, ha tényleg létezik
+          if [ -f public_bets_day.json ]; then
+            git add public_bets_day.json
+          fi
+          if [ -f vip_bets_day.json ]; then
+            git add vip_bets_day.json
+          fi
+
+          # ha nincs staged változás, ne próbáljon commitolni
+          if git diff --cached --quiet; then
+            echo "Nothing to commit for day JSON."
+          else
+            git commit -m "Update day bets JSON"
+            git push
+          fi
