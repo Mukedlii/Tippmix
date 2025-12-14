@@ -1,27 +1,29 @@
 [
   {
-    "match": "Melbourne Victory vs Adelaide United (A-League Australia, 09:35) [ID=1469602]",
-    "fixture_id": 1469602,
-    "tip": "Over 2.5 gól",
-    "odds": 1.8,
-    "risk": "medium",
-    "confidence": 4,
-    "reason": "Mindkét csapat támadó formában vannak, és az A-League-ben gyakori a sok gólos mérkőzés."
-  },
-  {
-    "match": "CSA Steaua Bucureşti vs Gloria Bistriţa (Liga II Romania, 10:00) [ID=1418331]",
-    "fixture_id": 1418331,
-    "tip": "Hazai győzelem",
+    "match": "Western Sydney Wanderers W vs Central Coast Mariners W (A-League Women Australia, 09:00) [ID=1484505]",
+    "fixture_id": 1484505,
+    "tip": "Mindkét csapat szerez gólt",
     "odds": 1.7,
     "risk": "low",
     "confidence": 4,
-    "reason": "A Steaua hazai pályán erős, míg a vendégek gyenge idegenbeli formát mutatnak."
+    "reason": "Mindkét csapat jó támadójátékkal áll, a hazaiak otthon is inkább nyitottak, míg a vendégek meccsenként átlagosan legalább egy gólt szereznek."
   },
   {
-    "match": "Football | Fakirerpool vs Abahani | Premier League Bangladesh | 2025-12-13T09:30:00+01:00 | [ID=1482440]",
-    "tip": "Hazai győzelem",
-    "odds": 1.4,
+    "match": "SK Poltava vs Ruh Lviv (Premier League Ukraine, 12:00) [ID=1391535]",
+    "fixture_id": 1391535,
+    "tip": "Over 2.5 gól",
+    "odds": 1.85,
+    "risk": "medium",
     "confidence": 3,
-    "reason": "Hazai pálya és forma alapján vállalható stabilabb tipp."
+    "reason": "Mindkét csapat támadó szellemű, a legutóbbi meccseiken több mint 3 gólt láthattunk, így a magas gólátlag folytatódhat."
+  },
+  {
+    "match": "Granad. Tenerife W vs Edf Logrono W (Primera División Femenina Spain, 12:00) [ID=1397161]",
+    "fixture_id": 1397161,
+    "tip": "Hazai győzelem",
+    "odds": 1.6,
+    "risk": "low",
+    "confidence": 4,
+    "reason": "A Granada Tenerife W stabil hazai formát mutat, míg a vendégek idegenben gyengébbek, így a hazai siker esélyes."
   }
 ]

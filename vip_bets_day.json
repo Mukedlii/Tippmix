@@ -1,68 +1,64 @@
 [
   {
-    "match": "Chindia Targoviste vs CS Dinamo București (Liga II Romania, 10:00) [ID=1418335]",
-    "fixture_id": 1418335,
-    "tip": "Mindkét csapat szerez gólt",
-    "odds": 1.75,
-    "risk": "medium",
-    "confidence": 4,
-    "highlight": true,
-    "reason": "Két kiegyensúlyozott csapat, amelyek rendszeresen kapnak és rúgnak is gólt."
-  },
-  {
-    "match": "Kryvbas KR vs Kolos Kovalivka (Premier League Ukraine, 12:00) [ID=1391539]",
-    "fixture_id": 1391539,
-    "tip": "Ázsiai hendikep Kolos Kovalivka +0",
-    "odds": 1.6,
-    "risk": "medium",
+    "match": "Eastern vs Wofoo Tai Po (Premier League Hong-Kong, 11:00) [ID=1449233]",
+    "fixture_id": 1449233,
+    "tip": "Hazai győzelem",
+    "odds": 1.55,
+    "risk": "low",
     "confidence": 5,
     "highlight": true,
-    "reason": "Kolos stabil idegenbeli teljesítményt nyújt, így a hendikep biztosabb opció."
+    "reason": "Az Eastern hazai pályán erős, a Wofoo Tai Po idegenben kevés pontot szerzett, így a hazai siker valószínű."
   },
   {
-    "match": "Slavia Sofia vs CSKA 1948 (Cup Bulgaria, 11:00) [ID=1485575]",
-    "fixture_id": 1485575,
-    "tip": "Hazai győzelem",
-    "odds": 1.85,
+    "match": "Erzurum BB vs BB Bodrumspor (1. Lig Turkey, 11:30) [ID=1398477]",
+    "fixture_id": 1398477,
+    "tip": "Ázsiai hendikep -0.25 Erzurum BB",
+    "odds": 1.7,
     "risk": "medium",
     "confidence": 4,
     "highlight": true,
-    "reason": "Slavia erős hazai pályán, a kupameccsek motiváltak számukra."
+    "reason": "Erzurum BB otthon stabil, a vendégek idegenben pontatlanok, a hendikepes fogadás csökkenti a kockázatot."
   },
   {
-    "match": "Perth Glory vs Sydney (A-League Australia, 11:45) [ID=1469603]",
-    "fixture_id": 1469603,
+    "match": "Hellas Verona U20 vs Juventus U20 (Campionato Primavera - 1 Italy, 10:45) [ID=1404430]",
+    "fixture_id": 1404430,
+    "tip": "Mindkét csapat szerez gólt",
+    "odds": 1.8,
+    "risk": "medium",
+    "confidence": 3,
+    "reason": "Fiatal csapatok támadó játékot preferálnak, sok gól születik, mindkét oldalon vannak jó támadók."
+  },
+  {
+    "match": "Kapaz vs Qabala (Premyer Liqa Azerbaijan, 11:00) [ID=1445852]",
+    "fixture_id": 1445852,
+    "tip": "Over 2.0 gól",
+    "odds": 1.65,
+    "risk": "medium",
+    "confidence": 4,
+    "highlight": true,
+    "reason": "Mindkét csapat mérkőzésein jellemző a többgólos meccs, otthon a Kapaz támadólag lép fel."
+  },
+  {
+    "match": "Sisaket United vs Esan Pattaya (Thai League 2 Thailand, 12:00) [ID=1423254]",
+    "fixture_id": 1423254,
     "tip": "Mindkét csapat szerez gólt",
     "odds": 1.7,
     "risk": "medium",
     "confidence": 3,
-    "reason": "Mindkét együttes támadó futballt játszik, gyakran mindkét oldalon eredményesek."
+    "reason": "Mindkét gárda támadó szellemű, a mérkőzéseiken gyakori a gól mindkét oldalon."
   },
   {
-    "match": "Slavia Sofia vs CSKA 1948 (Cup Bulgaria, 11:00) [ID=1485575]",
-    "fixture_id": 1485575,
-    "tip": "Over 2.5 gól",
-    "odds": 1.9,
-    "risk": "medium",
-    "confidence": 3,
-    "reason": "Kupamérkőzésen gyakran több gól születik, főleg ilyen kiegyensúlyozott csapatok között."
-  },
-  {
-    "match": "Viitorul Şelimbăr vs Politehnica Iasi (Liga II Romania, 10:00) [ID=1418330]",
-    "fixture_id": 1418330,
-    "tip": "Ázsiai hendikep Viitorul Şelimbăr -0.25",
-    "odds": 1.65,
-    "risk": "medium",
-    "confidence": 3,
-    "reason": "Viitorul otthon meggyőző, a hendikep enyhe kockázatot mérsékel."
-  },
-  {
-    "match": "SC Freiburg W vs SGS Essen W (Frauen Bundesliga Germany, 12:00) [ID=1401295]",
-    "fixture_id": 1401295,
+    "match": "Football | Western Sydney Wanderers W vs Central Coast Mariners W | A-League Women Australia | 2025-12-14T09:00:00+01:00 | [ID=1484505]",
     "tip": "Hazai győzelem",
-    "odds": 1.55,
-    "risk": "low",
-    "confidence": 4,
-    "reason": "Freiburg női csapata hazai pályán erős, Essen idegenben gyengébb."
+    "odds": 1.8,
+    "confidence": 3,
+    "reason": "Hazai pálya előnye és alapvetően erősebb keret miatt vállalható VIP tipp."
+  },
+  {
+    "match": "Football | Hong Kong FC vs Kowloon City | Premier League Hong-Kong | 2025-12-14T09:30:00+01:00 | [ID=1449232]",
+    "tip": "Hazai győzelem",
+    "odds": 1.8,
+    "confidence": 3,
+    "reason": "Hazai pálya előnye és alapvetően erősebb keret miatt vállalható VIP tipp."
   }
 ]
