@@ -1,21 +1,21 @@
 [
   {
+    "match": "Dender vs Club Brugge KV (Jupiler Pro League Belgium, 16:00) [ID=1382568]",
+    "fixture_id": 1382568,
+    "tip": "Vendég győzelem",
+    "odds": 1.7,
+    "risk": "low",
+    "confidence": 4,
+    "reason": "Club Brugge erősebb csapat, jobb formában és stabilabb a bajnokságban, Dender hazai pályán gyengélkedik."
+  },
+  {
     "match": "Aberdeen vs Kilmarnock (Premiership Scotland, 16:00) [ID=1382762]",
     "fixture_id": 1382762,
     "tip": "Hazai győzelem",
-    "odds": 1.8,
-    "risk": "low",
-    "confidence": 4,
-    "reason": "Aberdeen otthon erősek, stabil formában vannak, míg Kilmarnock idegenben gyengélkedik."
-  },
-  {
-    "match": "FC Koln W vs Carl Zeiss Jena W (Frauen Bundesliga Germany, 16:00) [ID=1401296]",
-    "fixture_id": 1401296,
-    "tip": "Over 2.5 gól",
-    "odds": 1.7,
-    "risk": "low",
+    "odds": 1.85,
+    "risk": "medium",
     "confidence": 3,
-    "reason": "Mindkét csapat támadószellemű, és az elmúlt meccseiken több gól is született."
+    "reason": "Aberdeen hazai pályán erős, Kilmarnock idegenben gyengén teljesít, a forma hazai sikert vetít előre."
   },
   {
     "match": "Football | Dender vs Club Brugge KV | Jupiler Pro League Belgium | 2025-12-14T16:00:00+01:00 | [ID=1382568]",

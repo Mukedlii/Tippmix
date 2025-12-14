@@ -3,64 +3,63 @@
     "match": "Dender vs Club Brugge KV (Jupiler Pro League Belgium, 16:00) [ID=1382568]",
     "fixture_id": 1382568,
     "tip": "Vendég győzelem",
+    "odds": 1.7,
+    "risk": "low",
+    "confidence": 4,
+    "reason": "Club Brugge dominánsabb a ligában, jobb kerettel és formával rendelkezik, érdemes rá fogadni."
+  },
+  {
+    "match": "Aberdeen vs Kilmarnock (Premiership Scotland, 16:00) [ID=1382762]",
+    "fixture_id": 1382762,
+    "tip": "Hazai győzelem",
     "odds": 1.85,
     "risk": "medium",
-    "confidence": 4,
-    "highlight": true,
-    "reason": "Club Brugge erősebb kerettel és jobb formában utazik, Dender hazai pályán is ingadozó."
+    "confidence": 3,
+    "reason": "Aberdeen hazai pályán stabilabb, Kilmarnock idegenben bizonytalanabb, ez a mérkőzés tipikus hazai siker lehet."
   },
   {
     "match": "Racing Ferrol vs Unionistas de Salamanca (Primera División RFEF - Group 1 Spain, 16:00) [ID=1431666]",
     "fixture_id": 1431666,
-    "tip": "Mindkét csapat szerez gólt",
-    "odds": 1.75,
+    "tip": "Hazai győzelem",
+    "odds": 2.1,
     "risk": "medium",
     "confidence": 3,
-    "reason": "Mindkét csapat kiegyensúlyozott támadójátékot mutat, és gyakran gólt kapnak."
+    "reason": "Racing Ferrol hazai pályán jobb formában, míg Unionistas idegenben ingadozó teljesítményt nyújt."
   },
   {
-    "match": "Bayelsa United vs Remo Stars (NPFL Nigeria, 16:00) [ID=1445736]",
-    "fixture_id": 1445736,
-    "tip": "Hazai győzelem",
-    "odds": 1.9,
+    "match": "Teruel vs Algeciras (Primera División RFEF - Group 2 Spain, 16:00) [ID=1431286]",
+    "fixture_id": 1431286,
+    "tip": "Over 2.5 gól",
+    "odds": 2.2,
     "risk": "medium",
-    "confidence": 4,
-    "highlight": true,
-    "reason": "Bayelsa United otthon nagyon erős, míg Remo Stars idegenben gyengébb teljesítményt nyújt."
+    "confidence": 3,
+    "reason": "Mindkét csapat támadó szellemben játszik, és az utóbbi meccseiken gyakran született több gól."
   },
   {
     "match": "Kun Khalifat FC vs Abia Warriors (NPFL Nigeria, 16:00) [ID=1445738]",
     "fixture_id": 1445738,
-    "tip": "Over 2.5 gól",
-    "odds": 1.85,
+    "tip": "Vendég győzelem",
+    "odds": 2.3,
     "risk": "medium",
     "confidence": 3,
-    "reason": "Mindkét csapat támadó szellemű, és a meccseiken gyakran sok gól esik."
+    "reason": "Abia Warriors jobb idegenbeli mutatókkal és stabilabb formával rendelkezik, így esélyesebb a sikerre."
   },
   {
-    "match": "União Santarém vs Amora (Liga 3 Portugal, 16:00) [ID=1424230]",
-    "fixture_id": 1424230,
-    "tip": "Ázsiai hendikep -0.25 hazai",
-    "odds": 1.7,
-    "risk": "medium",
-    "confidence": 4,
-    "highlight": true,
-    "reason": "União Santarém jó hazai formában, Amora idegenben pontatlanabb, így a hendikep biztonságos fogadás."
+    "match": "Warri Wolves vs Kano Pillars (NPFL Nigeria, 16:00) [ID=1445742]",
+    "fixture_id": 1445742,
+    "tip": "Döntetlen",
+    "odds": 3.1,
+    "risk": "high",
+    "confidence": 2,
+    "reason": "Mindkét csapat kiegyenlített, és gyakran döntetlennel zárják a meccseiket, így ez egy reális eredmény lehet."
   },
   {
-    "match": "Florgrade vs Aparecida (Campeonato de Portugal Prio - Group B Portugal, 16:00) [ID=1413674]",
-    "fixture_id": 1413674,
-    "tip": "Mindkét csapat szerez gólt",
-    "odds": 1.65,
-    "risk": "medium",
-    "confidence": 3,
-    "reason": "Mindkét együttes támadólag lép fel, és védekezésük ingatag."
-  },
-  {
-    "match": "Football | Dender vs Club Brugge KV | Jupiler Pro League Belgium | 2025-12-14T16:00:00+01:00 | [ID=1382568]",
+    "match": "FC Koln W vs Carl Zeiss Jena W (Frauen Bundesliga Germany, 16:00) [ID=1401296]",
+    "fixture_id": 1401296,
     "tip": "Hazai győzelem",
-    "odds": 1.8,
-    "confidence": 3,
-    "reason": "Hazai pálya előnye és alapvetően erősebb keret miatt vállalható VIP tipp."
+    "odds": 1.65,
+    "risk": "low",
+    "confidence": 4,
+    "reason": "FC Koln W hazai pályán erős, és jobb tabellapozícióban van, így a győzelem esélye nagy."
   }
 ]
