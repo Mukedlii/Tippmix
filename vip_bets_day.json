@@ -1,65 +1,65 @@
 [
   {
-    "match": "SK Poltava vs Ruh Lviv (Premier League Ukraine, 12:00) [ID=1391535]",
-    "fixture_id": 1391535,
-    "tip": "Vendég győzelem",
-    "odds": 2.1,
-    "risk": "medium",
-    "confidence": 4,
-    "reason": "Ruh Lviv jobb formában van és stabilabb a támadójátékuk, míg SK Poltava otthon nem túl meggyőző."
-  },
-  {
-    "match": "Granad. Tenerife W vs Edf Logrono W (Primera División Femenina Spain, 12:00) [ID=1397161]",
-    "fixture_id": 1397161,
+    "match": "Morocco vs United Arab Emirates (Arab Cup World, 15:30) [ID=1491660]",
+    "fixture_id": 1491660,
     "tip": "Hazai győzelem",
-    "odds": 1.85,
+    "odds": 1.8,
     "risk": "low",
     "confidence": 4,
-    "reason": "Granad. Tenerife W otthon erős, míg Edf Logrono W idegenben gyengélkedik, stabilabb hazai forma."
+    "reason": "Marokkó hazai pályán erős, jobb nemzetközi forma és motiváció az Arab Kupán."
   },
   {
-    "match": "Erzurum BB vs BB Bodrumspor (1. Lig Turkey, 11:30) [ID=1398477]",
-    "fixture_id": 1398477,
+    "match": "Foolad FC vs Sepahan FC (Persian Gulf Pro League Iran, 15:30) [ID=1488671]",
+    "fixture_id": 1488671,
     "tip": "Döntetlen",
     "odds": 3.1,
     "risk": "medium",
     "confidence": 3,
-    "reason": "Mindkét csapat kiegyenlített formában, gyakori döntetlenekkel, nehéz hazai vagy vendég győzést várni."
+    "reason": "Kiegyenlített iramú bajnoki meccs, mindkét csapat stabil védekezéssel, gyakori döntetlenek."
   },
   {
-    "match": "Eibar W vs Atletico Madrid W (Primera División Femenina Spain, 12:00) [ID=1397162]",
-    "fixture_id": 1397162,
-    "tip": "Over 2.5 gól",
-    "odds": 2.0,
-    "risk": "medium",
-    "confidence": 4,
-    "reason": "Mindkét csapat támadó szellemben játszik, magas gólátlaggal a szezonban, gólgazdag meccs várható."
-  },
-  {
-    "match": "Portimonense vs Leixoes (Segunda Liga Portugal, 12:00) [ID=1398092]",
-    "fixture_id": 1398092,
+    "match": "Thailand U22 vs Malaysia U22 (Southeast Asian Games World, 14:00) [ID=1491666]",
+    "fixture_id": 1491666,
     "tip": "Hazai győzelem",
-    "odds": 1.9,
+    "odds": 1.85,
     "risk": "medium",
     "confidence": 3,
-    "reason": "Portimonense otthon stabilabb, jobb formában, míg Leixoes idegenben gyengébb statisztikákat mutat."
+    "reason": "Thaiföld U22 otthon erősebb, jobb forma és motiváció a regionális tornán."
   },
   {
-    "match": "Hellas Verona U20 vs Juventus U20 (Campionato Primavera - 1 Italy, 10:45) [ID=1404430]",
-    "fixture_id": 1404430,
-    "tip": "Vendég győzelem",
+    "match": "Gol Gohar vs Mes Rafsanjan (Persian Gulf Pro League Iran, 13:45) [ID=1488669]",
+    "fixture_id": 1488669,
+    "tip": "Over 2.5 gól",
+    "odds": 2.2,
+    "risk": "medium",
+    "confidence": 3,
+    "reason": "Mindkét csapat támadó szellemben játszik, több gól várható a találkozón."
+  },
+  {
+    "match": "Lokomotivi Tbilisi vs Aragvi Dusheti (Erovnuli Liga 2 Georgia, 13:00) [ID=1489455]",
+    "fixture_id": 1489455,
+    "tip": "Hazai győzelem",
+    "odds": 1.7,
+    "risk": "medium",
+    "confidence": 3,
+    "reason": "Lokomotivi Tbilisi jobb hazai forma, magasabb osztályú tapasztalat az ellenféllel szemben."
+  },
+  {
+    "match": "Malavan vs Fajr Sepasi (Persian Gulf Pro League Iran, 13:30) [ID=1488667]",
+    "fixture_id": 1488667,
+    "tip": "Hazai győzelem",
     "odds": 1.95,
     "risk": "medium",
     "confidence": 3,
-    "reason": "Juventus U20 erősebb kerettel és jobb idegenbeli eredményekkel rendelkezik, esélyesebb a sikerre."
+    "reason": "Malavan otthon stabil, Fajr Sepasi idegenben gyengébb formában."
   },
   {
-    "match": "SK Poltava vs Ruh Lviv (Premier League Ukraine, 12:00) [ID=1391535]",
-    "fixture_id": 1391535,
-    "tip": "Vendég győzelem",
-    "odds": 2.1,
+    "match": "Chernihiv vs Metalurh Zaporizhya (Persha Liga Ukraine, 10:00) [ID=1400510]",
+    "fixture_id": 1400510,
+    "tip": "Döntetlen",
+    "odds": 3.0,
     "risk": "medium",
-    "confidence": 4,
-    "reason": "Ruh Lviv jobb formában van és stabilabb a támadójátékuk, míg SK Poltava otthon nem túl meggyőző."
+    "confidence": 3,
+    "reason": "Mindkét csapat hasonló erősségű, sokszor döntetlenek az egymás elleni meccseiken."
   }
 ]

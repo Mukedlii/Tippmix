@@ -1,29 +1,27 @@
 [
   {
-    "match": "SK Poltava vs Ruh Lviv (Premier League Ukraine, 12:00) [ID=1391535]",
-    "fixture_id": 1391535,
-    "tip": "Vendég győzelem",
-    "odds": 2.1,
-    "risk": "medium",
-    "confidence": 4,
-    "reason": "Ruh Lviv jobb formában van és stabilabb a támadójátékuk, míg SK Poltava otthon nem túl meggyőző."
-  },
-  {
-    "match": "Granad. Tenerife W vs Edf Logrono W (Primera División Femenina Spain, 12:00) [ID=1397161]",
-    "fixture_id": 1397161,
+    "match": "Morocco vs United Arab Emirates (Arab Cup World, 15:30) [ID=1491660]",
+    "fixture_id": 1491660,
     "tip": "Hazai győzelem",
-    "odds": 1.85,
+    "odds": 1.8,
     "risk": "low",
     "confidence": 4,
-    "reason": "Granad. Tenerife W otthon erős, míg Edf Logrono W idegenben gyengélkedik, stabilabb hazai forma."
+    "reason": "Marokkó hazai pályán erős, jobb nemzetközi forma és motiváció az Arab Kupán."
   },
   {
-    "match": "Erzurum BB vs BB Bodrumspor (1. Lig Turkey, 11:30) [ID=1398477]",
-    "fixture_id": 1398477,
+    "match": "Foolad FC vs Sepahan FC (Persian Gulf Pro League Iran, 15:30) [ID=1488671]",
+    "fixture_id": 1488671,
     "tip": "Döntetlen",
     "odds": 3.1,
     "risk": "medium",
     "confidence": 3,
-    "reason": "Mindkét csapat kiegyenlített formában, gyakori döntetlenekkel, nehéz hazai vagy vendég győzést várni."
+    "reason": "Kiegyenlített iramú bajnoki meccs, mindkét csapat stabil védekezéssel, gyakori döntetlenek."
+  },
+  {
+    "match": "Football | Vietnam U22 vs Philippines U22 | Southeast Asian Games World | 2025-12-15T09:30:00+01:00 | [ID=1491545]",
+    "tip": "Hazai győzelem",
+    "odds": 1.4,
+    "confidence": 3,
+    "reason": "Hazai pálya és forma alapján vállalható stabilabb tipp."
   }
 ]
