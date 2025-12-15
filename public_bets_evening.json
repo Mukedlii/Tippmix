@@ -1,24 +1,24 @@
 [
   {
-    "match": "Dender vs Club Brugge KV (Jupiler Pro League Belgium, 16:00) [ID=1382568]",
-    "fixture_id": 1382568,
-    "tip": "Vendég győzelem",
+    "match": "Fenerbahçe vs Konyaspor (Süper Lig Turkey, 18:00) [ID=1394569]",
+    "fixture_id": 1394569,
+    "tip": "Hazai győzelem",
     "odds": 1.7,
     "risk": "low",
     "confidence": 4,
-    "reason": "Club Brugge erősebb csapat, jobb formában és stabilabb a bajnokságban, Dender hazai pályán gyengélkedik."
+    "reason": "Fenerbahçe hazai pályán erős, jobb formában és stabilabb védelemmel rendelkezik, míg Konyaspor idegenben gyengébb."
   },
   {
-    "match": "Aberdeen vs Kilmarnock (Premiership Scotland, 16:00) [ID=1382762]",
-    "fixture_id": 1382762,
+    "match": "Farul Constanta vs Uta Arad (Liga I Romania, 16:30) [ID=1385908]",
+    "fixture_id": 1385908,
     "tip": "Hazai győzelem",
-    "odds": 1.85,
-    "risk": "medium",
-    "confidence": 3,
-    "reason": "Aberdeen hazai pályán erős, Kilmarnock idegenben gyengén teljesít, a forma hazai sikert vetít előre."
+    "odds": 1.8,
+    "risk": "low",
+    "confidence": 4,
+    "reason": "Farul Constanta otthon jó formában van, míg Uta Arad vendégként pontatlanabb, ezért a hazai siker reális."
   },
   {
-    "match": "Football | Dender vs Club Brugge KV | Jupiler Pro League Belgium | 2025-12-14T16:00:00+01:00 | [ID=1382568]",
+    "match": "Football | União Leiria U23 vs Farense U23 | Liga Revelação U23 Portugal | 2025-12-15T16:00:00+01:00 | [ID=1423946]",
     "tip": "Hazai győzelem",
     "odds": 1.4,
     "confidence": 3,

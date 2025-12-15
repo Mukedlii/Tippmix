@@ -1,65 +1,65 @@
 [
   {
-    "match": "Dender vs Club Brugge KV (Jupiler Pro League Belgium, 16:00) [ID=1382568]",
-    "fixture_id": 1382568,
-    "tip": "Vendég győzelem",
+    "match": "Fenerbahçe vs Konyaspor (Süper Lig Turkey, 18:00) [ID=1394569]",
+    "fixture_id": 1394569,
+    "tip": "Hazai győzelem",
     "odds": 1.7,
-    "risk": "low",
+    "risk": "medium",
     "confidence": 4,
-    "reason": "Club Brugge dominánsabb a ligában, jobb kerettel és formával rendelkezik, érdemes rá fogadni."
+    "reason": "Fenerbahçe otthon erős, Konyaspor vendégként gyengélkedik, így a hazai siker esélyes."
   },
   {
-    "match": "Aberdeen vs Kilmarnock (Premiership Scotland, 16:00) [ID=1382762]",
-    "fixture_id": 1382762,
+    "match": "Farul Constanta vs Uta Arad (Liga I Romania, 16:30) [ID=1385908]",
+    "fixture_id": 1385908,
+    "tip": "Hazai győzelem",
+    "odds": 1.8,
+    "risk": "medium",
+    "confidence": 4,
+    "reason": "Farul jó formában otthon, Uta Arad kevésbé meggyőző vendégként."
+  },
+  {
+    "match": "SC Braga vs Santa Clara (Primeira Liga Portugal, 19:45) [ID=1396355]",
+    "fixture_id": 1396355,
+    "tip": "Hazai győzelem",
+    "odds": 1.75,
+    "risk": "medium",
+    "confidence": 3,
+    "reason": "Braga hazai pályán stabilabb és jobb helyezésben van, Santa Clara idegenben pontatlan."
+  },
+  {
+    "match": "Saudi Arabia vs Jordan (Arab Cup World, 18:30) [ID=1491661]",
+    "fixture_id": 1491661,
     "tip": "Hazai győzelem",
     "odds": 1.85,
     "risk": "medium",
     "confidence": 3,
-    "reason": "Aberdeen hazai pályán stabilabb, Kilmarnock idegenben bizonytalanabb, ez a mérkőzés tipikus hazai siker lehet."
+    "reason": "Szaúd-Arábia hazai környezetben erős, Jordan válogatottja gyengébben szerepel idegenben."
   },
   {
-    "match": "Racing Ferrol vs Unionistas de Salamanca (Primera División RFEF - Group 1 Spain, 16:00) [ID=1431666]",
-    "fixture_id": 1431666,
-    "tip": "Hazai győzelem",
-    "odds": 2.1,
-    "risk": "medium",
-    "confidence": 3,
-    "reason": "Racing Ferrol hazai pályán jobb formában, míg Unionistas idegenben ingadozó teljesítményt nyújt."
-  },
-  {
-    "match": "Teruel vs Algeciras (Primera División RFEF - Group 2 Spain, 16:00) [ID=1431286]",
-    "fixture_id": 1431286,
-    "tip": "Over 2.5 gól",
-    "odds": 2.2,
-    "risk": "medium",
-    "confidence": 3,
-    "reason": "Mindkét csapat támadó szellemben játszik, és az utóbbi meccseiken gyakran született több gól."
-  },
-  {
-    "match": "Kun Khalifat FC vs Abia Warriors (NPFL Nigeria, 16:00) [ID=1445738]",
-    "fixture_id": 1445738,
-    "tip": "Vendég győzelem",
-    "odds": 2.3,
-    "risk": "medium",
-    "confidence": 3,
-    "reason": "Abia Warriors jobb idegenbeli mutatókkal és stabilabb formával rendelkezik, így esélyesebb a sikerre."
-  },
-  {
-    "match": "Warri Wolves vs Kano Pillars (NPFL Nigeria, 16:00) [ID=1445742]",
-    "fixture_id": 1445742,
-    "tip": "Döntetlen",
-    "odds": 3.1,
-    "risk": "high",
-    "confidence": 2,
-    "reason": "Mindkét csapat kiegyenlített, és gyakran döntetlennel zárják a meccseiket, így ez egy reális eredmény lehet."
-  },
-  {
-    "match": "FC Koln W vs Carl Zeiss Jena W (Frauen Bundesliga Germany, 16:00) [ID=1401296]",
-    "fixture_id": 1401296,
+    "match": "Maccabi Tel Aviv vs Hapoel Petah Tikva (Ligat Ha'al Israel, 19:00) [ID=1389685]",
+    "fixture_id": 1389685,
     "tip": "Hazai győzelem",
     "odds": 1.65,
-    "risk": "low",
+    "risk": "medium",
     "confidence": 4,
-    "reason": "FC Koln W hazai pályán erős, és jobb tabellapozícióban van, így a győzelem esélye nagy."
+    "reason": "Maccabi Tel Aviv otthon jobb formában, Hapoel Petah Tikva vendégként pontatlan."
+  },
+  {
+    "match": "TSC Backa Topola vs FK Crvena Zvezda (Super Liga Serbia, 19:30) [ID=1385040]",
+    "fixture_id": 1385040,
+    "tip": "Vendég győzelem",
+    "odds": 1.9,
+    "risk": "medium",
+    "confidence": 3,
+    "reason": "Crvena Zvezda jobban áll a tabellán és jobb formában van, így esélyes a vendég siker."
+  },
+  {
+    "match": "Unirea Slobozia vs FCSB (Liga I Romania, 19:30) [ID=1385910]",
+    "fixture_id": 1385910,
+    "tip": "Vendég győzelem",
+    "odds": 1.85,
+    "risk": "medium",
+    "confidence": 3,
+    "reason": "FCSB erősebb kerettel rendelkezik és jobb formában van, Unirea Slobozia otthon kevésbé meggyőző."
   }
 ]
