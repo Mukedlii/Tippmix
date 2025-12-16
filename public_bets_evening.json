@@ -1,27 +1,22 @@
 [
   {
-    "match": "Fenerbahçe vs Konyaspor (Süper Lig Turkey, 18:00) [ID=1394569]",
-    "fixture_id": 1394569,
-    "tip": "Hazai győzelem",
-    "odds": 1.7,
-    "risk": "low",
-    "confidence": 4,
-    "reason": "Fenerbahçe hazai pályán erős, jobb formában és stabilabb védelemmel rendelkezik, míg Konyaspor idegenben gyengébb."
+    "match": "Cardiff vs Chelsea (League Cup England, 2025-12-16T21:00:00+01:00)",
+    "tip": "Vendég győzelem",
+    "fixture_id": 1484850
   },
   {
-    "match": "Farul Constanta vs Uta Arad (Liga I Romania, 16:30) [ID=1385908]",
-    "fixture_id": 1385908,
-    "tip": "Hazai győzelem",
-    "odds": 1.8,
-    "risk": "low",
-    "confidence": 4,
-    "reason": "Farul Constanta otthon jó formában van, míg Uta Arad vendégként pontatlanabb, ezért a hazai siker reális."
+    "match": "Eibar vs Elche (Copa del Rey Spain, 2025-12-16T19:00:00+01:00)",
+    "tip": "Vendég győzelem",
+    "fixture_id": 1490966
   },
   {
-    "match": "Football | União Leiria U23 vs Farense U23 | Liga Revelação U23 Portugal | 2025-12-15T16:00:00+01:00 | [ID=1423946]",
+    "match": "Eldense vs Real Sociedad (Copa del Rey Spain, 2025-12-16T21:00:00+01:00)",
     "tip": "Hazai győzelem",
-    "odds": 1.4,
-    "confidence": 3,
-    "reason": "Hazai pálya és forma alapján vállalható stabilabb tipp."
+    "fixture_id": 1490967
+  },
+  {
+    "match": "Sporting Gijon vs Valencia (Copa del Rey Spain, 2025-12-16T21:00:00+01:00)",
+    "tip": "Vendég győzelem",
+    "fixture_id": 1490968
   }
 ]
