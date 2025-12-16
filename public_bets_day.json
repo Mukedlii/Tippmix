@@ -1,7 +1,7 @@
 [
   {
     "fixture_id": 1483078,
-    "match": "AS New Soger vs Saint Eloi Lupopo (Ligue 1, 2025-12-16T14:00:00+01:00)",
+    "match": "AS New Soger vs Saint Eloi Lupopo (Ligue 1, 2025-12-16T15:00:00+01:00)",
     "tip": "Hazai győzelem",
     "odds": null,
     "confidence": 3,
@@ -11,7 +11,7 @@
     "country": "",
     "home_team": "AS New Soger",
     "away_team": "Saint Eloi Lupopo",
-    "kickoff": "2025-12-16T14:00:00+01:00",
+    "kickoff": "2025-12-16T15:00:00+01:00",
     "is_vip_candidate": true,
     "league_priority": 1,
     "is_strong": false,
@@ -19,7 +19,7 @@
   },
   {
     "fixture_id": 1483212,
-    "match": "Maniema Union vs Céleste (Ligue 1, 2025-12-16T14:00:00+01:00)",
+    "match": "Maniema Union vs Céleste (Ligue 1, 2025-12-16T15:00:00+01:00)",
     "tip": "Hazai győzelem",
     "odds": null,
     "confidence": 3,
@@ -29,24 +29,6 @@
     "country": "",
     "home_team": "Maniema Union",
     "away_team": "Céleste",
-    "kickoff": "2025-12-16T14:00:00+01:00",
-    "is_vip_candidate": true,
-    "league_priority": 1,
-    "is_strong": false,
-    "quality_score": -0.2999999999999996
-  },
-  {
-    "fixture_id": 1483183,
-    "match": "Vita Club vs Renaissance (Ligue 1, 2025-12-16T15:00:00+01:00)",
-    "tip": "Hazai győzelem",
-    "odds": null,
-    "confidence": 3,
-    "risk_level": "közepes",
-    "reason": "Egyszerű fallback tipp: hazai előnyt feltételezve.",
-    "league_name": "Ligue 1",
-    "country": "",
-    "home_team": "Vita Club",
-    "away_team": "Renaissance",
     "kickoff": "2025-12-16T15:00:00+01:00",
     "is_vip_candidate": true,
     "league_priority": 1,
@@ -88,5 +70,23 @@
     "league_priority": 2,
     "is_strong": false,
     "quality_score": 0.7000000000000004
+  },
+  {
+    "fixture_id": 1483309,
+    "match": "Bashundhara Kings vs Mohammedan Dhaka (Federation Cup, 2025-12-16T09:30:00+01:00)",
+    "tip": "Hazai győzelem",
+    "odds": null,
+    "confidence": 3,
+    "risk_level": "közepes",
+    "reason": "Egyszerű fallback tipp: hazai előnyt feltételezve.",
+    "league_name": "Federation Cup",
+    "country": "",
+    "home_team": "Bashundhara Kings",
+    "away_team": "Mohammedan Dhaka",
+    "kickoff": "2025-12-16T09:30:00+01:00",
+    "is_vip_candidate": true,
+    "league_priority": 4,
+    "is_strong": false,
+    "quality_score": 2.7
   }
 ]
