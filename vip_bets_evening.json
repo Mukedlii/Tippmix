@@ -1,27 +1,27 @@
 [
   {
-    "match": "Guadalajara vs Barcelona (Copa del Rey Spain, 2025-12-16T21:00:00+01:00)",
+    "match": "Alaves vs Sevilla (Copa del Rey Spain, 2025-12-17T21:00:00+01:00)",
     "tip": "Vendég győzelem",
-    "fixture_id": 1490969
+    "fixture_id": 1490974
   },
   {
-    "match": "Cardiff vs Chelsea (League Cup England, 2025-12-16T21:00:00+01:00)",
+    "match": "Cultural Leonesa vs Levante (Copa del Rey Spain, 2025-12-17T18:00:00+01:00)",
     "tip": "Vendég győzelem",
-    "fixture_id": 1484850
+    "fixture_id": 1490971
   },
   {
-    "match": "Eibar vs Elche (Copa del Rey Spain, 2025-12-16T19:00:00+01:00)",
+    "match": "CF Talavera vs Real Madrid (Copa del Rey Spain, 2025-12-17T21:00:00+01:00)",
     "tip": "Vendég győzelem",
-    "fixture_id": 1490966
+    "fixture_id": 1490975
   },
   {
-    "match": "Eldense vs Real Sociedad (Copa del Rey Spain, 2025-12-16T21:00:00+01:00)",
+    "match": "Atlético Baleares vs Atletico Madrid (Copa del Rey Spain, 2025-12-17T19:00:00+01:00)",
+    "tip": "Vendég győzelem",
+    "fixture_id": 1490978
+  },
+  {
+    "match": "Newcastle vs Fulham (League Cup England, 2025-12-17T21:15:00+01:00)",
     "tip": "Hazai győzelem",
-    "fixture_id": 1490967
-  },
-  {
-    "match": "Sporting Gijon vs Valencia (Copa del Rey Spain, 2025-12-16T21:00:00+01:00)",
-    "tip": "Vendég győzelem",
-    "fixture_id": 1490968
+    "fixture_id": 1484852
   }
 ]
