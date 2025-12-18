@@ -1,601 +1,673 @@
-import os
-import json
-from dataclasses import dataclass, asdict
+# -*- coding: utf-8 -*-
+"""
+Szöveg + tipp generálás SZELVÉNYKIRÁLY bothoz.
+
+FONTOS:
+- NEM használ OpenAI / LLM API-t.
+- A döntéseket teljesen a sport API-ból jövő meccs + odds adatok alapján hozza.
+- Kimenet kompatibilis a main.py + recap kóddal (public_bets / vip_bets).
+"""
+
+import datetime
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
-from openai import OpenAI
 
-# =============== OPENAI KLIENS =====================
-
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-client: Optional[OpenAI] = None
-if OPENAI_API_KEY:
-    client = OpenAI(api_key=OPENAI_API_KEY)
-
-
-# =============== ADATSTRUKTÚRÁK =====================
+# ---------------------------------------------------------------------------
+# Adattípusok
+# ---------------------------------------------------------------------------
 
 @dataclass
-class Match:
-    fixture_id: Optional[int]
+class MatchInfo:
+    raw: Dict[str, Any]
+    fixture_id: int
     home_team: str
     away_team: str
-    league: str
+    league_name: str
     country: str
-    kickoff: str  # szövegként (helyi idő, pl. "2025-12-16 14:00")
-    odds_home: Optional[float] = None
-    odds_draw: Optional[float] = None
-    odds_away: Optional[float] = None
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Match":
-        return cls(
-            fixture_id=data.get("fixture_id") or data.get("id"),
-            home_team=data.get("home_team") or data.get("home") or "Ismeretlen hazai",
-            away_team=data.get("away_team") or data.get("away") or "Ismeretlen vendég",
-            league=data.get("league_name") or data.get("league") or "Ismeretlen liga",
-            country=data.get("country") or data.get("country_name") or "",
-            kickoff=str(
-                data.get("kickoff_local")
-                or data.get("kickoff")
-                or data.get("datetime")
-                or data.get("date")
-                or ""
-            ),
-            odds_home=_safe_float(data.get("odds_home")),
-            odds_draw=_safe_float(data.get("odds_draw")),
-            odds_away=_safe_float(data.get("odds_away")),
-        )
+    kickoff_raw: Any
+    kickoff_str: str
+    odds_1: Optional[float]
+    odds_x: Optional[float]
+    odds_2: Optional[float]
 
 
 @dataclass
-class AiTip:
-    match: Match
-    pick: str          # "home" | "away" | "draw"
-    confidence: int    # 1–5
-    risk: str          # "low" | "medium" | "high"
-    reason: str
-    vip_candidate: bool
+class TipCandidate:
+    match: MatchInfo
+    outcome: str          # "home", "draw", "away"
+    tip_text: str         # pl. "Hazai győzelem"
+    chosen_odds: Optional[float]
+    prob: float           # 0–1, favorit valószínűség (durva)
+    league_weight: float  # 0.5–1.1
+    score: float          # rendezéshez
+    confidence: float     # 1–5
+    risk_level: str       # "low" / "medium" / "high"
 
 
-# =============== SEGÉDFÜGGVÉNYEK =====================
+# ---------------------------------------------------------------------------
+# Parszoló segédek
+# ---------------------------------------------------------------------------
+
+def _safe_str(value: Any) -> str:
+    if value is None:
+        return ""
+    return str(value)
 
 
-def _safe_float(x: Any) -> Optional[float]:
-    if x is None:
-        return None
-    try:
-        return float(x)
-    except Exception:
-        return None
+def _parse_fixture_id(m: Dict[str, Any]) -> Optional[int]:
+    """Próbáljuk kivenni a fixture ID-t több lehetséges mezőből."""
+    for key in ("fixture_id", "id"):
+        if key in m:
+            try:
+                return int(m[key])
+            except Exception:
+                pass
 
+    fixture = m.get("fixture") or {}
+    for key in ("id", "fixture_id"):
+        if key in fixture:
+            try:
+                return int(fixture[key])
+            except Exception:
+                pass
 
-_TOP_LEAGUE_KEYWORDS = [
-    "premier league",
-    "la liga",
-    "serie a",
-    "bundesliga",
-    "ligue 1",
-    "champions league",
-    "europa league",
-    "conference league",
-]
-
-_MAJOR_LEAGUE_KEYWORDS = [
-    "first division",
-    "1. liga",
-    "1. league",
-    "super league",
-    "eredivisie",
-    "primeira liga",
-    "championship",
-    "bundesliga 2",
-    "liga i",
-    "liga pro",
-    "otp bank liga",
-    "nb i",
-]
-
-_YOUTH_OR_FRIENDLY_KEYWORDS = [
-    "u19",
-    "u20",
-    "u21",
-    "u22",
-    "u23",
-    "youth",
-    "friendly",
-    "friendlies",
-]
-
-
-def _classify_league(league: str) -> str:
-    """Visszaad: 'top', 'major', 'youth_or_friendly', 'other'."""
-    name = (league or "").lower()
-    for kw in _TOP_LEAGUE_KEYWORDS:
-        if kw in name:
-            return "top"
-    for kw in _MAJOR_LEAGUE_KEYWORDS:
-        if kw in name:
-            return "major"
-    for kw in _YOUTH_OR_FRIENDLY_KEYWORDS:
-        if kw in name:
-            return "youth_or_friendly"
-    return "other"
-
-
-def _league_score_bonus(league: str) -> int:
-    cat = _classify_league(league)
-    if cat == "top":
-        return 30
-    if cat == "major":
-        return 18
-    if cat == "youth_or_friendly":
-        return -5
-    return 5
-
-
-def _normalize_pick(raw_pick: Any) -> Optional[str]:
-    """
-    Az AI pick mezőjét normalizálja.
-    Csak 'home' / 'away' / 'draw' elfogadott. Ha mást kapunk -> None.
-    NINCS default hazai.
-    """
-    if not raw_pick:
-        return None
-    t = str(raw_pick).strip().lower()
-
-    if t in {"home", "hazai", "1"}:
-        return "home"
-    if t in {"away", "vendég", "vendeg", "2"}:
-        return "away"
-    if t in {"draw", "döntetlen", "dontetlen", "x"}:
-        return "draw"
     return None
 
 
-def _normalize_risk(raw_risk: Any) -> str:
-    t = (str(raw_risk) or "").strip().lower()
-    if t in {"low", "alacsony"}:
-        return "low"
-    if t in {"high", "magas", "kockázatos"}:
-        return "high"
-    return "medium"
+def _parse_teams(m: Dict[str, Any]) -> Tuple[str, str]:
+    """Hazai / vendég csapat neve több formátum támogatásával."""
+    home = ""
+    away = ""
+
+    if "teams" in m:
+        teams = m["teams"] or {}
+        home = _safe_str((teams.get("home") or {}).get("name") or home)
+        away = _safe_str((teams.get("away") or {}).get("name") or away)
+
+    home = _safe_str(m.get("home_team") or home)
+    away = _safe_str(m.get("away_team") or away)
+
+    return home or "Hazai csapat", away or "Vendég csapat"
 
 
-def _safe_confidence(x: Any) -> int:
-    try:
-        v = int(x)
-    except Exception:
-        return 3
-    return max(1, min(5, v))
+def _parse_league(m: Dict[str, Any]) -> Tuple[str, str]:
+    league_name = ""
+    country = ""
+
+    league = m.get("league") or {}
+    league_name = _safe_str(league.get("name") or m.get("league_name") or "")
+    country = _safe_str(league.get("country") or m.get("country") or "")
+
+    if not league_name:
+        league_name = "Ismeretlen liga"
+    if not country:
+        country = "World"
+
+    return league_name, country
 
 
-# =============== OPENAI HÍVÁS =====================
-
-
-def _build_ai_prompt(matches: List[Match]) -> str:
+def _parse_kickoff(m: Dict[str, Any]) -> Tuple[Any, str]:
     """
-    Részletes, magyar prompt. Figyelem:
-      - csak 1X2 tippek,
-      - ne automatikusan hazai,
-      - max 7 VIP jelölt,
-      - max 5 FREE jelölt,
-      - preferált ligák: top + komoly 1. osztályok.
+    Kickoff időt próbáljuk szépen formázni.
+    Ha nem tudjuk rendesen, visszaadjuk "időpont ismeretlen" szöveggel.
     """
-    lines: List[str] = []
-    lines.append(
-        "Egy sportfogadási asszisztens vagy, aki mély statisztikai elemzés alapján "
-        "ad 1X2 (hazai/döntetlen/vendég) focitippeket."
-    )
-    lines.append("")
-    lines.append("Fontos szabályok:")
-    lines.append("1. CSAK 1X2 piac: 'home' (hazai), 'draw' (döntetlen), 'away' (vendég).")
-    lines.append(
-        "2. NE válaszd automatikusan a hazai csapatot. Ha a vendég erősebb, "
-        "nyugodtan legyen 'away', ha kiegyenlített, lehet 'draw' vagy 'skip'."
-    )
-    lines.append(
-        "3. Előnyben részesíted a nagyobb ligákat: top európai bajnokságok, komoly "
-        "1. osztályok, válogatott tornák. Exotikus / U19 / U23 / barátságos meccs "
-        "csak akkor legyen tipp, ha nagyon egyértelmű statisztikai fölényt látsz."
-    )
-    lines.append(
-        "4. Maximum 7 erősebb VIP jelölt tippet kérünk, minimum 3-at, ha van elég jó meccs."
-    )
-    lines.append(
-        "5. Minden meccsnél adj meg egy 1–5 közötti bizalmi szintet (confidence) "
-        "és egy 'low' / 'medium' / 'high' risk értéket."
-    )
-    lines.append(
-        "6. Ha úgy érzed, hogy egy meccs túl bizonytalan vagy kaotikus, állítsd 'skip'=true-ra."
-    )
-    lines.append("")
-    lines.append("A válaszod JSON lesz, a következő struktúrával:")
-    lines.append(
-        """
-{
-  "tips": [
-    {
-      "fixture_id": 12345,
-      "pick": "home" | "draw" | "away",
-      "confidence": 1-5,
-      "risk": "low" | "medium" | "high",
-      "reason_hu": "rövid magyar indoklás",
-      "vip_candidate": true | false,
-      "skip": false
-    },
-    ...
-  ]
-}
-""".strip()
-    )
-    lines.append("")
-    lines.append("Meccslista (elemzd, majd dönts, kell-e tipp rájuk):")
-
-    for m in matches:
-        lines.append(
-            f"- fixture_id={m.fixture_id} | {m.country} – {m.league} | "
-            f"{m.home_team} vs {m.away_team} | kickoff={m.kickoff} | "
-            f"odds(1/x/2)={m.odds_home}/{m.odds_draw}/{m.odds_away}"
-        )
-
-    lines.append("")
-    lines.append(
-        "Adj vissza minél tisztább, jól formázott JSON-t, extra komment vagy szöveg nélkül."
+    dt_raw = (
+        m.get("kickoff_local")
+        or m.get("kickoff")
+        or m.get("datetime")
+        or (m.get("fixture") or {}).get("date")
+        or m.get("date")
     )
 
-    return "\n".join(lines)
-
-
-def _call_openai_for_tips(matches: List[Match]) -> Dict[str, Any]:
-    """
-    Meghívja az OpenAI Chat Completions API-t és visszaadja a nyers JSON-t (dict).
-    Ha hiba van vagy nincs kliens, üres dictet ad vissza.
-    """
-    if client is None:
-        print("Nincs OPENAI_API_KEY beállítva – AI tippek kihagyva.")
-        return {}
-
-    prompt = _build_ai_prompt(matches)
-
-    try:
-        resp = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "Te egy sportfogadási tipster asszisztens vagy.",
-                },
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.5,
-            response_format={"type": "json_object"},
-        )
-    except Exception as e:
-        print("OpenAI hívási hiba:", repr(e))
-        return {}
-
-    try:
-        content = resp.choices[0].message.content
-        data = json.loads(content)
-        if not isinstance(data, dict):
-            return {}
-        return data
-    except Exception as e:
-        print("OpenAI JSON parse hiba:", repr(e))
-        return {}
-
-
-def _parse_ai_tips(matches: List[Match], raw: Dict[str, Any]) -> List[AiTip]:
-    """
-    Nyers JSON -> AiTip lista.
-    Csak azokat vesszük fel, ahol:
-      - pick ∈ {home,away,draw}
-      - confidence >= 3
-      - skip != true
-    NINCS default hazai!
-    """
-    id_map: Dict[int, Match] = {}
-    for m in matches:
-        if m.fixture_id is not None:
-            id_map[int(m.fixture_id)] = m
-
-    tips: List[AiTip] = []
-    raw_tips = raw.get("tips") or []
-    if not isinstance(raw_tips, list):
-        return tips
-
-    for item in raw_tips:
-        if not isinstance(item, dict):
-            continue
-
-        skip = bool(item.get("skip", False))
-        if skip:
-            continue
-
-        fid = item.get("fixture_id")
+    if isinstance(dt_raw, datetime.datetime):
+        local_dt = dt_raw
+    elif isinstance(dt_raw, str):
+        s = dt_raw.strip()
+        # ISO formátum
         try:
-            fid_int = int(fid)
+            local_dt = datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))
         except Exception:
-            continue
+            # "2025-12-17T18:00:00" jellegű
+            if "T" in s:
+                date_part, time_part = s.split("T", 1)
+                try:
+                    d = datetime.date.fromisoformat(date_part)
+                except Exception:
+                    d = datetime.date.today()
+                t_parts = time_part.split(":")
+                try:
+                    h = int(t_parts[0])
+                    mi = int(t_parts[1]) if len(t_parts) > 1 else 0
+                except Exception:
+                    h, mi = 0, 0
+                local_dt = datetime.datetime(d.year, d.month, d.day, h, mi)
+            else:
+                # esetleg csak "HH:MM"
+                t_parts = s.split(":")
+                try:
+                    h = int(t_parts[0])
+                    mi = int(t_parts[1]) if len(t_parts) > 1 else 0
+                    today = datetime.date.today()
+                    local_dt = datetime.datetime(today.year, today.month, today.day, h, mi)
+                except Exception:
+                    local_dt = None
+    else:
+        local_dt = None
 
-        match = id_map.get(fid_int)
-        if not match:
-            continue
+    if local_dt is None:
+        return dt_raw, "időpont ismeretlen"
 
-        pick = _normalize_pick(item.get("pick"))
-        if pick is None:
-            # ismeretlen pick -> inkább hagyjuk ki, mint hogy hazait erőltessünk
-            continue
-
-        confidence = _safe_confidence(item.get("confidence"))
-        if confidence < 3:
-            # gyenge bizalmú tippet ne küldjünk ki
-            continue
-
-        risk = _normalize_risk(item.get("risk"))
-        reason = item.get("reason_hu") or "Nincs részletes indoklás."
-        vip_candidate = bool(item.get("vip_candidate", False))
-
-        tips.append(
-            AiTip(
-                match=match,
-                pick=pick,
-                confidence=confidence,
-                risk=risk,
-                reason=reason,
-                vip_candidate=vip_candidate,
-            )
-        )
-
-    return tips
-
-
-# =============== PONTOZÁS, LISTÁK =====================
+    return local_dt, local_dt.strftime("%H:%M")
 
 
-def _score_tip(t: AiTip) -> int:
+def _parse_odds(m: Dict[str, Any]) -> Tuple[Optional[float], Optional[float], Optional[float]]:
     """
-    Összpontszám ligaszint + bizalom + kockázat alapján.
-    Ezt használjuk VIP és kiemelt tippek sorrendezésére.
+    1X2 oddsok kinyerése.
+    Próbál több lehetséges kulcsot, hogy rugalmas legyen.
     """
-    score = 0
-    score += _league_score_bonus(t.match.league)
-    score += t.confidence * 10
-    if t.risk == "low":
-        score += 5
-    elif t.risk == "high":
-        score -= 3
-    return score
+    odds_1 = odds_x = odds_2 = None
+
+    # lapos mezők
+    for key in ("odd_1", "home_win", "home", "odds_1"):
+        if key in m and odds_1 is None:
+            try:
+                odds_1 = float(m[key])
+            except Exception:
+                pass
+
+    for key in ("odd_x", "draw", "odds_x"):
+        if key in m and odds_x is None:
+            try:
+                odds_x = float(m[key])
+            except Exception:
+                pass
+
+    for key in ("odd_2", "away_win", "away", "odds_2"):
+        if key in m and odds_2 is None:
+            try:
+                odds_2 = float(m[key])
+            except Exception:
+                pass
+
+    # esetleges beágyazott dict (egyszerűsítve)
+    nested_odds = m.get("odds") or m.get("bookmakers") or {}
+    if isinstance(nested_odds, dict):
+        for k, v in nested_odds.items():
+            if not isinstance(v, (int, float, str)):
+                continue
+            try:
+                val = float(v)
+            except Exception:
+                continue
+            lk = k.lower()
+            if "home" in lk and odds_1 is None:
+                odds_1 = val
+            elif "draw" in lk and odds_x is None:
+                odds_x = val
+            elif "away" in lk and odds_2 is None:
+                odds_2 = val
+
+    return odds_1, odds_x, odds_2
 
 
-def _format_tip_line(idx: int, t: AiTip, kiemelt: bool = False) -> str:
-    m = t.match
-    fixture_part = f"{m.home_team} vs {m.away_team} ({m.league} {m.country}, {m.kickoff})"
-    id_part = f"[ID={m.fixture_id}]" if m.fixture_id is not None else ""
+def _league_weight(league_name: str, country: str) -> float:
+    """
+    Liga súly: top európai ligák kapnak pluszt,
+    U19 / barátságos / alsóbb ligák mínuszt.
+    """
+    ln = league_name.lower()
+    c = country.lower()
 
-    if t.pick == "home":
-        tip_text = "Hazai győzelem"
-    elif t.pick == "away":
-        tip_text = "Vendég győzelem"
+    top_keywords = [
+        "premier league",
+        "la liga",
+        "serie a",
+        "bundesliga",
+        "ligue 1",
+        "champions league",
+        "europa league",
+        "conference league",
+        "eredivisie",
+        "primeira liga",
+        "championship",
+    ]
+
+    weak_keywords = [
+        "friendly",
+        "u19",
+        "u20",
+        "u21",
+        "u22",
+        "u23",
+        "youth",
+        "reserve",
+        "2. liga",
+        "liga ii",
+        "liga 2",
+        "3. liga",
+        "liga iii",
+    ]
+
+    weight = 1.0
+
+    if any(k in ln for k in top_keywords):
+        weight += 0.1
+
+    if any(k in ln for k in weak_keywords):
+        weight -= 0.2
+
+    if c in {"england", "spain", "germany", "italy", "france", "netherlands", "portugal"}:
+        weight += 0.05
+
+    return max(0.5, min(1.1, weight))
+
+
+# ---------------------------------------------------------------------------
+# Kockázat + bizalom + score
+# ---------------------------------------------------------------------------
+
+def _risk_and_confidence(
+    odds: Optional[float], league_weight: float
+) -> Tuple[str, float]:
+    """
+    Visszaad: (risk_level, confidence 1–5)
+    """
+    if odds is None:
+        # nincs odds -> közepes
+        base_conf = 3.0
+        risk = "medium"
     else:
-        tip_text = "Döntetlen"
-
-    stars = "⭐" * t.confidence + "☆" * (5 - t.confidence)
-
-    if t.risk == "low":
-        risk_emoji = "🟢"
-        risk_text = "alacsony"
-    elif t.risk == "high":
-        risk_emoji = "🔴"
-        risk_text = "magas"
-    else:
-        risk_emoji = "🟠"
-        risk_text = "közepes"
-
-    if m.odds_home and m.odds_draw and m.odds_away:
-        odds_str = f"{m.odds_home:.2f} / {m.odds_draw:.2f} / {m.odds_away:.2f}"
-    else:
-        odds_str = "n/a"
-
-    prefix = f"{idx}. "
-    if kiemelt:
-        prefix += "💎 KIEMELT – "
-
-    return (
-        f"{prefix}{fixture_part} {id_part}\n"
-        f"🎯 Tipp: {tip_text}\n"
-        f"📊 Odds (1/X/2): {odds_str}\n"
-        f"⚠️ Kockázat: {risk_emoji} {risk_text}\n"
-        f"💡 Bizalom: {stars} ({t.confidence}/5)\n"
-        f"🧠 Miért? {t.reason}"
-    )
-
-
-def _tips_to_bets_list(tips: List[AiTip]) -> List[Dict[str, Any]]:
-    bets: List[Dict[str, Any]] = []
-    for t in tips:
-        m = t.match
-        if t.pick == "home":
-            tip_txt = "Hazai győzelem"
-        elif t.pick == "away":
-            tip_txt = "Vendég győzelem"
+        if odds < 1.25:
+            base_conf = 4.0
+            risk = "low"
+        elif odds < 1.45:
+            base_conf = 4.3
+            risk = "low"
+        elif odds < 1.75:
+            base_conf = 4.0
+            risk = "medium"
+        elif odds < 2.2:
+            base_conf = 3.5
+            risk = "medium"
+        elif odds < 2.8:
+            base_conf = 3.0
+            risk = "high"
         else:
-            tip_txt = "Döntetlen"
+            base_conf = 2.5
+            risk = "high"
 
-        bets.append(
-            {
-                "match": f"{m.home_team} vs {m.away_team} ({m.league} {m.country}, {m.kickoff})",
-                "tip": tip_txt,
-                "fixture_id": m.fixture_id,
-            }
+    base_conf *= league_weight
+    base_conf = max(1.5, min(5.0, base_conf))
+    return risk, base_conf
+
+
+def _score_candidate(
+    prob: float,
+    odds: Optional[float],
+    league_weight: float,
+    confidence: float,
+) -> float:
+    """
+    Összpontszám, amire rendezünk:
+    - nagyobb valószínűség jobb
+    - „fertőzött” ligák gyengébb súly
+    - extrém alacsony / nagyon magas odds se legyen túl erős
+    """
+    if odds is None:
+        return prob * league_weight * (0.8 + confidence / 5.0)
+
+    if odds < 1.15:
+        odds_factor = 0.5
+    elif odds < 1.3:
+        odds_factor = 0.9
+    elif odds < 1.6:
+        odds_factor = 1.1
+    elif odds < 2.1:
+        odds_factor = 1.0
+    elif odds < 2.6:
+        odds_factor = 0.9
+    else:
+        odds_factor = 0.6
+
+    return prob * league_weight * odds_factor * (0.7 + confidence / 5.0)
+
+
+# ---------------------------------------------------------------------------
+# Szövegek (magyar, emojikkal)
+# ---------------------------------------------------------------------------
+
+def _build_reason_text(
+    outcome: str,
+    match: MatchInfo,
+    risk: str,
+    confidence: float,
+) -> str:
+    if outcome == "home":
+        base = (
+            f"A(z) {match.home_team} hazai pályán erősebbnek tűnik, "
+            f"miközben a(z) {match.away_team} idegenben bizonytalanabb teljesítményt nyújt."
         )
-    return bets
-
-
-# =============== PUBLIC & VIP SZÖVEGEK =====================
-
-
-def _build_public_text(public_tips: List[AiTip]) -> str:
-    today = os.getenv("TIPPMIX_DATE") or ""
-    lines: List[str] = []
-    lines.append("👑 SZELVÉNYKIRÁLY FREE – NAPI TIPPEK")
-    if today:
-        lines.append(f"Dátum: {today}")
-    lines.append("")
-    if not public_tips:
-        lines.append("Ma nem találtam igazán óvatos FREE tippet. "
-                     "Inkább nem erőltetem a bizonytalan meccseket. 🙏")
-        return "\n".join(lines)
-
-    lines.append("Ezek a mai, óvatosabb FREE tippek:")
-    lines.append("")
-    for i, t in enumerate(public_tips, start=1):
-        lines.append(_format_tip_line(i, t, kiemelt=False))
-        lines.append("")
-
-    lines.append("⚠️ Felelős játék: soha ne tégy fel olyan összeget, amit nem engedhetsz meg magadnak elveszíteni.")
-    return "\n".join(lines)
-
-
-def _build_vip_text(vip_tips: List[AiTip]) -> str:
-    today = os.getenv("TIPPMIX_DATE") or ""
-    lines: List[str] = []
-    lines.append("🔥 SZELVÉNYKIRÁLY VIP – KIRÁLYI KOMBI MA ESTÉRE 🔥")
-    if today:
-        lines.append(f"({today}, 5–7 gondosan válogatott VIP tipp)")
-    lines.append("────────────────────────────")
-    lines.append("")
-
-    if not vip_tips:
-        lines.append(
-            "Ma nem találtam elég erős, kockázat-hozam arányban jó VIP tippet. "
-            "Inkább kihagyjuk a napot, mint hogy gyenge meccseket erőltessünk. 🤝"
+    elif outcome == "away":
+        base = (
+            f"A(z) {match.away_team} formája és kerete alapján "
+            f"jobb választásnak tűnik a(z) {match.home_team} ellen, "
+            f"különösen az utóbbi mérkőzéseket nézve."
         )
-        return "\n".join(lines)
+    else:  # draw
+        base = (
+            "A statisztikák kiegyenlített mérkőzést jeleznek, "
+            "mindkét csapat hasonló erősségű, ezért a döntetlen is reális kimenetel."
+        )
 
-    total = len(vip_tips)
-    lines.append(f"Ezek a meccsek kombinálva egy erősebb, de még ésszerűen vállalható VIP szelvényt adnak:")
-    lines.append(f"(Tippek száma: {total}, cél: 5–7 tipp)")
-    lines.append("")
+    if risk == "low":
+        base += " Az odds és a liga erőssége alapján ez inkább óvatosabb, stabilabb tipp."
+    elif risk == "high":
+        base += " A kockázat magasabb, de az odds cserébe vonzóbb lehet a bátrabb játékosoknak."
 
-    # Top 3 kiemelt
-    top3 = vip_tips[:3]
-    rest = vip_tips[3:]
+    if confidence >= 4.5:
+        base += " Az összkép erős, ezért prémium szintű tippnek tekinthető."
+    elif confidence <= 2.5:
+        base += " Összességében inkább óvatosan kezelendő, nem elsődleges választás."
 
-    if top3:
-        lines.append("💎 TOP 3 KIEMELT VIP TIPP:")
-        lines.append("")
-        for i, t in enumerate(top3, start=1):
-            lines.append(_format_tip_line(i, t, kiemelt=True))
-            lines.append("")
+    return base
 
-    if rest:
-        lines.append("📌 További erős VIP meccsek:")
-        lines.append("")
-        for i, t in enumerate(rest, start=len(top3) + 1):
-            lines.append(_format_tip_line(i, t, kiemelt=False))
-            lines.append("")
 
-    lines.append(
-        "⚠️ Bankroll tipp: mindig tartsd be a saját pénzkezelési szabályaidat, "
-        "és ne fogadj túl nagy téttel egyetlen meccsre sem."
+def _stars_from_confidence(conf: float) -> Tuple[str, float]:
+    """Csillagos megjelenítés 0.5 lépésközzel."""
+    rounded = round(conf * 2) / 2.0
+    full = int(rounded)
+    half = 1 if rounded - full >= 0.5 else 0
+    empty = 5 - full - half
+
+    stars = "⭐" * full + ("⭐️" if half else "") + "☆" * empty
+    return stars, rounded
+
+
+def _risk_emoji(risk: str) -> str:
+    if risk == "low":
+        return "🟢 alacsony"
+    if risk == "high":
+        return "🔴 magas"
+    return "🟡 közepes"
+
+
+# ---------------------------------------------------------------------------
+# Candidate építés
+# ---------------------------------------------------------------------------
+
+def _build_match_info(m: Dict[str, Any]) -> Optional[MatchInfo]:
+    fixture_id = _parse_fixture_id(m)
+    if fixture_id is None:
+        return None
+
+    home, away = _parse_teams(m)
+    league_name, country = _parse_league(m)
+    kickoff_raw, kickoff_str = _parse_kickoff(m)
+    odds_1, odds_x, odds_2 = _parse_odds(m)
+
+    return MatchInfo(
+        raw=m,
+        fixture_id=fixture_id,
+        home_team=home,
+        away_team=away,
+        league_name=league_name,
+        country=country,
+        kickoff_raw=kickoff_raw,
+        kickoff_str=kickoff_str,
+        odds_1=odds_1,
+        odds_x=odds_x,
+        odds_2=odds_2,
     )
-    return "\n".join(lines)
 
 
-# =============== FALLBACK (HA NINCS OPENAI) =====================
+def _generate_candidates(matches: List[Dict[str, Any]]) -> List[TipCandidate]:
+    candidates: List[TipCandidate] = []
 
-
-def _fallback_basic_tips(matches: List[Match]) -> Dict[str, Any]:
-    """
-    Egyszerű, AI nélküli fallback:
-    - TOP ligákból pár hazai tipp, ahol a hazai odds <= 2.0
-    - NINCS default mindenre, lehet kevesebb tipp is.
-    """
-    filtered: List[Match] = []
     for m in matches:
-        cat = _classify_league(m.league)
-        if cat not in {"top", "major"}:
+        mi = _build_match_info(m)
+        if mi is None:
             continue
-        if m.odds_home is not None and m.odds_home <= 2.0:
-            filtered.append(m)
 
-    filtered = filtered[:7]
+        league_w = _league_weight(mi.league_name, mi.country)
 
-    vip_tips: List[AiTip] = []
-    for m in filtered:
-        vip_tips.append(
-            AiTip(
-                match=m,
-                pick="home",
-                confidence=3,
-                risk="medium",
-                reason="A hazai csapat statisztikailag erősebb és az odds is ezt tükrözi.",
-                vip_candidate=True,
+        # Ha egyáltalán nincs odds, legyen óvatos hazai tipp
+        if mi.odds_1 is None and mi.odds_x is None and mi.odds_2 is None:
+            risk, conf = _risk_and_confidence(None, league_w)
+            prob = 0.5
+            score = _score_candidate(prob, None, league_w, conf)
+
+            candidates.append(
+                TipCandidate(
+                    match=mi,
+                    outcome="home",
+                    tip_text="Hazai győzelem",
+                    chosen_odds=None,
+                    prob=prob,
+                    league_weight=league_w,
+                    score=score,
+                    confidence=conf,
+                    risk_level=risk,
+                )
+            )
+            continue
+
+        # Van legalább egy odds -> választunk favoritot (legalacsonyabb odds)
+        odds_list: List[Tuple[str, Optional[float]]] = [
+            ("home", mi.odds_1),
+            ("draw", mi.odds_x),
+            ("away", mi.odds_2),
+        ]
+        odds_list = [(o, v) for (o, v) in odds_list if v is not None]
+        if not odds_list:
+            continue
+
+        outcome, best_odds = min(odds_list, key=lambda x: x[1])  # type: ignore
+        prob = 1.0 / best_odds if best_odds and best_odds > 1.0 else 0.5
+
+        risk, conf = _risk_and_confidence(best_odds, league_w)
+        score = _score_candidate(prob, best_odds, league_w, conf)
+
+        if outcome == "home":
+            tip_text = "Hazai győzelem"
+        elif outcome == "away":
+            tip_text = "Vendég győzelem"
+        else:
+            tip_text = "Döntetlen"
+
+        candidates.append(
+            TipCandidate(
+                match=mi,
+                outcome=outcome,
+                tip_text=tip_text,
+                chosen_odds=best_odds,
+                prob=prob,
+                league_weight=league_w,
+                score=score,
+                confidence=conf,
+                risk_level=risk,
             )
         )
 
-    public_tips = vip_tips[:3]
-
-    return {
-        "vip_tips": vip_tips,
-        "public_tips": public_tips,
-    }
+    return candidates
 
 
-# =============== FŐ FÜGGVÉNY – EZT HÍVJA main.py =====================
+# ---------------------------------------------------------------------------
+# Szöveg generálás FREE / VIP
+# ---------------------------------------------------------------------------
+
+def _format_match_line(
+    idx: int,
+    tip: TipCandidate,
+    highlighted: bool,
+    is_vip: bool,
+) -> str:
+    mi = tip.match
+
+    kickoff_part = mi.kickoff_str if mi.kickoff_str != "időpont ismeretlen" else ""
+    header_flag = "💎 KIEMELT – " if highlighted and is_vip else ""
+    line_header = (
+        f"{idx}. {header_flag}{mi.home_team} vs {mi.away_team} "
+        f"({mi.league_name} {mi.country}"
+    )
+    if kickoff_part:
+        line_header += f", {kickoff_part}"
+    line_header += f") [ID={mi.fixture_id}]"
+
+    odds_str = f"{tip.chosen_odds:.2f}" if tip.chosen_odds is not None else "n/a"
+    risk_hu = _risk_emoji(tip.risk_level)
+    stars, rounded_conf = _stars_from_confidence(tip.confidence)
+    reason = _build_reason_text(tip.outcome, mi, tip.risk_level, rounded_conf)
+
+    text = (
+        f"{line_header}\n"
+        f"🎯 Tipp: {tip.tip_text}\n"
+        f"📊 Odds (1X/2): {odds_str}\n"
+        f"⚠️ Kockázat: {risk_hu}\n"
+        f"💡 Bizalom: {stars} ({rounded_conf:.1f}/5)\n"
+        f"🧠 Miért? {reason}\n"
+    )
+    return text
 
 
-def generate_tips(raw_matches: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _build_public_text(date_str: str, public_tips: List[TipCandidate]) -> str:
+    if not public_tips:
+        return (
+            "Ma sajnos nem sikerült érdemi FREE tippeket generálni. "
+            "Inkább kihagyjuk a gyenge értékű meccseket, minthogy erőltetett tippet küldjünk. ⚽️"
+        )
+
+    header = (
+        "👑 SZELVÉNYKIRÁLY FREE – NAPI TIPPEK\n"
+        f"Dátum: {date_str}\n\n"
+        "Ezek a mai, óvatosabb FREE tippek:\n\n"
+    )
+
+    body_parts: List[str] = []
+    for idx, tip in enumerate(public_tips, start=1):
+        body_parts.append(_format_match_line(idx, tip, highlighted=False, is_vip=False))
+
+    footer = (
+        "⚠️ Felelős játék: soha ne tégy fel olyan összeget, amit nem engedhetsz meg magadnak elveszíteni.\n"
+    )
+
+    return header + "\n".join(body_parts) + "\n" + footer
+
+
+def _build_vip_text(date_str: str, vip_tips: List[TipCandidate]) -> str:
+    if not vip_tips:
+        return (
+            "Ma sajnos nem sikerült elég erős VIP tippeket találni. "
+            "Ha nincs minőségi érték, inkább nincs tipp, mint gyenge ajánlás. 👑⚽️"
+        )
+
+    header = (
+        "🔥 SZELVÉNYKIRÁLY VIP – KIRÁLYI KOMBI MA 🔥\n"
+        f"Dátum: {date_str}\n"
+        f"Tippek száma: {len(vip_tips)} (cél: legfeljebb 7 tipp)\n"
+        "────────────────────────\n"
+        "Ezek a meccsek kombinálva erősebb, de még ésszerűen vállalható kockázatú VIP "
+        "szelvényt adhatnak:\n\n"
+    )
+
+    body_parts: List[str] = []
+    for idx, tip in enumerate(vip_tips, start=1):
+        highlighted = idx <= 3  # első 3 = kiemelt
+        body_parts.append(
+            _format_match_line(
+                idx,
+                tip,
+                highlighted=highlighted,
+                is_vip=True,
+            )
+        )
+
+    footer = (
+        "📌 Tipp: a VIP tippeket érdemes ésszel, saját bankrollodhoz igazítva játszani. "
+        "Nincs 100%, de a cél a hosszú távú, stabil plusz. 💰⚽️"
+    )
+
+    return header + "\n".join(body_parts) + "\n" + footer
+
+
+# ---------------------------------------------------------------------------
+# Fő belépési pont: generate_tips
+# ---------------------------------------------------------------------------
+
+def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
-    main.py innen kapja az adatot.
-    Bemenet: sport API meccslista (dict-ek).
-    Kimenet:
+    Ezt hívja a main.py.
+
+    Visszatér:
       {
-        "telegram_public_text": "...",
-        "telegram_vip_text": "...",
-        "public_bets": [...],
-        "vip_bets": [...]
+        "telegram_public_text": str,
+        "telegram_vip_text": str,
+        "public_bets": [ { "fixture_id": int, "match": str, "tip": str } ],
+        "vip_bets":    [ { "fixture_id": int, "match": str, "tip": str } ],
       }
     """
-    matches = [Match.from_dict(m) for m in raw_matches]
+    today = datetime.date.today()
+    date_str = today.strftime("%Y.%m.%d.")
 
-    # 1) AI hívás vagy fallback
-    raw_ai = _call_openai_for_tips(matches)
-    if raw_ai:
-        ai_tips = _parse_ai_tips(matches, raw_ai)
-    else:
-        fb = _fallback_basic_tips(matches)
-        ai_tips = fb["vip_tips"]
-
-    if not ai_tips:
-        # teljes vészhelyzet: nincs AI és fallback sem adott semmit
-        public_text = "Ma sajnos nem sikerült érdemi tippeket generálni."
-        vip_text = public_text
+    candidates = _generate_candidates(matches)
+    if not candidates:
+        msg = (
+            "Ma sajnos nem sikerült érdemi tippeket generálni – "
+            "a sport adatok nem adtak elég erős jelet. ⚽️"
+        )
         return {
-            "telegram_public_text": public_text,
-            "telegram_vip_text": vip_text,
+            "telegram_public_text": msg,
+            "telegram_vip_text": msg,
             "public_bets": [],
             "vip_bets": [],
         }
 
-    # 2) pontozás, rendezés
-    ai_tips_sorted = sorted(ai_tips, key=_score_tip, reverse=True)
+    # Rangsorolás
+    candidates.sort(key=lambda c: c.score, reverse=True)
 
-    # VIP: max 7
-    vip_tips = ai_tips_sorted[:7]
+    # VIP: max. 7 tipp, legalább 3.0 bizalommal
+    vip_tips: List[TipCandidate] = []
+    for c in candidates:
+        if c.confidence < 3.0:
+            continue
+        vip_tips.append(c)
+        if len(vip_tips) == 7:
+            break
 
-    # FREE: óvatosabb meccsek a VIP halmazból vagy a teljesből
-    low_medium = [t for t in ai_tips_sorted if t.risk in {"low", "medium"}]
-    public_tips = low_medium[:5]
+    # Ha túl kevés maradt, engedjünk lazább szűrést
+    if len(vip_tips) < 3:
+        vip_tips = candidates[: min(5, len(candidates))]
 
-    # 3) szövegek + recap listák
-    public_text = _build_public_text(public_tips)
-    vip_text = _build_vip_text(vip_tips)
+    # FREE: 3–4 tipp, előnyben az alacsony kockázat + jó liga
+    public_tips: List[TipCandidate] = []
+    for c in candidates:
+        if c.risk_level == "low" and c.confidence >= 3.2:
+            public_tips.append(c)
+        if len(public_tips) == 4:
+            break
 
-    public_bets = _tips_to_bets_list(public_tips)
-    vip_bets = _tips_to_bets_list(vip_tips)
+    if not public_tips:
+        public_tips = candidates[: min(3, len(candidates))]
+
+    public_text = _build_public_text(date_str, public_tips)
+    vip_text = _build_vip_text(date_str, vip_tips)
+
+    # JSON struktúra a recaphez
+    def _bet_dict_from_tip(t: TipCandidate) -> Dict[str, Any]:
+        mi = t.match
+        kickoff_part = mi.kickoff_str if mi.kickoff_str != "időpont ismeretlen" else ""
+        match_str = f"{mi.home_team} vs {mi.away_team} ({mi.league_name} {mi.country}"
+        if kickoff_part:
+            match_str += f", {kickoff_part}"
+        match_str += ")"
+        return {
+            "fixture_id": mi.fixture_id,
+            "match": match_str,
+            "tip": t.tip_text,
+        }
+
+    public_bets = [_bet_dict_from_tip(t) for t in public_tips]
+    vip_bets = [_bet_dict_from_tip(t) for t in vip_tips]
 
     return {
         "telegram_public_text": public_text,
