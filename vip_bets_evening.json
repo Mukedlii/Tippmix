@@ -1,27 +1,32 @@
 [
   {
-    "match": "Alaves vs Sevilla (Copa del Rey Spain, 2025-12-17T21:00:00+01:00)",
-    "tip": "Vendég győzelem",
-    "fixture_id": 1490974
+    "fixture_id": 1491502,
+    "match": "Napoli vs AC Milan (Super Cup, 2025-12-18T20:00:00+01:00)",
+    "tip": "Hazai győzelem"
   },
   {
-    "match": "Cultural Leonesa vs Levante (Copa del Rey Spain, 2025-12-17T18:00:00+01:00)",
-    "tip": "Vendég győzelem",
-    "fixture_id": 1490971
+    "fixture_id": 1451441,
+    "match": "FSV Mainz 05 vs Samsunspor (UEFA Europa Conference League, 2025-12-18T21:00:00+01:00)",
+    "tip": "Hazai győzelem"
   },
   {
-    "match": "CF Talavera vs Real Madrid (Copa del Rey Spain, 2025-12-17T21:00:00+01:00)",
-    "tip": "Vendég győzelem",
-    "fixture_id": 1490975
+    "fixture_id": 1488360,
+    "match": "FC Porto vs Famalicao (Taça de Portugal, 2025-12-18T21:45:00+01:00)",
+    "tip": "Hazai győzelem"
   },
   {
-    "match": "Atlético Baleares vs Atletico Madrid (Copa del Rey Spain, 2025-12-17T19:00:00+01:00)",
-    "tip": "Vendég győzelem",
-    "fixture_id": 1490978
+    "fixture_id": 1451443,
+    "match": "Shakhtar Donetsk vs HNK Rijeka (UEFA Europa Conference League, 2025-12-18T21:00:00+01:00)",
+    "tip": "Hazai győzelem"
   },
   {
-    "match": "Newcastle vs Fulham (League Cup England, 2025-12-17T21:15:00+01:00)",
-    "tip": "Hazai győzelem",
-    "fixture_id": 1484852
+    "fixture_id": 1451445,
+    "match": "Slovan Bratislava vs BK Hacken (UEFA Europa Conference League, 2025-12-18T21:00:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1485135,
+    "match": "Spakenburg vs Twente (KNVB Beker, 2025-12-18T18:45:00+01:00)",
+    "tip": "Vendég győzelem"
   }
 ]

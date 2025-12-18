@@ -1,22 +1,17 @@
 [
   {
-    "match": "Cultural Leonesa vs Levante (Copa del Rey Spain, 2025-12-17T18:00:00+01:00)",
-    "tip": "Vendég győzelem",
-    "fixture_id": 1490971
+    "fixture_id": 1489311,
+    "match": "Galatasaray vs Başakşehir (Türkiye Kupası, 2025-12-18T18:30:00+01:00)",
+    "tip": "Hazai győzelem"
   },
   {
-    "match": "CF Talavera vs Real Madrid (Copa del Rey Spain, 2025-12-17T21:00:00+01:00)",
-    "tip": "Vendég győzelem",
-    "fixture_id": 1490975
+    "fixture_id": 1492084,
+    "match": "Jordan vs Morocco (Arab Cup, 2025-12-18T17:00:00+01:00)",
+    "tip": "Döntetlen"
   },
   {
-    "match": "Atlético Baleares vs Atletico Madrid (Copa del Rey Spain, 2025-12-17T19:00:00+01:00)",
-    "tip": "Vendég győzelem",
-    "fixture_id": 1490978
-  },
-  {
-    "match": "Newcastle vs Fulham (League Cup England, 2025-12-17T21:15:00+01:00)",
-    "tip": "Hazai győzelem",
-    "fixture_id": 1484852
+    "fixture_id": 1456753,
+    "match": "Hapoel Azor vs Kfar Saba 1928 (Liga Alef, 2025-12-18T17:30:00+01:00)",
+    "tip": "Hazai győzelem"
   }
 ]
