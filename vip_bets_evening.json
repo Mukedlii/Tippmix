@@ -1,32 +1,32 @@
 [
   {
-    "fixture_id": 1491502,
-    "match": "Napoli vs AC Milan (Super Cup, 2025-12-18T20:00:00+01:00)",
+    "fixture_id": 1388435,
+    "match": "Borussia Dortmund vs Borussia Mönchengladbach (Bundesliga, 2025-12-19T20:30:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1451441,
-    "match": "FSV Mainz 05 vs Samsunspor (UEFA Europa Conference League, 2025-12-18T21:00:00+01:00)",
+    "fixture_id": 1380277,
+    "match": "Diosgyori VTK vs Ferencvarosi TC (NB I, 2025-12-19T20:00:00+01:00)",
+    "tip": "Vendég győzelem"
+  },
+  {
+    "fixture_id": 1390987,
+    "match": "Valencia vs Mallorca (La Liga, 2025-12-19T21:00:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1488360,
-    "match": "FC Porto vs Famalicao (Taça de Portugal, 2025-12-18T21:45:00+01:00)",
+    "fixture_id": 1381910,
+    "match": "Étoile Carouge vs Stade Lausanne-Ouchy (Challenge League, 2025-12-19T20:15:00+01:00)",
+    "tip": "Döntetlen"
+  },
+  {
+    "fixture_id": 1388761,
+    "match": "Hertha BSC vs Arminia Bielefeld (2. Bundesliga, 2025-12-19T18:30:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1451443,
-    "match": "Shakhtar Donetsk vs HNK Rijeka (UEFA Europa Conference League, 2025-12-18T21:00:00+01:00)",
-    "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1451445,
-    "match": "Slovan Bratislava vs BK Hacken (UEFA Europa Conference League, 2025-12-18T21:00:00+01:00)",
-    "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1485135,
-    "match": "Spakenburg vs Twente (KNVB Beker, 2025-12-18T18:45:00+01:00)",
+    "fixture_id": 1382577,
+    "match": "Charleroi vs Genk (Jupiler Pro League, 2025-12-19T20:45:00+01:00)",
     "tip": "Vendég győzelem"
   }
 ]
