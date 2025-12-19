@@ -1,12 +1,17 @@
 [
   {
-    "fixture_id": 1492083,
-    "match": "Saudi Arabia vs United Arab Emirates (Arab Cup, 2025-12-18T12:00:00+01:00)",
+    "fixture_id": 1488808,
+    "match": "Nassaji Mazandaran vs Fard Alborz (Azadegan League, 2025-12-19T12:30:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1487235,
-    "match": "Tractor Sazi vs Persepolis FC (Hazfi Cup, 2025-12-18T13:45:00+01:00)",
+    "fixture_id": 1404174,
+    "match": "Penang vs Pdrm (Super League, 2025-12-19T10:00:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1456518,
+    "match": "Tzeirey Tamra vs Maccabi Ahi Nazareth (Liga Alef, 2025-12-19T13:00:00+01:00)",
     "tip": "Vendég győzelem"
   }
 ]
