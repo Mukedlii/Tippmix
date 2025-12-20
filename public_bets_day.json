@@ -1,17 +1,22 @@
 [
   {
-    "fixture_id": 1488808,
-    "match": "Nassaji Mazandaran vs Fard Alborz (Azadegan League, 2025-12-19T12:30:00+01:00)",
+    "fixture_id": 1388434,
+    "match": "FC Augsburg vs Werder Bremen (Bundesliga, 2025-12-20T15:30:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1404174,
-    "match": "Penang vs Pdrm (Super League, 2025-12-19T10:00:00+01:00)",
-    "tip": "Hazai győzelem"
+    "fixture_id": 1388436,
+    "match": "1. FC Köln vs Union Berlin (Bundesliga, 2025-12-20T15:30:00+01:00)",
+    "tip": "Döntetlen"
   },
   {
-    "fixture_id": 1456518,
-    "match": "Tzeirey Tamra vs Maccabi Ahi Nazareth (Liga Alef, 2025-12-19T13:00:00+01:00)",
+    "fixture_id": 1388437,
+    "match": "Hamburger SV vs Eintracht Frankfurt (Bundesliga, 2025-12-20T15:30:00+01:00)",
     "tip": "Vendég győzelem"
+  },
+  {
+    "fixture_id": 1386806,
+    "match": "Southampton vs Coventry (Championship, 2025-12-20T13:30:00+01:00)",
+    "tip": "Hazai győzelem"
   }
 ]
