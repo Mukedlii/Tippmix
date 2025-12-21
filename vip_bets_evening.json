@@ -1,37 +1,37 @@
 [
   {
-    "fixture_id": 1379137,
-    "match": "Tottenham vs Liverpool (Premier League, 2025-12-20T18:30:00+01:00)",
+    "fixture_id": 1388438,
+    "match": "1. FC Heidenheim vs Bayern München (Bundesliga, 2025-12-21T17:30:00+01:00)",
+    "tip": "Vendég győzelem"
+  },
+  {
+    "fixture_id": 1390988,
+    "match": "Villarreal vs Barcelona (La Liga, 2025-12-21T16:15:00+01:00)",
+    "tip": "Vendég győzelem"
+  },
+  {
+    "fixture_id": 1347239,
+    "match": "Morocco vs Comoros (Africa Cup of Nations, 2025-12-21T20:00:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1382571,
+    "match": "Antwerp vs Anderlecht (Jupiler Pro League, 2025-12-21T18:30:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1378017,
+    "match": "Genoa vs Atalanta (Serie A, 2025-12-21T20:45:00+01:00)",
     "tip": "Döntetlen"
   },
   {
-    "fixture_id": 1390985,
-    "match": "Real Madrid vs Sevilla (La Liga, 2025-12-20T21:00:00+01:00)",
+    "fixture_id": 1385918,
+    "match": "FCSB vs Rapid (Liga I, 2025-12-21T19:00:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1379132,
-    "match": "Everton vs Arsenal (Premier League, 2025-12-20T21:00:00+01:00)",
-    "tip": "Vendég győzelem"
-  },
-  {
-    "fixture_id": 1379130,
-    "match": "Bournemouth vs Burnley (Premier League, 2025-12-20T16:00:00+01:00)",
+    "fixture_id": 1431293,
+    "match": "FC Cartagena vs Juventud Torremolinos (Primera División RFEF - Group 2, 2025-12-21T18:15:00+01:00)",
     "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1385916,
-    "match": "Uta Arad vs Dinamo Bucuresti (Liga I, 2025-12-20T19:00:00+01:00)",
-    "tip": "Vendég győzelem"
-  },
-  {
-    "fixture_id": 1384004,
-    "match": "Dinamo Zagreb vs NK Lokomotiva Zagreb (HNL, 2025-12-20T17:45:00+01:00)",
-    "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1382575,
-    "match": "Dender vs Standard Liege (Jupiler Pro League, 2025-12-20T16:00:00+01:00)",
-    "tip": "Vendég győzelem"
   }
 ]
