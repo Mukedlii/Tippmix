@@ -1,27 +1,27 @@
 [
   {
-    "fixture_id": 1396370,
-    "match": "Benfica vs Famalicao (Primeira Liga, 2025-12-22T21:45:00+01:00)",
+    "fixture_id": 1489310,
+    "match": "Fenerbahçe vs Beşiktaş (Türkiye Kupası, 2025-12-23T18:30:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1379133,
-    "match": "Fulham vs Nottingham Forest (Premier League, 2025-12-22T21:00:00+01:00)",
+    "fixture_id": 1396369,
+    "match": "Guimaraes vs Sporting CP (Primeira Liga, 2025-12-23T21:45:00+01:00)",
+    "tip": "Vendég győzelem"
+  },
+  {
+    "fixture_id": 1347244,
+    "match": "Tunisia vs Uganda (Africa Cup of Nations, 2025-12-23T21:00:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1347241,
-    "match": "Egypt vs Zimbabwe (Africa Cup of Nations, 2025-12-22T21:00:00+01:00)",
+    "fixture_id": 1438752,
+    "match": "Al Sadd vs Shabab Al Ahli Dubai (AFC Champions League, 2025-12-23T17:00:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1495114,
-    "match": "Napoli vs Bologna (Super Cup, 2025-12-22T20:00:00+01:00)",
-    "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1396364,
-    "match": "Alverca vs FC Porto (Primeira Liga, 2025-12-22T19:45:00+01:00)",
+    "fixture_id": 1488617,
+    "match": "Ghazl El Mehalla vs Al Ahly (League Cup, 2025-12-23T16:00:00+01:00)",
     "tip": "Vendég győzelem"
   }
 ]
