@@ -1,27 +1,32 @@
 [
   {
-    "fixture_id": 1489310,
-    "match": "Fenerbahçe vs Beşiktaş (Türkiye Kupası, 2025-12-23T18:30:00+01:00)",
+    "fixture_id": 1347247,
+    "match": "Algeria vs Sudan (Africa Cup of Nations, 2025-12-24T16:00:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1396369,
-    "match": "Guimaraes vs Sporting CP (Primeira Liga, 2025-12-23T21:45:00+01:00)",
+    "fixture_id": 1347249,
+    "match": "Ivory Coast vs Mozambique (Africa Cup of Nations, 2025-12-24T18:30:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1347250,
+    "match": "Cameroon vs Gabon (Africa Cup of Nations, 2025-12-24T21:00:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1489319,
+    "match": "Samsunspor vs Eyüpspor (Türkiye Kupası, 2025-12-24T18:30:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1415490,
+    "match": "AF Elbasani vs Tirana (Superliga, 2025-12-24T16:30:00+01:00)",
     "tip": "Vendég győzelem"
   },
   {
-    "fixture_id": 1347244,
-    "match": "Tunisia vs Uganda (Africa Cup of Nations, 2025-12-23T21:00:00+01:00)",
+    "fixture_id": 1438661,
+    "match": "Al-Nassr vs Al Zawra'a (AFC Cup, 2025-12-24T17:00:00+01:00)",
     "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1438752,
-    "match": "Al Sadd vs Shabab Al Ahli Dubai (AFC Champions League, 2025-12-23T17:00:00+01:00)",
-    "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1488617,
-    "match": "Ghazl El Mehalla vs Al Ahly (League Cup, 2025-12-23T16:00:00+01:00)",
-    "tip": "Vendég győzelem"
   }
 ]
