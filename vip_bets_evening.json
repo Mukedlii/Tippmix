@@ -1,27 +1,32 @@
 [
   {
-    "fixture_id": 1485270,
-    "match": "Hapoel Tel Aviv vs Ashdod (State Cup, 2025-12-25T19:00:00+01:00)",
+    "fixture_id": 1379145,
+    "match": "Manchester United vs Newcastle (Premier League, 2025-12-26T21:00:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1436007,
-    "match": "Al Riyadh vs Al-Ettifaq (Pro League, 2025-12-25T18:30:00+01:00)",
+    "fixture_id": 1386817,
+    "match": "Portsmouth vs QPR (Championship, 2025-12-26T16:00:00+01:00)",
+    "tip": "Döntetlen"
+  },
+  {
+    "fixture_id": 1386821,
+    "match": "Leicester vs Watford (Championship, 2025-12-26T16:00:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1488621,
-    "match": "Zamalek SC vs Smouha SC (League Cup, 2025-12-25T19:00:00+01:00)",
-    "tip": "Hazai győzelem"
+    "fixture_id": 1386251,
+    "match": "Chesterfield vs Notts County (League Two, 2025-12-26T16:00:00+01:00)",
+    "tip": "Vendég győzelem"
   },
   {
-    "fixture_id": 1488623,
-    "match": "Pyramids FC vs Ismaily SC (League Cup, 2025-12-25T19:00:00+01:00)",
-    "tip": "Hazai győzelem"
+    "fixture_id": 1382584,
+    "match": "Cercle Brugge vs Union St. Gilloise (Jupiler Pro League, 2025-12-26T16:00:00+01:00)",
+    "tip": "Vendég győzelem"
   },
   {
-    "fixture_id": 1485267,
-    "match": "Bnei Yehuda vs Maccabi K. Ata Bialik (State Cup, 2025-12-25T18:00:00+01:00)",
-    "tip": "Hazai győzelem"
+    "fixture_id": 1386818,
+    "match": "Wrexham vs Sheffield Utd (Championship, 2025-12-26T18:30:00+01:00)",
+    "tip": "Vendég győzelem"
   }
 ]
