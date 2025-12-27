@@ -1,32 +1,37 @@
 [
   {
-    "fixture_id": 1379145,
-    "match": "Manchester United vs Newcastle (Premier League, 2025-12-26T21:00:00+01:00)",
+    "fixture_id": 1379139,
+    "match": "Arsenal vs Brighton (Premier League, 2025-12-27T16:00:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1386817,
-    "match": "Portsmouth vs QPR (Championship, 2025-12-26T16:00:00+01:00)",
+    "fixture_id": 1379144,
+    "match": "Liverpool vs Wolves (Premier League, 2025-12-27T16:00:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1382778,
+    "match": "Rangers vs Motherwell (Premiership, 2025-12-27T16:00:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1379142,
+    "match": "Chelsea vs Aston Villa (Premier League, 2025-12-27T18:30:00+01:00)",
     "tip": "Döntetlen"
   },
   {
-    "fixture_id": 1386821,
-    "match": "Leicester vs Watford (Championship, 2025-12-26T16:00:00+01:00)",
+    "fixture_id": 1378033,
+    "match": "Udinese vs Lazio (Serie A, 2025-12-27T18:00:00+01:00)",
+    "tip": "Vendég győzelem"
+  },
+  {
+    "fixture_id": 1378030,
+    "match": "Pisa vs Juventus (Serie A, 2025-12-27T20:45:00+01:00)",
+    "tip": "Vendég győzelem"
+  },
+  {
+    "fixture_id": 1347257,
+    "match": "Senegal vs Congo DR (Africa Cup of Nations, 2025-12-27T16:00:00+01:00)",
     "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1386251,
-    "match": "Chesterfield vs Notts County (League Two, 2025-12-26T16:00:00+01:00)",
-    "tip": "Vendég győzelem"
-  },
-  {
-    "fixture_id": 1382584,
-    "match": "Cercle Brugge vs Union St. Gilloise (Jupiler Pro League, 2025-12-26T16:00:00+01:00)",
-    "tip": "Vendég győzelem"
-  },
-  {
-    "fixture_id": 1386818,
-    "match": "Wrexham vs Sheffield Utd (Championship, 2025-12-26T18:30:00+01:00)",
-    "tip": "Vendég győzelem"
   }
 ]
