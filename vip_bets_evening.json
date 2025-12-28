@@ -1,37 +1,32 @@
 [
   {
-    "fixture_id": 1379139,
-    "match": "Arsenal vs Brighton (Premier League, 2025-12-27T16:00:00+01:00)",
-    "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1379144,
-    "match": "Liverpool vs Wolves (Premier League, 2025-12-27T16:00:00+01:00)",
-    "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1382778,
-    "match": "Rangers vs Motherwell (Premiership, 2025-12-27T16:00:00+01:00)",
-    "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1379142,
-    "match": "Chelsea vs Aston Villa (Premier League, 2025-12-27T18:30:00+01:00)",
-    "tip": "Döntetlen"
-  },
-  {
-    "fixture_id": 1378033,
-    "match": "Udinese vs Lazio (Serie A, 2025-12-27T18:00:00+01:00)",
+    "fixture_id": 1379143,
+    "match": "Crystal Palace vs Tottenham (Premier League, 2025-12-28T17:30:00+01:00)",
     "tip": "Vendég győzelem"
   },
   {
-    "fixture_id": 1378030,
-    "match": "Pisa vs Juventus (Serie A, 2025-12-27T20:45:00+01:00)",
+    "fixture_id": 1378024,
+    "match": "Atalanta vs Inter (Serie A, 2025-12-28T20:45:00+01:00)",
     "tip": "Vendég győzelem"
   },
   {
-    "fixture_id": 1347257,
-    "match": "Senegal vs Congo DR (Africa Cup of Nations, 2025-12-27T16:00:00+01:00)",
+    "fixture_id": 1396380,
+    "match": "Sporting CP vs Rio Ave (Primeira Liga, 2025-12-28T21:30:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1347261,
+    "match": "Ivory Coast vs Cameroon (Africa Cup of Nations, 2025-12-28T21:00:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1396374,
+    "match": "Casa Pia vs Guimaraes (Primeira Liga, 2025-12-28T16:30:00+01:00)",
+    "tip": "Vendég győzelem"
+  },
+  {
+    "fixture_id": 1468614,
+    "match": "Asante Kotoko vs Bechem United (Premier League, 2025-12-28T16:30:00+01:00)",
     "tip": "Hazai győzelem"
   }
 ]
