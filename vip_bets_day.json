@@ -1,37 +1,27 @@
 [
   {
-    "fixture_id": 1378028,
-    "match": "AC Milan vs Verona (Serie A, 2025-12-28T12:30:00+01:00)",
+    "fixture_id": 1398495,
+    "match": "Adana Demirspor vs İstanbulspor (1. Lig, 2025-12-29T12:30:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1378026,
-    "match": "Cremonese vs Napoli (Serie A, 2025-12-28T15:00:00+01:00)",
+    "fixture_id": 1403629,
+    "match": "Persija vs Bhayangkara FC (Liga 1, 2025-12-29T13:00:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1485344,
+    "match": "Al-Ittihad Kalba vs Al-Jazira (Pro League, 2025-12-29T13:50:00+01:00)",
     "tip": "Vendég győzelem"
   },
   {
-    "fixture_id": 1379147,
-    "match": "Sunderland vs Leeds (Premier League, 2025-12-28T15:00:00+01:00)",
-    "tip": "Hazai győzelem"
+    "fixture_id": 1393794,
+    "match": "Al Shamal vs Al Sadd (Stars League, 2025-12-29T15:30:00+01:00)",
+    "tip": "Vendég győzelem"
   },
   {
-    "fixture_id": 1488680,
-    "match": "Esteghlal FC vs Gol Gohar (Persian Gulf Pro League, 2025-12-28T14:00:00+01:00)",
+    "fixture_id": 1488824,
+    "match": "Havadar vs Shenavarsazi Qeshm (Azadegan League, 2025-12-29T12:30:00+01:00)",
     "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1398497,
-    "match": "Erzurum BB vs Yeni Çorumspor (1. Lig, 2025-12-28T14:00:00+01:00)",
-    "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1393791,
-    "match": "Al-Duhail SC vs Qatar SC (Stars League, 2025-12-28T15:30:00+01:00)",
-    "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1393792,
-    "match": "Al-Sailiya vs Al Wakrah (Stars League, 2025-12-28T15:30:00+01:00)",
-    "tip": "Döntetlen"
   }
 ]
