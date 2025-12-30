@@ -1,17 +1,17 @@
 [
   {
-    "fixture_id": 1386832,
-    "match": "Coventry vs Ipswich (Championship, 2025-12-29T19:00:00+01:00)",
+    "fixture_id": 1347267,
+    "match": "Uganda vs Nigeria (Africa Cup of Nations, 2025-12-30T17:00:00+01:00)",
+    "tip": "Döntetlen"
+  },
+  {
+    "fixture_id": 1389696,
+    "match": "Maccabi Tel Aviv vs Ironi Tiberias (Ligat Ha'al, 2025-12-30T19:00:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1347265,
-    "match": "Angola vs Egypt (Africa Cup of Nations, 2025-12-29T17:00:00+01:00)",
+    "fixture_id": 1379151,
+    "match": "Burnley vs Newcastle (Premier League, 2025-12-30T20:30:00+01:00)",
     "tip": "Vendég győzelem"
-  },
-  {
-    "fixture_id": 1378031,
-    "match": "AS Roma vs Genoa (Serie A, 2025-12-29T20:45:00+01:00)",
-    "tip": "Hazai győzelem"
   }
 ]
