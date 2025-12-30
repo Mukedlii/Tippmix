@@ -1,27 +1,17 @@
 [
   {
-    "fixture_id": 1398495,
-    "match": "Adana Demirspor vs İstanbulspor (1. Lig, 2025-12-29T12:30:00+01:00)",
-    "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1403629,
-    "match": "Persija vs Bhayangkara FC (Liga 1, 2025-12-29T13:00:00+01:00)",
-    "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1485344,
-    "match": "Al-Ittihad Kalba vs Al-Jazira (Pro League, 2025-12-29T13:50:00+01:00)",
+    "fixture_id": 1481670,
+    "match": "Ittifaq vs Al Urooba (Division 1, 2025-12-30T13:55:00+01:00)",
     "tip": "Vendég győzelem"
   },
   {
-    "fixture_id": 1393794,
-    "match": "Al Shamal vs Al Sadd (Stars League, 2025-12-29T15:30:00+01:00)",
-    "tip": "Vendég győzelem"
+    "fixture_id": 1437406,
+    "match": "Al Ula vs Al Anwar (Division 1, 2025-12-30T13:45:00+01:00)",
+    "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1488824,
-    "match": "Havadar vs Shenavarsazi Qeshm (Azadegan League, 2025-12-29T12:30:00+01:00)",
+    "fixture_id": 1483318,
+    "match": "Brothers Union vs PWD Sports Club (Federation Cup, 2025-12-30T09:30:00+01:00)",
     "tip": "Hazai győzelem"
   }
 ]
