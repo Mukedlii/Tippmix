@@ -1,37 +1,27 @@
 [
   {
-    "fixture_id": 1379149,
-    "match": "Arsenal vs Aston Villa (Premier League, 2025-12-30T21:15:00+01:00)",
-    "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1379155,
-    "match": "Manchester United vs Wolves (Premier League, 2025-12-30T21:15:00+01:00)",
-    "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1382785,
-    "match": "Rangers vs ST Mirren (Premiership, 2025-12-30T20:45:00+01:00)",
-    "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1382784,
-    "match": "Motherwell vs Celtic (Premiership, 2025-12-30T21:00:00+01:00)",
+    "fixture_id": 1347271,
+    "match": "Equatorial Guinea vs Algeria (Africa Cup of Nations, 2025-12-31T17:00:00+01:00)",
     "tip": "Vendég győzelem"
   },
   {
-    "fixture_id": 1347269,
-    "match": "Benin vs Senegal (Africa Cup of Nations, 2025-12-30T20:00:00+01:00)",
+    "fixture_id": 1389695,
+    "match": "Ashdod vs Maccabi Haifa (Ligat Ha'al, 2025-12-31T18:45:00+01:00)",
     "tip": "Vendég győzelem"
   },
   {
-    "fixture_id": 1436013,
-    "match": "Al-Ettifaq vs Al-Nassr (Pro League, 2025-12-30T18:30:00+01:00)",
+    "fixture_id": 1347273,
+    "match": "Gabon vs Ivory Coast (Africa Cup of Nations, 2025-12-31T20:00:00+01:00)",
     "tip": "Vendég győzelem"
   },
   {
-    "fixture_id": 1389699,
-    "match": "Hapoel Haifa vs Bnei Sakhnin (Ligat Ha'al, 2025-12-30T18:30:00+01:00)",
+    "fixture_id": 1389700,
+    "match": "Hapoel Beer Sheva vs Hapoel Katamon (Ligat Ha'al, 2025-12-31T19:00:00+01:00)",
     "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1436017,
+    "match": "Al Kholood vs Al-Hilal Saudi FC (Pro League, 2025-12-31T18:30:00+01:00)",
+    "tip": "Vendég győzelem"
   }
 ]
