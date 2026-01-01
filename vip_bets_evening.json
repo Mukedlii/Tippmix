@@ -1,27 +1,32 @@
 [
   {
-    "fixture_id": 1347271,
-    "match": "Equatorial Guinea vs Algeria (Africa Cup of Nations, 2025-12-31T17:00:00+01:00)",
-    "tip": "Vendég győzelem"
-  },
-  {
-    "fixture_id": 1389695,
-    "match": "Ashdod vs Maccabi Haifa (Ligat Ha'al, 2025-12-31T18:45:00+01:00)",
-    "tip": "Vendég győzelem"
-  },
-  {
-    "fixture_id": 1347273,
-    "match": "Gabon vs Ivory Coast (Africa Cup of Nations, 2025-12-31T20:00:00+01:00)",
-    "tip": "Vendég győzelem"
-  },
-  {
-    "fixture_id": 1389700,
-    "match": "Hapoel Beer Sheva vs Hapoel Katamon (Ligat Ha'al, 2025-12-31T19:00:00+01:00)",
+    "fixture_id": 1379154,
+    "match": "Liverpool vs Leeds (Premier League, 2026-01-01T18:30:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1436017,
-    "match": "Al Kholood vs Al-Hilal Saudi FC (Pro League, 2025-12-31T18:30:00+01:00)",
+    "fixture_id": 1386846,
+    "match": "QPR vs Norwich (Championship, 2026-01-01T16:00:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1379150,
+    "match": "Brentford vs Tottenham (Premier League, 2026-01-01T21:00:00+01:00)",
     "tip": "Vendég győzelem"
+  },
+  {
+    "fixture_id": 1386843,
+    "match": "Watford vs Birmingham (Championship, 2026-01-01T16:00:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1386844,
+    "match": "Hull City vs Stoke City (Championship, 2026-01-01T16:00:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1386847,
+    "match": "Derby vs Middlesbrough (Championship, 2026-01-01T16:00:00+01:00)",
+    "tip": "Döntetlen"
   }
 ]
