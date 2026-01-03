@@ -1,27 +1,32 @@
 [
   {
-    "fixture_id": 1378035,
-    "match": "Cagliari vs AC Milan (Serie A, 2026-01-02T20:45:00+01:00)",
+    "fixture_id": 1379160,
+    "match": "Bournemouth vs Arsenal (Premier League, 2026-01-03T18:30:00+01:00)",
     "tip": "Vendég győzelem"
   },
   {
-    "fixture_id": 1396385,
-    "match": "GIL Vicente vs Sporting CP (Primeira Liga, 2026-01-02T19:45:00+01:00)",
+    "fixture_id": 1378040,
+    "match": "Juventus vs Lecce (Serie A, 2026-01-03T18:00:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1387847,
+    "match": "Monaco vs Lyon (Ligue 1, 2026-01-03T17:00:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1396383,
+    "match": "Benfica vs Estoril (Primeira Liga, 2026-01-03T19:00:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1390992,
+    "match": "Espanyol vs Barcelona (La Liga, 2026-01-03T21:00:00+01:00)",
     "tip": "Vendég győzelem"
   },
   {
-    "fixture_id": 1390995,
-    "match": "Rayo Vallecano vs Getafe (La Liga, 2026-01-02T21:00:00+01:00)",
-    "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1387850,
-    "match": "Toulouse vs Lens (Ligue 1, 2026-01-02T20:45:00+01:00)",
-    "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1396389,
-    "match": "Guimaraes vs Nacional (Primeira Liga, 2026-01-02T21:45:00+01:00)",
-    "tip": "Hazai győzelem"
+    "fixture_id": 1378034,
+    "match": "Atalanta vs AS Roma (Serie A, 2026-01-03T20:45:00+01:00)",
+    "tip": "Döntetlen"
   }
 ]
