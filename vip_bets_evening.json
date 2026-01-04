@@ -1,32 +1,32 @@
 [
   {
-    "fixture_id": 1379160,
-    "match": "Bournemouth vs Arsenal (Premier League, 2026-01-03T18:30:00+01:00)",
+    "fixture_id": 1379165,
+    "match": "Manchester City vs Chelsea (Premier League, 2026-01-04T18:30:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1387849,
+    "match": "Paris Saint Germain vs Paris FC (Ligue 1, 2026-01-04T20:45:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1390997,
+    "match": "Real Sociedad vs Atletico Madrid (La Liga, 2026-01-04T21:00:00+01:00)",
     "tip": "Vendég győzelem"
   },
   {
-    "fixture_id": 1378040,
-    "match": "Juventus vs Lecce (Serie A, 2026-01-03T18:00:00+01:00)",
+    "fixture_id": 1379167,
+    "match": "Tottenham vs Sunderland (Premier League, 2026-01-04T16:00:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1387847,
-    "match": "Monaco vs Lyon (Ligue 1, 2026-01-03T17:00:00+01:00)",
-    "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1396383,
-    "match": "Benfica vs Estoril (Primeira Liga, 2026-01-03T19:00:00+01:00)",
-    "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1390992,
-    "match": "Espanyol vs Barcelona (La Liga, 2026-01-03T21:00:00+01:00)",
+    "fixture_id": 1396387,
+    "match": "Santa Clara vs FC Porto (Primeira Liga, 2026-01-04T19:00:00+01:00)",
     "tip": "Vendég győzelem"
   },
   {
-    "fixture_id": 1378034,
-    "match": "Atalanta vs AS Roma (Serie A, 2026-01-03T20:45:00+01:00)",
-    "tip": "Döntetlen"
+    "fixture_id": 1379163,
+    "match": "Fulham vs Liverpool (Premier League, 2026-01-04T16:00:00+01:00)",
+    "tip": "Vendég győzelem"
   }
 ]
