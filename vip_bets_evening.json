@@ -1,32 +1,32 @@
 [
   {
-    "fixture_id": 1379165,
-    "match": "Manchester City vs Chelsea (Premier League, 2026-01-04T18:30:00+01:00)",
+    "fixture_id": 1502168,
+    "match": "Galatasaray vs Trabzonspor (Super Cup, 2026-01-05T18:30:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1387849,
-    "match": "Paris Saint Germain vs Paris FC (Ligue 1, 2026-01-04T20:45:00+01:00)",
+    "fixture_id": 1501839,
+    "match": "Nigeria vs Mozambique (Africa Cup of Nations, 2026-01-05T20:00:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1390997,
-    "match": "Real Sociedad vs Atletico Madrid (La Liga, 2026-01-04T21:00:00+01:00)",
-    "tip": "Vendég győzelem"
-  },
-  {
-    "fixture_id": 1379167,
-    "match": "Tottenham vs Sunderland (Premier League, 2026-01-04T16:00:00+01:00)",
+    "fixture_id": 1386861,
+    "match": "Leicester vs West Brom (Championship, 2026-01-05T21:00:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1396387,
-    "match": "Santa Clara vs FC Porto (Primeira Liga, 2026-01-04T19:00:00+01:00)",
-    "tip": "Vendég győzelem"
+    "fixture_id": 1422775,
+    "match": "MC Alger vs CS Constantine (Ligue 1, 2026-01-05T20:00:00+01:00)",
+    "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1379163,
-    "match": "Fulham vs Liverpool (Premier League, 2026-01-04T16:00:00+01:00)",
+    "fixture_id": 1398113,
+    "match": "Benfica B vs FC Porto B (Segunda Liga, 2026-01-05T19:00:00+01:00)",
+    "tip": "Döntetlen"
+  },
+  {
+    "fixture_id": 1389899,
+    "match": "Hapoel Kfar Shalem vs Bnei Yehuda (Liga Leumit, 2026-01-05T18:00:00+01:00)",
     "tip": "Vendég győzelem"
   }
 ]
