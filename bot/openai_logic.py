@@ -7,28 +7,26 @@ from openai import OpenAI
 
 client = OpenAI()
 
-# ==============================
-# Kötelező minimumok (fizetős bot)
-# ==============================
 DEFAULT_MIN_VIP = 6
 DEFAULT_MIN_FREE = 3
-
-# Maximumok (Telegram hossz / olvashatóság miatt)
 MAX_VIP = 7
 MAX_FREE = 5
+
+YOUTH_HINTS = ["U20", "U19", "U18", "U17", "YOUTH", "JUNIOR", "RESERVE", "B "]
+
 
 SYSTEM_PROMPT = """
 Te a Szelvénykirály sportfogadási AI vagy. Feladatod, hogy focimeccsekre az 1X2 piacon adj tippeket FREE és VIP csatornára.
 
-KIMENETI SZABÁLYOK (nagyon szigorú):
+KIMENETI SZABÁLYOK:
 - Csak három kimenet:
   * "Hazai győzelem"
   * "Döntetlen"
   * "Vendég győzelem"
 - TILOS minden más piac.
-- A JSON-on kívül SEMMIT nem írhatsz.
+- Kizárólag JSON-t adhatsz vissza.
 
-Cél: short-term találati arány javítása (inkább favoritok, döntetlen csak kivételesen).
+Cél: rövid távú találati arány javítása (inkább favoritok, döntetlen ritkán).
 """
 
 TIPS_SCHEMA = {
@@ -49,15 +47,7 @@ TIPS_SCHEMA = {
                     "reason": {"type": "string"},
                     "odds_estimate": {"type": ["number", "null"]},
                 },
-                "required": [
-                    "fixture_id",
-                    "selection",
-                    "is_highlighted",
-                    "confidence",
-                    "risk_level",
-                    "reason",
-                    "odds_estimate",
-                ],
+                "required": ["fixture_id", "selection", "is_highlighted", "confidence", "risk_level", "reason", "odds_estimate"],
             },
         },
         "vip_tips": {
@@ -74,15 +64,7 @@ TIPS_SCHEMA = {
                     "reason": {"type": "string"},
                     "odds_estimate": {"type": ["number", "null"]},
                 },
-                "required": [
-                    "fixture_id",
-                    "selection",
-                    "is_highlighted",
-                    "confidence",
-                    "risk_level",
-                    "reason",
-                    "odds_estimate",
-                ],
+                "required": ["fixture_id", "selection", "is_highlighted", "confidence", "risk_level", "reason", "odds_estimate"],
             },
         },
     },
@@ -106,31 +88,27 @@ def _normalize_match(raw: Dict[str, Any]) -> Dict[str, Any]:
     except Exception:
         fixture_id = None
 
-    league = (
-        raw.get("league_name")
-        or raw.get("league")
-        or (raw.get("league") or {}).get("name")
-        or "Ismeretlen liga"
-    )
-    country = raw.get("country") or (raw.get("league") or {}).get("country") or ""
+    league = raw.get("league_name") or (raw.get("league") or {}).get("name") or raw.get("league") or "Ismeretlen liga"
+    country = raw.get("country_name") or raw.get("country") or (raw.get("league") or {}).get("country") or ""
 
-    teams = raw.get("teams") or {}
-    home_team = raw.get("home_team") or (teams.get("home") or {}).get("name") or "Hazai csapat"
-    away_team = raw.get("away_team") or (teams.get("away") or {}).get("name") or "Vendég csapat"
+    home_team = raw.get("home_team") or ((raw.get("teams") or {}).get("home") or {}).get("name") or "Hazai csapat"
+    away_team = raw.get("away_team") or ((raw.get("teams") or {}).get("away") or {}).get("name") or "Vendég csapat"
 
-    kickoff = (
-        raw.get("kickoff_local")
-        or raw.get("kickoff")
-        or raw.get("datetime")
-        or raw.get("date")
-        or (raw.get("fixture") or {}).get("date")
-    )
+    kickoff = raw.get("kickoff_local") or raw.get("kickoff") or raw.get("datetime") or raw.get("date") or (raw.get("fixture") or {}).get("date")
     kickoff_str = str(kickoff) if kickoff is not None else "Ismeretlen időpont"
 
     odds = raw.get("odds") or {}
     odds_1 = _safe_float(odds.get("1") or odds.get("home") or raw.get("odds_1"))
     odds_x = _safe_float(odds.get("X") or odds.get("draw") or raw.get("odds_x"))
     odds_2 = _safe_float(odds.get("2") or odds.get("away") or raw.get("odds_2"))
+
+    # extra stats ha van
+    home_form = raw.get("home_form")
+    away_form = raw.get("away_form")
+    home_avg_for = _safe_float(raw.get("home_avg_goals_for"))
+    home_avg_against = _safe_float(raw.get("home_avg_goals_against"))
+    away_avg_for = _safe_float(raw.get("away_avg_goals_for"))
+    away_avg_against = _safe_float(raw.get("away_avg_goals_against"))
 
     return {
         "fixture_id": fixture_id,
@@ -142,6 +120,12 @@ def _normalize_match(raw: Dict[str, Any]) -> Dict[str, Any]:
         "odds_1": odds_1,
         "odds_x": odds_x,
         "odds_2": odds_2,
+        "home_form": home_form,
+        "away_form": away_form,
+        "home_avg_goals_for": home_avg_for,
+        "home_avg_goals_against": home_avg_against,
+        "away_avg_goals_for": away_avg_for,
+        "away_avg_goals_against": away_avg_against,
     }
 
 
@@ -162,11 +146,7 @@ def _implied_probs(o1: Optional[float], ox: Optional[float], o2: Optional[float]
 
 
 def _market_favorite(implied: Dict[str, float]) -> Tuple[str, float, float]:
-    items = [
-        ("Hazai győzelem", implied["p1"]),
-        ("Döntetlen", implied["px"]),
-        ("Vendég győzelem", implied["p2"]),
-    ]
+    items = [("Hazai győzelem", implied["p1"]), ("Döntetlen", implied["px"]), ("Vendég győzelem", implied["p2"])]
     items.sort(key=lambda x: x[1], reverse=True)
     top_sel, top_p = items[0]
     second_p = items[1][1]
@@ -185,23 +165,22 @@ def _default_risk_and_conf(p_top: float, edge: float) -> Tuple[str, float]:
     return risk, conf
 
 
+def _is_youth_league(league_name: str) -> bool:
+    s = (league_name or "").upper()
+    return any(h in s for h in YOUTH_HINTS)
+
+
 def _prefilter(matches_norm: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """
-    Lazább shortlist, hogy legyen miből dolgozni.
-    """
     out: List[Dict[str, Any]] = []
     for m in matches_norm:
         imp = _implied_probs(m.get("odds_1"), m.get("odds_x"), m.get("odds_2"))
         if not imp:
             continue
-
-        # túl nagy overround = zajos piac
         if imp["overround"] > 0.20:
             continue
 
         fav, p_top, edge = _market_favorite(imp)
 
-        # döntetlen ritkán
         if fav == "Döntetlen" and not (p_top >= 0.34 and edge >= 0.08):
             continue
 
@@ -213,16 +192,7 @@ def _prefilter(matches_norm: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         out.append(mm)
 
     out.sort(key=lambda x: (x["market_p_top"], x["market_edge"]), reverse=True)
-    return out[:40]
-
-
-def _should_use_responses(model_name: str) -> bool:
-    env = (os.getenv("TIPPMIX_USE_RESPONSES", "") or "").strip().lower()
-    if env in ("1", "true", "yes"):
-        return True
-    if env in ("0", "false", "no"):
-        return False
-    return model_name.startswith("gpt-5")
+    return out[:50]
 
 
 def _call_openai_shortlist(shortlist: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -230,76 +200,57 @@ def _call_openai_shortlist(shortlist: List[Dict[str, Any]]) -> Dict[str, Any]:
     slot = os.getenv("TIPPMIX_SLOT", "DAY").upper()
     slot_text = "délelőtt / nappal" if slot == "DAY" else "délután / este"
 
-    model_name = os.getenv("TIPPMIX_MODEL", "gpt-4.1-mini")
-    reasoning_effort = os.getenv("TIPPMIX_REASONING_EFFORT", "low")
-    verbosity = os.getenv("TIPPMIX_VERBOSITY", "low")
-
-    # minimum igények (fizetős bot)
+    model_name = os.getenv("TIPPMIX_MODEL", "gpt-5-mini")
     min_vip = int(os.getenv("TIPPMIX_MIN_VIP", str(DEFAULT_MIN_VIP)))
     min_free = int(os.getenv("TIPPMIX_MIN_FREE", str(DEFAULT_MIN_FREE)))
 
     payload = []
     for m in shortlist:
         imp = m.get("implied") or {}
-        payload.append(
-            {
-                "fixture_id": m["fixture_id"],
-                "league": m["league"],
-                "country": m.get("country", ""),
-                "home_team": m["home_team"],
-                "away_team": m["away_team"],
-                "kickoff": m["kickoff"],
-                "odds_1": m.get("odds_1"),
-                "odds_x": m.get("odds_x"),
-                "odds_2": m.get("odds_2"),
-                "market_favorite": m.get("market_favorite"),
-                "market_p_top": round(float(m.get("market_p_top") or 0.0), 4),
-                "market_edge": round(float(m.get("market_edge") or 0.0), 4),
-                "overround": round(float(imp.get("overround") or 0.0), 4),
-            }
-        )
+        payload.append({
+            "fixture_id": m["fixture_id"],
+            "league": m["league"],
+            "country": m.get("country", ""),
+            "home_team": m["home_team"],
+            "away_team": m["away_team"],
+            "kickoff": m["kickoff"],
+            "odds_1": m.get("odds_1"),
+            "odds_x": m.get("odds_x"),
+            "odds_2": m.get("odds_2"),
+            "market_favorite": m.get("market_favorite"),
+            "market_p_top": round(float(m.get("market_p_top") or 0.0), 4),
+            "market_edge": round(float(m.get("market_edge") or 0.0), 4),
+            "overround": round(float(imp.get("overround") or 0.0), 4),
+            "home_form": m.get("home_form"),
+            "away_form": m.get("away_form"),
+            "home_avg_goals_for": m.get("home_avg_goals_for"),
+            "home_avg_goals_against": m.get("home_avg_goals_against"),
+            "away_avg_goals_for": m.get("away_avg_goals_for"),
+            "away_avg_goals_against": m.get("away_avg_goals_against"),
+        })
 
     user_prompt = (
         f"Mai dátum: {today}\n"
         f"Idősáv: {slot_text}\n\n"
-        "Shortlist (odds + implied prob alapján).\n"
-        f"FONTOS: a bot fizetős, ezért legalább {min_free} FREE és legalább {min_vip} VIP tipp KELL.\n"
+        f"Fizetős bot: legalább {min_free} FREE és legalább {min_vip} VIP tipp KELL.\n"
         "VIP-ben pontosan 3 legyen KIEMELT.\n"
         "Preferáld a piaci favoritot. Döntetlen ritkán.\n"
+        "Youth/U20 jellegű ligákat VIP-ben kerüld, ha van más opció.\n"
         "Kizárólag JSON-t adj vissza.\n\n"
         f"{json.dumps(payload, ensure_ascii=False, indent=2)}"
     )
 
-    if _should_use_responses(model_name):
-        resp = client.responses.create(
-            model=model_name,
-            reasoning={"effort": reasoning_effort},
-            instructions=SYSTEM_PROMPT,
-            input=[{"role": "user", "content": user_prompt}],
-            text={
-                "verbosity": verbosity,
-                "format": {
-                    "type": "json_schema",
-                    "name": "tippmix_tips",
-                    "schema": TIPS_SCHEMA,
-                    "strict": True,
-                },
-            },
-        )
-        content = getattr(resp, "output_text", "") or ""
-    else:
-        temp = float(os.getenv("TIPPMIX_TEMP", "0.25"))
-        r = client.chat.completions.create(
-            model=model_name,
-            messages=[{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user_prompt}],
-            temperature=temp,
-            response_format={
-                "type": "json_schema",
-                "json_schema": {"name": "tippmix_tips", "schema": TIPS_SCHEMA, "strict": True},
-            },
-        )
-        content = r.choices[0].message.content or ""
-
+    resp = client.responses.create(
+        model=model_name,
+        reasoning={"effort": os.getenv("TIPPMIX_REASONING_EFFORT", "low")},
+        instructions=SYSTEM_PROMPT,
+        input=[{"role": "user", "content": user_prompt}],
+        text={
+            "verbosity": os.getenv("TIPPMIX_VERBOSITY", "low"),
+            "format": {"type": "json_schema", "name": "tippmix_tips", "schema": TIPS_SCHEMA, "strict": True},
+        },
+    )
+    content = resp.output_text or ""
     data = json.loads(content)
     if not isinstance(data, dict):
         raise ValueError("JSON root is not object")
@@ -307,46 +258,17 @@ def _call_openai_shortlist(shortlist: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 
 def _call_openai_with_fallback(shortlist: List[Dict[str, Any]]) -> Dict[str, Any]:
-    primary = os.getenv("TIPPMIX_MODEL", "gpt-4.1-mini")
+    primary = os.getenv("TIPPMIX_MODEL", "gpt-5-mini")
     fallback = os.getenv("TIPPMIX_FALLBACK_MODEL", "gpt-4.1-mini")
-
     try:
         return _call_openai_shortlist(shortlist)
     except Exception as e:
-        msg = str(e).lower()
-        retryable = any(
-            x in msg
-            for x in [
-                "model",
-                "not found",
-                "insufficient",
-                "permission",
-                "rate limit",
-                "quota",
-                "429",
-                "403",
-                "404",
-                "503",
-                "timeout",
-                "overloaded",
-            ]
-        )
         print(f"[OpenAI] Primary failed: {primary} | {repr(e)}")
-        if (not retryable) or (primary == fallback):
-            raise
-        print(f"[OpenAI] Falling back to: {fallback}")
         os.environ["TIPPMIX_MODEL"] = fallback
         try:
             return _call_openai_shortlist(shortlist)
         finally:
             os.environ["TIPPMIX_MODEL"] = primary
-
-
-def _build_match_label(m: Dict[str, Any]) -> str:
-    league_country = m["league"]
-    if m.get("country"):
-        league_country += f" {m['country']}"
-    return f"{m['home_team']} vs {m['away_team']} ({league_country}, {m['kickoff']})"
 
 
 def _risk_to_emoji(risk: str) -> str:
@@ -368,6 +290,13 @@ def _confidence_to_stars(conf: float) -> str:
     return "⭐" * full + f" ({c:.1f}/5)"
 
 
+def _build_match_label(m: Dict[str, Any]) -> str:
+    league_country = m["league"]
+    if m.get("country"):
+        league_country += f" {m['country']}"
+    return f"{m['home_team']} vs {m['away_team']} ({league_country}, {m['kickoff']})"
+
+
 def _clean_list(raw_list: List[Dict[str, Any]], id_to_match: Dict[int, Dict[str, Any]]) -> List[Dict[str, Any]]:
     allowed = {"Hazai győzelem", "Döntetlen", "Vendég győzelem"}
     out: List[Dict[str, Any]] = []
@@ -381,17 +310,15 @@ def _clean_list(raw_list: List[Dict[str, Any]], id_to_match: Dict[int, Dict[str,
         sel = (item.get("selection") or "").strip()
         if sel not in allowed:
             continue
-        out.append(
-            {
-                "fixture_id": fid,
-                "selection": sel,
-                "is_highlighted": bool(item.get("is_highlighted", False)),
-                "confidence": _safe_float(item.get("confidence")) or 3.0,
-                "risk_level": (item.get("risk_level") or "közepes").lower(),
-                "reason": (item.get("reason") or "").strip(),
-                "odds_estimate": _safe_float(item.get("odds_estimate")),
-            }
-        )
+        out.append({
+            "fixture_id": fid,
+            "selection": sel,
+            "is_highlighted": bool(item.get("is_highlighted", False)),
+            "confidence": _safe_float(item.get("confidence")) or 3.0,
+            "risk_level": (item.get("risk_level") or "közepes").lower(),
+            "reason": (item.get("reason") or "").strip(),
+            "odds_estimate": _safe_float(item.get("odds_estimate")),
+        })
     return out
 
 
@@ -405,14 +332,9 @@ def _enforce_vip_highlights(vips: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 
 def _odds_based_pick(m: Dict[str, Any]) -> Tuple[str, Optional[float], float, float]:
-    """
-    Ha van odds: piaci favorit.
-    Ha nincs odds: default Hazai győzelem (nagyon konzervatív fallback).
-    Vissza: (selection, odds_est, p_top, edge)
-    """
     imp = _implied_probs(m.get("odds_1"), m.get("odds_x"), m.get("odds_2"))
     if not imp:
-        return "Hazai győzelem", None, 0.50, 0.05  # nincs odds -> közepes, nem túl magabiztos
+        return "Hazai győzelem", None, 0.50, 0.05
     fav, p_top, edge = _market_favorite(imp)
     odds_est = None
     if fav == "Hazai győzelem":
@@ -431,10 +353,6 @@ def _fill_minimum_tips(
     vip_tips: List[Dict[str, Any]],
     free_tips: List[Dict[str, Any]],
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-    """
-    GARANCIA: VIP min 6, FREE min 3 (env-ből felülírható).
-    Először shortlistből tölt fel, ha az kevés, akkor a teljes meccslistából.
-    """
     min_vip = int(os.getenv("TIPPMIX_MIN_VIP", str(DEFAULT_MIN_VIP)))
     min_free = int(os.getenv("TIPPMIX_MIN_FREE", str(DEFAULT_MIN_FREE)))
 
@@ -445,13 +363,15 @@ def _fill_minimum_tips(
         reason = f"Piaci/odds alapú választás (p={p_top:.2f}, edge={edge:.2f})."
         if odds_est is None:
             reason = "Nincs odds adat, konzervatív alap tipp a bot folytonossága miatt."
+            risk = "közepes"
+            conf = 3.0
 
         item = {
             "fixture_id": fid,
             "selection": sel,
             "is_highlighted": False,
             "confidence": conf,
-            "risk_level": risk if odds_est is not None else "közepes",
+            "risk_level": risk,
             "reason": reason,
             "odds_estimate": odds_est,
         }
@@ -460,41 +380,53 @@ def _fill_minimum_tips(
         else:
             free_tips.append(item)
 
-    # 1) shortlistből töltés
     candidates: List[Dict[str, Any]] = []
     candidates.extend(shortlist)
+    candidates.extend([m for m in matches_norm if m.get("fixture_id") is not None])
 
-    # 2) ha kevés, egész listából is (norm)
-    #    (itt “norm” elemek: odds_x/y/z lehet None)
-    if len(candidates) < 60:
-        candidates.extend([m for m in matches_norm if m.get("fixture_id") is not None])
-
+    # VIP töltés először
     for m in candidates:
         fid = m.get("fixture_id")
         if not fid or fid in used or fid not in id_to_match:
             continue
 
+        # VIP-ben youth ligát kerüljünk, amíg van más
+        if len(vip_tips) < min_vip and _is_youth_league(id_to_match[fid].get("league", "")):
+            continue
+
         sel, odds_est, p_top, edge = _odds_based_pick(id_to_match[fid])
-
-        # VIP-t töltjük először
         if len(vip_tips) < min_vip:
-            add_pick(fid, sel, odds_est, p_top, edge, is_vip=True)
+            add_pick(fid, sel, odds_est, p_top, edge, True)
             used.add(fid)
-            continue
 
-        # utána FREE-t
-        if len(free_tips) < min_free:
-            add_pick(fid, sel, odds_est, p_top, edge, is_vip=False)
-            used.add(fid)
-            continue
-
-        if len(vip_tips) >= min_vip and len(free_tips) >= min_free:
+        if len(vip_tips) >= min_vip:
             break
 
-    # limit + highlight
-    vip_tips = vip_tips[:MAX_VIP]
+    # ha így is kevés VIP, akkor már youth-ból is engedünk
+    if len(vip_tips) < min_vip:
+        for m in candidates:
+            fid = m.get("fixture_id")
+            if not fid or fid in used or fid not in id_to_match:
+                continue
+            sel, odds_est, p_top, edge = _odds_based_pick(id_to_match[fid])
+            add_pick(fid, sel, odds_est, p_top, edge, True)
+            used.add(fid)
+            if len(vip_tips) >= min_vip:
+                break
+
+    # FREE feltöltés
+    for m in candidates:
+        fid = m.get("fixture_id")
+        if not fid or fid in used or fid not in id_to_match:
+            continue
+        sel, odds_est, p_top, edge = _odds_based_pick(id_to_match[fid])
+        add_pick(fid, sel, odds_est, p_top, edge, False)
+        used.add(fid)
+        if len(free_tips) >= min_free:
+            break
+
+    vip_tips = _enforce_vip_highlights(vip_tips[:MAX_VIP])
     free_tips = free_tips[:MAX_FREE]
-    vip_tips = _enforce_vip_highlights(vip_tips)
     for t in free_tips:
         t["is_highlighted"] = False
 
@@ -511,16 +443,13 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         }
 
     matches_norm = _matches_for_llm(matches)
-    id_to_match: Dict[int, Dict[str, Any]] = {
-        m["fixture_id"]: m for m in matches_norm if m.get("fixture_id") is not None
-    }
+    id_to_match: Dict[int, Dict[str, Any]] = {m["fixture_id"]: m for m in matches_norm if m.get("fixture_id") is not None}
 
     shortlist = _prefilter(matches_norm)
 
     free_raw: List[Dict[str, Any]] = []
     vip_raw: List[Dict[str, Any]] = []
 
-    # AI próbál
     try:
         if shortlist:
             ai_data = _call_openai_with_fallback(shortlist)
@@ -541,7 +470,6 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     slot = os.getenv("TIPPMIX_SLOT", "DAY").upper()
     slot_text = "délelőtt / nappal" if slot == "DAY" else "délután / este"
 
-    # VIP TELEGRAM
     vip_lines: List[str] = []
     vip_lines.append("🔥 SZELVÉNYKIRÁLY VIP – KIRÁLYI KOMBI 🔥")
     vip_lines.append(f"Dátum: {today}")
@@ -565,7 +493,6 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         )
     telegram_vip_text = "\n\n".join(vip_lines)
 
-    # FREE TELEGRAM
     free_lines: List[str] = []
     free_lines.append("👑 SZELVÉNYKIRÁLY FREE – NAPI TIPPEK")
     free_lines.append(f"Dátum: {today}")
@@ -588,7 +515,6 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         )
     telegram_public_text = "\n\n".join(free_lines)
 
-    # JSON mentéshez
     vip_bets = []
     for tip in vip_tips:
         m = id_to_match.get(tip["fixture_id"])
