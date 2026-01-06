@@ -20,11 +20,17 @@ jobs:
       SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
-      # --- OpenAI modell beállítások (minden step használja) ---
+      # --- OpenAI modellek ---
       TIPPMIX_MODEL: gpt-5-mini
+      TIPPMIX_FALLBACK_MODEL: gpt-4.1-mini
+
+      # --- GPT-5 beállítások ---
       TIPPMIX_USE_RESPONSES: "true"
       TIPPMIX_REASONING_EFFORT: "low"
       TIPPMIX_VERBOSITY: "low"
+
+      # --- (nem GPT-5 modellekhez) ---
+      TIPPMIX_TEMP: "0.25"
 
     steps:
       - name: Checkout repo
@@ -68,4 +74,3 @@ jobs:
         env:
           TIPPMIX_SLOT: DAY
         run: python -m bot.daily_recap_main
-
