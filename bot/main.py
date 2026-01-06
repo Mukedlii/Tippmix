@@ -9,61 +9,92 @@ from bot.matches import fetch_matches_for_today
 from bot.openai_logic import generate_tips
 
 
+TELEGRAM_MAX_LEN = 3900  # biztonságosan 4096 alatt (HTML parse_mode + extra karakterek miatt)
+
+
+def _split_text(text: str, max_len: int = TELEGRAM_MAX_LEN) -> List[str]:
+    """
+    Feldarabolja a túl hosszú Telegram üzenetet.
+    Próbál sortöréseknél vágni, ha nem lehet akkor keményen.
+    """
+    if not text:
+        return [""]
+
+    chunks: List[str] = []
+    s = text.strip()
+
+    while len(s) > max_len:
+        cut = s.rfind("\n\n", 0, max_len)
+        if cut < 800:
+            cut = s.rfind("\n", 0, max_len)
+        if cut < 200:
+            cut = max_len
+
+        chunks.append(s[:cut].strip())
+        s = s[cut:].strip()
+
+    if s:
+        chunks.append(s)
+    return chunks
+
+
 def send_telegram_message(token: str, chat_id: str, text: str, label: str) -> Tuple[bool, str]:
     """
-    Egyszerű Telegram küldés + részletes log.
+    Telegram küldés hosszú üzenet esetén automatikus darabolással.
     Visszaadja: (sikeres-e, hiba_szöveg_vagy_üres).
     """
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    payload: Dict[str, Any] = {
-        "chat_id": chat_id,
-        "text": text,
-        "parse_mode": "HTML",
-        "disable_web_page_preview": True,
-    }
 
-    print(f"\n[{label}] Telegram sendMessage hívás indul...")
-    print(f"[{label}] chat_id = {chat_id!r}")
-    try:
-        resp = requests.post(url, json=payload, timeout=20)
-    except Exception as e:
-        err = f"Requests hiba: {repr(e)}"
-        print(f"[{label}] {err}")
-        return False, err
+    parts = _split_text(text, TELEGRAM_MAX_LEN)
+    print(f"\n[{label}] Telegram küldés indul... üzenet részek: {len(parts)}")
 
-    print(f"[{label}] HTTP status: {resp.status_code}")
-    print(f"[{label}] Válasz törzs: {resp.text}")
+    for i, part in enumerate(parts, start=1):
+        payload: Dict[str, Any] = {
+            "chat_id": chat_id,
+            "text": part,
+            "parse_mode": "HTML",  # marad, ahogy nálad volt
+            "disable_web_page_preview": True,
+        }
 
-    if resp.status_code != 200:
-        return False, f"HTTP {resp.status_code}: {resp.text}"
+        print(f"[{label}] Part {i}/{len(parts)} sendMessage...")
+        try:
+            resp = requests.post(url, json=payload, timeout=20)
+        except Exception as e:
+            err = f"Requests hiba: {repr(e)}"
+            print(f"[{label}] {err}")
+            return False, err
 
-    try:
-        data = resp.json()
-    except Exception as e:
-        err = f"JSON parse hiba: {repr(e)}"
-        print(f"[{label}] {err}")
-        return False, err
+        print(f"[{label}] HTTP status: {resp.status_code}")
+        if resp.status_code != 200:
+            err = f"HTTP {resp.status_code}: {resp.text}"
+            print(f"[{label}] {err}")
+            return False, err
 
-    if not data.get("ok"):
-        err = f"Telegram API error: {data}"
-        print(f"[{label}] {err}")
-        return False, err
+        try:
+            data = resp.json()
+        except Exception as e:
+            err = f"JSON parse hiba: {repr(e)}"
+            print(f"[{label}] {err}")
+            return False, err
 
-    print(f"[{label}] Üzenet sikeresen elküldve.")
+        if not data.get("ok"):
+            err = f"Telegram API error: {data}"
+            print(f"[{label}] {err}")
+            return False, err
+
+    print(f"[{label}] Üzenet(ek) sikeresen elküldve.")
     return True, ""
 
 
 def _extract_kickoff_hour(match: Dict[str, Any]) -> Optional[int]:
     """
     Megpróbáljuk kivenni az órát a meccs kezdési idejéből (helyi idő szerint).
-    Először kickoff_local, kickoff, datetime, date mezőkből próbál.
-
     Elfogad:
       - datetime objektumot
-      - ISO stringet (2025-12-10T11:00:00)
+      - ISO stringet (2025-12-10T11:00:00 vagy +01:00)
       - sima 'HH:MM' stringet
 
-    Ha nem tudjuk, None-t ad vissza.
+    Ha nem tudjuk, None.
     """
     dt = (
         match.get("kickoff_local")
@@ -80,14 +111,23 @@ def _extract_kickoff_hour(match: Dict[str, Any]) -> Optional[int]:
 
     if isinstance(dt, str):
         s = dt.strip()
-        # Próbáljuk ISO datetime-ként
+
+        # ISO datetime (támogatja a +01:00-t is)
         try:
             parsed = datetime.datetime.fromisoformat(s)
             return parsed.hour
         except Exception:
             pass
 
-        # Próbáljuk HH:MM formaként
+        # Ha Z van a végén (UTC), fromisoformat régi verzióknál gondos lehet
+        if s.endswith("Z"):
+            try:
+                parsed = datetime.datetime.fromisoformat(s[:-1])
+                return parsed.hour
+            except Exception:
+                pass
+
+        # HH:MM
         parts = s.split(":")
         if len(parts) >= 1:
             try:
@@ -104,7 +144,7 @@ def _filter_matches_for_slot(matches: List[Dict[str, Any]], slot: str) -> List[D
       - DAY:      9:00–16:00 (9 <= óra < 16)
       - EVENING: 16:00–23:00 (16 <= óra <= 23)
 
-    Ha nem tudjuk kivenni az órát, bent hagyjuk (hogy inkább legyen tipp).
+    Ha nem tudjuk kivenni az órát, bent hagyjuk.
     Ha a szűrés után üres, visszaadjuk az eredeti listát.
     """
     slot = (slot or "DAY").upper()
@@ -113,7 +153,6 @@ def _filter_matches_for_slot(matches: List[Dict[str, Any]], slot: str) -> List[D
     for m in matches:
         h = _extract_kickoff_hour(m)
         if h is None:
-            # Nem tudtuk eldönteni, akkor hagyjuk bent
             filtered.append(m)
             continue
 
@@ -125,7 +164,7 @@ def _filter_matches_for_slot(matches: List[Dict[str, Any]], slot: str) -> List[D
                 filtered.append(m)
 
     if not filtered:
-        print(f"[DEBUG] Az idősáv szűrés üres eredményt adott (slot={slot}), visszaadom az összes meccset.")
+        print(f"[DEBUG] Slot szűrés üres (slot={slot}), visszaadom az összes meccset.")
         return matches
 
     print(f"[DEBUG] Szűrt meccsszám slot={slot}: {len(filtered)} (eredeti: {len(matches)})")
@@ -136,7 +175,6 @@ def main() -> None:
     today = datetime.date.today()
     print(f"Meccsek lekérése erre a napra: {today.isoformat()}")
 
-    # SLOT: DAY vagy EVENING (GitHub Actions env-ből állítjuk)
     slot = (os.getenv("TIPPMIX_SLOT") or "DAY").upper()
     print(f"Aktuális idősáv (TIPPMIX_SLOT): {slot}")
 
@@ -144,7 +182,7 @@ def main() -> None:
     public_chat_id = os.getenv("TELEGRAM_PUBLIC_CHAT_ID") or "-1003307981597"
     vip_chat_id = os.getenv("TELEGRAM_VIP_CHAT_ID")
 
-    print("\n=== TELEGRAM BEÁLLÍTÁSOK ELLENŐRZÉSE ===")
+    print("\n=== TELEGRAM BEÁLLÍTÁSOK ===")
     print("TELEGRAM_BOT_TOKEN be van állítva:", bool(telegram_token))
     print("PUBLIC_CHAT_ID (használt) =", repr(public_chat_id))
     print("VIP_CHAT_ID    =", repr(vip_chat_id))
@@ -153,26 +191,23 @@ def main() -> None:
         print("NINCS TELEGRAM_BOT_TOKEN, kilépek.")
         return
 
-    # 1) Meccsek lekérése sport API-ból – slot támogatás + hibatűrés
+    # 1) Meccsek lekérése sport API-ból
     try:
-        # Ha a matches.fetch_matches_for_today slot paramétert ismer, használjuk:
         try:
             matches = fetch_matches_for_today(slot=slot)
         except TypeError:
-            # Ha a régi verzió nem ismeri a slot paramétert:
             matches = fetch_matches_for_today()
 
         print(f"Talált meccsek száma (összes): {len(matches)}")
     except Exception as e:
         err_msg = (
             "⚠️ SPORT API HIBA ⚠️\n\n"
-            "Ma nem tudtam meccseket lekérni az API-FOOTBALL rendszertől.\n"
-            "Valószínűleg a sport API fiók fel van függesztve vagy limitet ért el.\n\n"
+            "Ma nem tudtam meccseket lekérni a sport API-ból.\n"
+            "Valószínűleg limitet ért el / hiba történt.\n\n"
             f"Technikai info:\n{repr(e)}"
         )
-        print("Meccslekérés közben hiba történt:", repr(e))
+        print("Meccslekérés hiba:", repr(e))
 
-        # Küldjük ki FREE + VIP csatornára, hogy tudjanak róla
         if public_chat_id:
             send_telegram_message(
                 token=telegram_token,
@@ -193,11 +228,11 @@ def main() -> None:
         print("Nincsenek meccsek mára, nem küldök tippet.")
         return
 
-    # 1/b) Csak az adott idősáv (DAY / EVENING) meccsei – biztos ami biztos
+    # 1/b) Slot szűrés
     slot_matches = _filter_matches_for_slot(matches, slot)
     print(f"Idősávra szűrt meccsek száma: {len(slot_matches)}")
 
-    # 2) Tipp generálás (OpenAI + fallback) az idősávra
+    # 2) Tipp generálás (OpenAI + fallback az openai_logic.py-ban)
     tips_data = generate_tips(slot_matches)
 
     public_text = tips_data.get("telegram_public_text") or "Hiba a FREE tippek generálásánál."
@@ -207,7 +242,6 @@ def main() -> None:
     public_bets = tips_data.get("public_bets", [])
     vip_bets = tips_data.get("vip_bets", [])
 
-    # fájlnevek: public_bets_day.json / public_bets_evening.json stb.
     suffix = "day" if slot == "DAY" else "evening"
     public_json_path = f"public_bets_{suffix}.json"
     vip_json_path = f"vip_bets_{suffix}.json"
@@ -236,14 +270,10 @@ def main() -> None:
         public_err = "PUBLIC_CHAT_ID nincs beállítva."
         print(public_err)
 
-    # 5) VIP üzenet – ha a FREE-nél hiba volt, technikai infót csatolunk
+    # 5) VIP üzenet
     if vip_chat_id:
         if not public_ok and public_err:
-            vip_text_with_info = (
-                vip_text
-                + "\n\n⚠️ TECH INFO (FREE csatorna):\n"
-                + public_err
-            )
+            vip_text_with_info = vip_text + "\n\n⚠️ TECH INFO (FREE csatorna):\n" + public_err
         else:
             vip_text_with_info = vip_text
 
