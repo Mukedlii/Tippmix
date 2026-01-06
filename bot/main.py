@@ -9,31 +9,31 @@ from bot.matches import fetch_matches_for_today
 from bot.openai_logic import generate_tips
 
 
-def _chunk_text(text: str, max_len: int = 3800) -> List[str]:
+def _split_telegram(text: str, max_len: int = 3900) -> List[str]:
+    text = text or ""
+    if len(text) <= max_len:
+        return [text]
     parts: List[str] = []
-    s = text or ""
-    while len(s) > max_len:
-        cut = s.rfind("\n", 0, max_len)
-        if cut < 500:
-            cut = max_len
-        parts.append(s[:cut])
-        s = s[cut:].lstrip()
-    if s:
-        parts.append(s)
+    cur = ""
+    for block in text.split("\n\n"):
+        if len(cur) + len(block) + 2 <= max_len:
+            cur = (cur + "\n\n" + block).strip()
+        else:
+            if cur:
+                parts.append(cur)
+            cur = block
+    if cur:
+        parts.append(cur)
     return parts
 
 
 def send_telegram_message(token: str, chat_id: str, text: str, label: str) -> Tuple[bool, str]:
     url = f"https://api.telegram.org/bot{token}/sendMessage"
 
-    if not chat_id:
-        return False, "chat_id üres"
-
-    parts = _chunk_text(text)
+    parts = _split_telegram(text)
     print(f"\n[{label}] Telegram küldés indul... üzenet részek: {len(parts)}")
 
-    last_err = ""
-    for i, part in enumerate(parts, start=1):
+    for idx, part in enumerate(parts, start=1):
         payload: Dict[str, Any] = {
             "chat_id": chat_id,
             "text": part,
@@ -41,34 +41,73 @@ def send_telegram_message(token: str, chat_id: str, text: str, label: str) -> Tu
             "disable_web_page_preview": True,
         }
 
-        print(f"[{label}] Part {i}/{len(parts)} sendMessage...")
+        print(f"[{label}] Part {idx}/{len(parts)} sendMessage...")
         try:
             resp = requests.post(url, json=payload, timeout=25)
         except Exception as e:
-            last_err = f"Requests hiba: {repr(e)}"
-            print(f"[{label}] {last_err}")
-            return False, last_err
+            err = f"Requests hiba: {repr(e)}"
+            print(f"[{label}] {err}")
+            return False, err
 
         print(f"[{label}] HTTP status: {resp.status_code}")
         if resp.status_code != 200:
-            last_err = f"HTTP {resp.status_code}: {resp.text[:800]}"
-            print(f"[{label}] {last_err}")
-            return False, last_err
+            return False, f"HTTP {resp.status_code}: {resp.text}"
 
         try:
             data = resp.json()
         except Exception as e:
-            last_err = f"JSON parse hiba: {repr(e)}"
-            print(f"[{label}] {last_err}")
-            return False, last_err
+            return False, f"JSON parse hiba: {repr(e)}"
 
         if not data.get("ok"):
-            last_err = f"Telegram API error: {str(data)[:800]}"
-            print(f"[{label}] {last_err}")
-            return False, last_err
+            return False, f"Telegram API error: {data}"
 
     print(f"[{label}] Üzenet(ek) sikeresen elküldve.")
     return True, ""
+
+
+def _extract_kickoff_hour(match: Dict[str, Any]) -> Optional[int]:
+    dt = match.get("kickoff_local") or match.get("kickoff") or match.get("datetime") or match.get("date")
+    if dt is None:
+        return None
+    if isinstance(dt, datetime.datetime):
+        return dt.hour
+    if isinstance(dt, str):
+        s = dt.strip()
+        try:
+            parsed = datetime.datetime.fromisoformat(s)
+            return parsed.hour
+        except Exception:
+            pass
+        try:
+            return int(s.split("T")[1][:2])
+        except Exception:
+            return None
+    return None
+
+
+def _filter_matches_for_slot(matches: List[Dict[str, Any]], slot: str) -> List[Dict[str, Any]]:
+    slot = (slot or "DAY").upper()
+    filtered: List[Dict[str, Any]] = []
+
+    for m in matches:
+        h = _extract_kickoff_hour(m)
+        if h is None:
+            filtered.append(m)
+            continue
+
+        if slot == "DAY":
+            if 9 <= h < 16:
+                filtered.append(m)
+        else:
+            if 16 <= h <= 23:
+                filtered.append(m)
+
+    if not filtered:
+        print(f"[DEBUG] Slot szűrés üres (slot={slot}), visszaadom az összes meccset.")
+        return matches
+
+    print(f"[DEBUG] Szűrt meccsszám slot={slot}: {len(filtered)} (eredeti: {len(matches)})")
+    return filtered
 
 
 def main() -> None:
@@ -78,9 +117,9 @@ def main() -> None:
     slot = (os.getenv("TIPPMIX_SLOT") or "DAY").upper()
     print(f"Aktuális idősáv (TIPPMIX_SLOT): {slot}")
 
-    telegram_token = os.getenv("TELEGRAM_BOT_TOKEN") or ""
-    public_chat_id = os.getenv("TELEGRAM_PUBLIC_CHAT_ID") or ""
-    vip_chat_id = os.getenv("TELEGRAM_VIP_CHAT_ID") or ""
+    telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
+    public_chat_id = os.getenv("TELEGRAM_PUBLIC_CHAT_ID")
+    vip_chat_id = os.getenv("TELEGRAM_VIP_CHAT_ID")
 
     print("\n=== TELEGRAM BEÁLLÍTÁSOK ===")
     print("TELEGRAM_BOT_TOKEN be van állítva:", bool(telegram_token))
@@ -91,43 +130,31 @@ def main() -> None:
         print("NINCS TELEGRAM_BOT_TOKEN, kilépek.")
         return
 
-    # 1) Meccsek
+    # 1) meccsek lekérése (csak aznapi)
+    matches: List[Dict[str, Any]] = []
     try:
         matches = fetch_matches_for_today(slot=slot)
         print(f"Talált meccsek száma (összes): {len(matches)}")
     except Exception as e:
-        msg = (
-            "⚠️ SPORT / MATCH API HIBA ⚠️\n\n"
-            "Nem tudtam meccseket lekérni az API-kból.\n"
-            f"Technikai info: {repr(e)}"
-        )
-        print(msg)
-
+        err = f"⚠️ SPORT API HIBA ⚠️\n\nNem tudtam meccseket lekérni.\n\nTechnikai info:\n{repr(e)}"
+        print("Meccslekérés közben hiba:", repr(e))
         if public_chat_id:
-            send_telegram_message(telegram_token, public_chat_id, msg, f"PUBLIC_API_ERROR_{slot}")
+            send_telegram_message(telegram_token, public_chat_id, err, f"PUBLIC_API_ERROR_{slot}")
         if vip_chat_id:
-            send_telegram_message(telegram_token, vip_chat_id, msg, f"VIP_API_ERROR_{slot}")
+            send_telegram_message(telegram_token, vip_chat_id, err, f"VIP_API_ERROR_{slot}")
         return
 
-    # 2) Ha 0 meccs: státusz üzenet (nincs hallucináció)
-    if not matches:
-        msg = (
-            "⚠️ NINCS MECCS ADAT ⚠️\n\n"
-            "Ma egyik API-ból sem jött vissza meccs (SportAPI / Football-Data / SportMonks).\n"
-            "Ellenőrizd a kulcsokat, limitet, és hogy a provider elérhető-e."
-        )
-        if public_chat_id:
-            send_telegram_message(telegram_token, public_chat_id, msg, f"PUBLIC_NO_MATCHES_{slot}")
-        if vip_chat_id:
-            send_telegram_message(telegram_token, vip_chat_id, msg, f"VIP_NO_MATCHES_{slot}")
-        return
+    # 1/b) slot szűrés (biztos ami biztos)
+    slot_matches = _filter_matches_for_slot(matches, slot)
+    print(f"Idősávra szűrt meccsek száma: {len(slot_matches)}")
 
-    # 3) Tippek generálása
-    tips_data = generate_tips(matches)
-    public_text = tips_data.get("telegram_public_text") or "Hiba a FREE tippek generálásánál."
-    vip_text = tips_data.get("telegram_vip_text") or "Hiba a VIP tippek generálásánál."
+    # 2) tippek
+    tips_data = generate_tips(slot_matches)
 
-    # 4) JSON mentés recap-hez
+    public_text = tips_data.get("telegram_public_text") or "⚠️ Hiba a FREE tippek generálásánál."
+    vip_text = tips_data.get("telegram_vip_text") or "⚠️ Hiba a VIP tippek generálásánál."
+
+    # 3) mentés recap-hez
     public_bets = tips_data.get("public_bets", [])
     vip_bets = tips_data.get("vip_bets", [])
 
@@ -142,16 +169,12 @@ def main() -> None:
             json.dump(vip_bets, f, ensure_ascii=False, indent=2)
         print(f"Napi tippek elmentve: {public_json_path}, {vip_json_path}")
     except Exception as e:
-        print("Nem sikerült a tippeket JSON-ba menteni:", repr(e))
+        print("Nem sikerült JSON-ba menteni:", repr(e))
 
-    # 5) Küldés
-    public_ok, public_err = (True, "")
+    # 4) küldés
     if public_chat_id:
-        public_ok, public_err = send_telegram_message(telegram_token, public_chat_id, public_text, f"PUBLIC_{slot}")
-
+        send_telegram_message(telegram_token, public_chat_id, public_text, f"PUBLIC_{slot}")
     if vip_chat_id:
-        if not public_ok and public_err:
-            vip_text = vip_text + "\n\n⚠️ TECH INFO (FREE):\n" + public_err
         send_telegram_message(telegram_token, vip_chat_id, vip_text, f"VIP_{slot}")
 
 
