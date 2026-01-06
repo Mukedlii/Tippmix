@@ -2,7 +2,7 @@ name: Tippmix Day Tips
 
 on:
   schedule:
-    # 09:00 Europe/Budapest -> 08:00 UTC (téli időszámításnál)
+    # 09:00 Europe/Budapest -> 08:00 UTC (téli időszámítás)
     - cron: '0 8 * * *'
   workflow_dispatch:
 
@@ -16,10 +16,11 @@ jobs:
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
       TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
-      SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
-      # --- OpenAI / tip logic ---
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      SPORTMONKS_API_TOKEN: ${{ secrets.SPORTMONKS_API_TOKEN }}
+
+      # --- slot + model ---
       TIPPMIX_SLOT: DAY
       TIPPMIX_MODEL: "gpt-5-mini"
       TIPPMIX_FALLBACK_MODEL: "gpt-4.1-mini"
@@ -27,8 +28,13 @@ jobs:
       TIPPMIX_REASONING_EFFORT: "low"
       TIPPMIX_VERBOSITY: "low"
       TIPPMIX_TEMP: "0.25"
+
+      # --- minimum tippek (fizetős bot) ---
       TIPPMIX_MIN_VIP: "6"
       TIPPMIX_MIN_FREE: "3"
+
+      # --- odds lookup limit (ne legyen túl lassú) ---
+      TIPPMIX_MAX_ODDS_LOOKUP: "80"
 
     steps:
       - name: Checkout repo
