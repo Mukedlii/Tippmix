@@ -2,6 +2,15 @@ import os
 import json
 import datetime
 from typing import Any, Dict, List, Optional, Tuple
+import os
+import json
+import datetime
+from bot.odds 
+import fetch_sportmonks_1x2_odds
+from typing import Any, Dict, List, Optional, Tuple
+
+from openai import OpenAI
+
 
 from openai import OpenAI
 
