@@ -1,32 +1,32 @@
 [
   {
-    "fixture_id": 537004,
-    "match": "US Lecce vs AS Roma (Serie A, 2026-01-06T18:00:00+01:00)",
+    "fixture_id": 1485356,
+    "match": "Al Wahda FC vs Baniyas SC (Pro League United-Arab-Emirates, 2026-01-06T16:45:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 537001,
-    "match": "US Sassuolo Calcio vs Juventus FC (Serie A, 2026-01-06T20:45:00+01:00)",
+    "fixture_id": 1447132,
+    "match": "Stockport County U21 vs Burnley U21 (Premier League Cup England, 2026-01-06T20:00:00+01:00)",
+    "tip": "Vendég győzelem"
+  },
+  {
+    "fixture_id": 1501671,
+    "match": "Sobradinho U20 vs Goiás U20 (São Paulo Youth Cup Brazil, 2026-01-06T19:15:00+01:00)",
+    "tip": "Vendég győzelem"
+  },
+  {
+    "fixture_id": 1498037,
+    "match": "Vizela U23 vs Rio Ave U23 (Liga Revelação U23 Portugal, 2026-01-06T16:00:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 537994,
-    "match": "West Ham United FC vs Nottingham Forest FC (Premier League, 2026-01-06T21:00:00+01:00)",
-    "tip": "Hazai győzelem"
+    "fixture_id": 1488641,
+    "match": "Enppi vs Ceramica Cleopatra (League Cup Egypt, 2026-01-06T16:00:00+01:00)",
+    "tip": "Vendég győzelem"
   },
   {
-    "fixture_id": 537002,
-    "match": "SSC Napoli vs Hellas Verona FC (Serie A, 2026-01-07T18:30:00+01:00)",
-    "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 536996,
-    "match": "Bologna FC 1909 vs Atalanta BC (Serie A, 2026-01-07T18:30:00+01:00)",
-    "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 537985,
-    "match": "AFC Bournemouth vs Tottenham Hotspur FC (Premier League, 2026-01-07T20:30:00+01:00)",
+    "fixture_id": 1447103,
+    "match": "Derby County U21 vs Sheffield United U21 (Premier League Cup England, 2026-01-06T20:00:00+01:00)",
     "tip": "Hazai győzelem"
   }
 ]

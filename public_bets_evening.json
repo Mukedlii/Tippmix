@@ -1,17 +1,22 @@
 [
   {
-    "fixture_id": 537991,
-    "match": "Fulham FC vs Chelsea FC (Premier League, 2026-01-07T20:30:00+01:00)",
+    "fixture_id": 1488640,
+    "match": "El Gouna FC vs Petrojet (League Cup Egypt, 2026-01-06T16:00:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 537992,
-    "match": "Manchester City FC vs Brighton & Hove Albion FC (Premier League, 2026-01-07T20:30:00+01:00)",
-    "tip": "Hazai győzelem"
+    "fixture_id": 1456534,
+    "match": "Hapoel Beit Shean vs Maccabi Ahi Nazareth (Liga Alef Israel, 2026-01-06T16:30:00+01:00)",
+    "tip": "Vendég győzelem"
   },
   {
-    "fixture_id": 537988,
-    "match": "Brentford FC vs Sunderland AFC (Premier League, 2026-01-07T20:30:00+01:00)",
-    "tip": "Hazai győzelem"
+    "fixture_id": 1501663,
+    "match": "Flamengo SP U20 vs Capivariano U20 (São Paulo Youth Cup Brazil, 2026-01-06T16:45:00+01:00)",
+    "tip": "Vendég győzelem"
+  },
+  {
+    "fixture_id": 1437415,
+    "match": "Al Wehda Club vs Al Orubah (Division 1 Saudi-Arabia, 2026-01-06T16:35:00+01:00)",
+    "tip": "Vendég győzelem"
   }
 ]
