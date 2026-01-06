@@ -1,17 +1,22 @@
 [
   {
-    "fixture_id": 1501590,
-    "match": "Vietnam U23 vs Jordan U23 (AFC U23 Asian Cup World, 2026-01-06T12:30:00+01:00)",
-    "tip": "Hazai győzelem"
+    "fixture_id": 19428102,
+    "match": "Livingston vs St. Mirren (Premiership, 2026-01-06T20:45:00+01:00)",
+    "tip": "Vendég győzelem"
   },
   {
-    "fixture_id": 1501768,
-    "match": "América-SP U20 vs Inter Limeira U20 (São Paulo Youth Cup Brazil, 2026-01-06T12:45:00+01:00)",
-    "tip": "Hazai győzelem"
+    "fixture_id": 19428102,
+    "match": "Livingston vs St. Mirren (Premiership, 2026-01-06T20:45:00+01:00)",
+    "tip": "Vendég győzelem"
   },
   {
-    "fixture_id": 1456774,
-    "match": "Hapoel Marmorek vs Hapoel Ramat HaSharon (Liga Alef Israel, 2026-01-06T13:00:00+01:00)",
+    "fixture_id": 19428102,
+    "match": "Livingston vs St. Mirren (Premiership, 2026-01-06T20:45:00+01:00)",
+    "tip": "Döntetlen"
+  },
+  {
+    "fixture_id": 19590624,
+    "match": "Rangers vs Aberdeen (Premiership, 2026-01-06T21:00:00+01:00)",
     "tip": "Hazai győzelem"
   }
 ]
