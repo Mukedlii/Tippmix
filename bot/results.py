@@ -4,41 +4,33 @@ from typing import Any, Dict, List, Optional
 
 import requests
 
-API_FOOTBALL_KEY = os.getenv("SPORTS_API_KEY")  # nálad amire be van állítva
+API_FOOTBALL_KEY = (os.getenv("SPORTS_API_KEY") or "").strip()
 
 
 def _normalize_fixture_id(fixture_id_value: Any, match_text: Optional[str] = None) -> Optional[int]:
     """
-    Próbáljuk kinyerni a numerikus fixture ID-t több formából is:
+    Kinyeri a numerikus fixture ID-t több formából:
       - 1488772
       - "1488772"
       - "football-1488772"
-      - a match szöveg végéről: "... [ID=football-1488772]"
+      - match szöveg végéről: "... [ID=football-1488772]"
     """
-    # 1) Ha van közvetlen fixture_id mező:
     if fixture_id_value is not None:
         try:
-            # ha pl. "football-1488772"
-            s = str(fixture_id_value)
-            # Levágjuk az esetleges "football-" részt
+            s = str(fixture_id_value).strip()
             if "-" in s:
-                parts = s.split("-")
-                s = parts[-1]
+                s = s.split("-")[-1]
             return int(s)
         except Exception:
             pass
 
-    # 2) Ha nincs vagy nem jó, próbáljuk a match szövegből
     if match_text:
         text = str(match_text)
         marker = "[ID="
         if marker in text:
-            # pl. "... [ID=football-1488772]"
             tail = text.split(marker, 1)[1]
-            # levágjuk az utána lévő részt egészen a ']' karakterig
             if "]" in tail:
                 tail = tail.split("]", 1)[0]
-            # tail pl.: "football-1488772" vagy "1488772"
             try:
                 if "-" in tail:
                     tail = tail.split("-")[-1]
@@ -51,12 +43,16 @@ def _normalize_fixture_id(fixture_id_value: Any, match_text: Optional[str] = Non
 
 def _get_fixture_result(fixture_id: int) -> Dict[str, Any]:
     """
-    Lekéri egy meccs (fixture) végső eredményét az API-FOOTBALL-ból.
+    Lekéri egy meccs (fixture) állapotát/eredményét API-FOOTBALL (API-Sports) /fixtures endpointból.
     """
+    if not API_FOOTBALL_KEY:
+        raise RuntimeError("SPORTS_API_KEY nincs beállítva (GitHub Secrets).")
+
     url = "https://v3.football.api-sports.io/fixtures"
     headers = {"x-apisports-key": API_FOOTBALL_KEY}
     params = {"id": fixture_id}
-    resp = requests.get(url, headers=headers, params=params, timeout=20)
+
+    resp = requests.get(url, headers=headers, params=params, timeout=25)
     resp.raise_for_status()
     data = resp.json()
     if not data.get("response"):
@@ -64,50 +60,42 @@ def _get_fixture_result(fixture_id: int) -> Dict[str, Any]:
     return data["response"][0]
 
 
-def _settle_tip(tip: str, fixture: Dict[str, Any]) -> str:
+def _settle_tip_1x2(tip: str, fixture: Dict[str, Any]) -> str:
     """
-    Egyszerű kiértékelés pár alap piacra:
-      - Hazai győzelem
-      - Vendég győzelem
-      - Over 2.5 gól
-      - Over 1.5 gól
-      - Under 2.5 gól
-    Ha nem tudjuk értelmezni, 'unknown'.
+    Kifejezetten 1X2 piacra:
+      - "Hazai győzelem"
+      - "Döntetlen"
+      - "Vendég győzelem"
+
+    Vissza: "win" | "lose" | "pending" | "unknown"
     """
     if not fixture:
         return "unknown"
+
+    fx = fixture.get("fixture") or {}
+    status = ((fx.get("status") or {}).get("short") or "").upper()
 
     goals = fixture.get("goals") or {}
     home_goals = goals.get("home")
     away_goals = goals.get("away")
 
-    status = fixture.get("fixture", {}).get("status", {}).get("short")
-    # Ha még nincs vége:
+    # még nem végleges
     if status not in ("FT", "AET", "PEN"):
         return "pending"
 
     if home_goals is None or away_goals is None:
         return "unknown"
 
-    total_goals = home_goals + away_goals
-    t = (tip or "").lower()
+    t = (tip or "").strip().lower()
 
-    # Egyszerű szöveg alapú matching
+    # 1X2 kimenet
     if "hazai győzelem" in t:
         return "win" if home_goals > away_goals else "lose"
     if "vendég győzelem" in t:
         return "win" if away_goals > home_goals else "lose"
-    if "mindkét csapat szerez gólt" in t or "btts" in t:
-        both_scored = home_goals > 0 and away_goals > 0
-        return "win" if both_scored else "lose"
-    if "over 2.5" in t:
-        return "win" if total_goals > 2.5 else "lose"
-    if "over 1.5" in t:
-        return "win" if total_goals > 1.5 else "lose"
-    if "under 2.5" in t:
-        return "win" if total_goals < 2.5 else "lose"
+    if "döntetlen" in t:
+        return "win" if home_goals == away_goals else "lose"
 
-    # Ha nem ismert típus
     return "unknown"
 
 
@@ -119,7 +107,7 @@ def evaluate_bets(bets: List[Dict[str, Any]]) -> Dict[str, Any]:
       - lose
       - pending
       - unknown
-      - details: list of {match, tip, result}
+      - details: list of {match, tip, result, score, status, fixture_id}
     """
     summary = {
         "total": 0,
@@ -137,30 +125,44 @@ def evaluate_bets(bets: List[Dict[str, Any]]) -> Dict[str, Any]:
 
         fixture_id = _normalize_fixture_id(raw_fixture_id, match_text)
 
+        fixture_data: Dict[str, Any] = {}
+        result = "unknown"
+        status = ""
+        score = ""
+
         if not fixture_id:
-            print(f"Figyelem: nincs használható fixture_id ehhez a tipphez: {match_text!r}")
             result = "unknown"
-            fixture_data = {}
         else:
             try:
-                fixture_data = _get_fixture_result(fixture_id)
-                result = _settle_tip(tip, fixture_data)
+                fixture_data = _get_fixture_result(int(fixture_id))
+                result = _settle_tip_1x2(tip, fixture_data)
+
+                fx = fixture_data.get("fixture") or {}
+                status = ((fx.get("status") or {}).get("short") or "").upper()
+
+                goals = fixture_data.get("goals") or {}
+                hg = goals.get("home")
+                ag = goals.get("away")
+                if isinstance(hg, int) and isinstance(ag, int):
+                    score = f"{hg}–{ag}"
             except Exception as e:
                 print(f"Hiba fixture {fixture_id} ellenőrzésekor: {repr(e)}")
                 result = "unknown"
-                fixture_data = {}
 
         summary["total"] += 1
-        if result in summary:
+        if result in ("win", "lose", "pending", "unknown"):
             summary[result] += 1
         else:
             summary["unknown"] += 1
 
         summary["details"].append(
             {
+                "fixture_id": fixture_id,
                 "match": match_text,
                 "tip": tip,
                 "result": result,
+                "status": status,
+                "score": score,
             }
         )
 
@@ -168,9 +170,6 @@ def evaluate_bets(bets: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 
 def _format_summary_line(summary: Dict[str, Any]) -> str:
-    """
-    FREE/VIP összegzés sor formázása.
-    """
     return (
         f"{summary['win']}/{summary['total']} találat "
         f"(nyertes: {summary['win']}✅, bukó: {summary['lose']}❌, "
@@ -184,8 +183,7 @@ def build_daily_report_text(
     vip_summary: Dict[str, Any],
 ) -> str:
     """
-    Összerak egy Telegramra küldhető napi mérleg szöveget.
-    date_str: pl. "2025-12-07"
+    Rövid napi mérleg (összesítő) – kompatibilis a régi botoddal.
     """
     try:
         dt = datetime.date.fromisoformat(date_str)
@@ -198,10 +196,57 @@ def build_daily_report_text(
         f"({date_disp})\n\n"
         f"FREE: { _format_summary_line(public_summary) }\n"
         f"VIP:  { _format_summary_line(vip_summary) }\n\n"
-        "Emlékeztető: ez nem sprint, hanem maraton. Lesznek jó napok, rossz napok, "
-        "ezért fontos a fegyelmezett tét (1–3% bankroll) és a hosszú távú gondolkodás. 💰"
+        "Emlékeztető: fegyelmezett tét (1–3% bankroll) és hosszú távú gondolkodás. 💰"
     )
     return txt
+
+
+def build_detailed_daily_report_text(
+    title: str,
+    date_str: str,
+    summary: Dict[str, Any],
+) -> str:
+    """
+    Részletes mérleg (a te példádhoz hasonló: listázza a meccseket + score).
+    """
+    try:
+        dt = datetime.date.fromisoformat(date_str)
+        date_disp = dt.strftime("%Y.%m.%d.")
+    except Exception:
+        date_disp = date_str
+
+    decided = int(summary.get("win", 0)) + int(summary.get("lose", 0))
+    hitrate = (summary.get("win", 0) / decided * 100.0) if decided > 0 else 0.0
+
+    lines: List[str] = []
+    lines.append(f"📊 {title}")
+    lines.append(f"Dátum: {date_disp}\n")
+    lines.append("Összefoglaló:")
+    lines.append(f"✅ Nyertes tippek: {summary.get('win', 0)}")
+    lines.append(f"❌ Vesztes tippek: {summary.get('lose', 0)}")
+    lines.append(f"⏳ Függő / nem értékelt: {summary.get('pending', 0)}")
+    lines.append(f"🎯 Találati arány (csak eldöntött tippek): {hitrate:.1f}%\n")
+
+    details = summary.get("details") or []
+    for i, d in enumerate(details, start=1):
+        match = d.get("match") or "Ismeretlen meccs"
+        tip = d.get("tip") or ""
+        res = d.get("result") or "unknown"
+        score = d.get("score") or ""
+        status = d.get("status") or ""
+
+        if res == "win":
+            res_txt = f"✅ Nyert ({score})" if score else "✅ Nyert"
+        elif res == "lose":
+            res_txt = f"❌ Bukó ({score})" if score else "❌ Bukó"
+        elif res == "pending":
+            res_txt = f"⏳ Függő ({status}) {score}".strip()
+        else:
+            res_txt = "⁉ Nem értékelhető"
+
+        lines.append(f"{i}. {match}\nTipp: {tip}\nEredmény: {res_txt}\n")
+
+    return "\n".join(lines).strip()
 
 
 def build_weekly_report_text(
@@ -210,10 +255,6 @@ def build_weekly_report_text(
     public_summaries: List[Dict[str, Any]],
     vip_summaries: List[Dict[str, Any]],
 ) -> str:
-    """
-    Heti mérleg szöveg generálása.
-    public_summaries / vip_summaries: több nap summary-ja összegyűjtve.
-    """
     def agg(summaries: List[Dict[str, Any]]) -> Dict[str, int]:
         agg_res = {"total": 0, "win": 0, "lose": 0, "pending": 0, "unknown": 0}
         for s in summaries:
@@ -239,7 +280,6 @@ def build_weekly_report_text(
         f"({start_disp} – {end_disp})\n\n"
         f"FREE: { _format_summary_line(pub_agg) }\n"
         f"VIP:  { _format_summary_line(vip_agg) }\n\n"
-        "Legfontosabb: a sportfogadás mindig kockázatos, ezért a cél nem az, hogy minden nap nyerjünk, "
-        "hanem hogy hosszú távon, bankrollt védve játszunk. 👑"
+        "Legfontosabb: hosszú táv, bankroll-védelem. 👑"
     )
     return txt
