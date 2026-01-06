@@ -8,6 +8,8 @@ from openai import OpenAI
 
 client = OpenAI()
 
+# ------------------------------ SYSTEM PROMPT ------------------------------
+
 SYSTEM_PROMPT = """
 Te a Szelvénykirály sportfogadási AI vagy. Feladatod, hogy focimeccsekre az 1X2 piacon adj tippeket FREE és VIP csatornára.
 
@@ -20,13 +22,13 @@ KIMENETI SZABÁLYOK (nagyon szigorú):
 - A JSON-on kívül SEMMIT nem írhatsz.
 
 PROFI / ÜGYNÖK MÓD:
-A döntést professzionális elemzőként hozd meg egy belső checklista alapján (ezt NEM írod ki):
-1) Adatminőség: csak olyan meccshez adj tippet, ahol van épkézláb odds és a piac nem tűnik “zajosnak”.
-2) Piaci baseline: az implied valószínűségeket kezeld alapnak.
-3) Ligaminőség: preferáld a top ligákat, első osztályt. Barátságos/U19/rezerv csak nagyon indokolt esetben.
-4) Döntetlen-kerülés: döntetlenre csak akkor adj tippet, ha különösen erős és indokolható (különben NO BET).
-5) Short-term hitrate fókusz: preferáld a “tiszta favoritokat” (egyértelmű valószínűségi fölény).
-6) Kockázat és bizalom: legyen konzisztens az odds/valószínűség alapján.
+A döntést professzionális elemzőként hozd meg belső checklista alapján (ezt NEM írod ki):
+1) Adatminőség: csak olyan meccshez adj tippet, ahol van odds és a piac nem “zajos”.
+2) Piaci baseline: implied valószínűségek legyenek az alap.
+3) Ligaminőség: preferáld a top ligákat és első osztályt.
+4) Döntetlen-kerülés: döntetlen csak kivételesen.
+5) Short-term találati arány fókusz: egyértelmű favoritokat preferálj.
+6) Kockázat és bizalom legyen konzisztens az odds/valószínűség alapján.
 
 KIMENET:
 Adj vissza egy JSON objektumot pontosan ebben a szerkezetben:
@@ -62,7 +64,8 @@ Adj vissza egy JSON objektumot pontosan ebben a szerkezetben:
 - Inkább kevesebb, de erősebb tipp. Ha kell: üres lista (NO BET).
 """
 
-# Structured Outputs schema (stabil JSON)  [oai_citation:1‡OpenAI Platform](https://platform.openai.com/docs/guides/structured-outputs?utm_source=chatgpt.com)
+# ------------------------------ JSON SCHEMA ------------------------------
+
 TIPS_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
@@ -105,6 +108,7 @@ TIPS_SCHEMA = {
     "required": ["free_tips", "vip_tips"],
 }
 
+# ------------------------------ BASIC HELPERS ------------------------------
 
 def _safe_float(x: Any) -> Optional[float]:
     try:
@@ -164,6 +168,8 @@ def _normalize_match(raw: Dict[str, Any]) -> Dict[str, Any]:
 def _matches_for_llm(matches: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return [_normalize_match(m) for m in matches]
 
+
+# ------------------------------ ODDS / MARKET LOGIC ------------------------------
 
 TOP_LEAGUE_HINTS = [
     "Premier League", "La Liga", "Serie A", "Bundesliga", "Ligue 1",
@@ -234,20 +240,24 @@ def _prefilter_matches(matches_norm: List[Dict[str, Any]], slot: str) -> List[Di
         if not implied:
             continue
 
+        # túl zajos piac kiszűrése
         if implied["overround"] > 0.14:
             continue
 
         top_sel, p_top, edge = _market_favorite(implied)
         top_league = _is_topish_league(m.get("league") or "")
 
+        # nappal szigorúbb: kis ligák OFF
         if slot == "DAY" and not top_league:
             continue
 
+        # legyen egyértelmű favorit
         if p_top < (0.56 if slot == "DAY" else 0.54):
             continue
         if edge < (0.08 if slot == "DAY" else 0.07):
             continue
 
+        # döntetlen kerülés
         if top_sel == "Döntetlen" and not (p_top >= 0.34 and edge >= 0.09 and top_league):
             continue
 
@@ -269,6 +279,8 @@ def _prefilter_matches(matches_norm: List[Dict[str, Any]], slot: str) -> List[Di
     )
     return out
 
+
+# ------------------------------ TELEGRAM FORMATTING ------------------------------
 
 def _risk_to_emoji(risk: str) -> str:
     r = (risk or "").lower()
@@ -296,21 +308,29 @@ def _build_match_label(m: Dict[str, Any]) -> str:
     return f"{m['home_team']} vs {m['away_team']} ({league_country}, {m['kickoff']})"
 
 
-def _call_openai_for_tips(matches_norm: List[Dict[str, Any]]) -> Dict[str, Any]:
+# ------------------------------ OPENAI CALLS ------------------------------
+
+def _should_use_responses(model_name: str) -> bool:
+    env = (os.getenv("TIPPMIX_USE_RESPONSES", "") or "").strip().lower()
+    if env in ("1", "true", "yes"):
+        return True
+    if env in ("0", "false", "no"):
+        return False
+    return model_name.startswith("gpt-5")
+
+
+def _call_openai_primary(matches_norm: List[Dict[str, Any]]) -> Dict[str, Any]:
     today = datetime.date.today().strftime("%Y.%m.%d.")
     slot = os.getenv("TIPPMIX_SLOT", "DAY").upper()
     slot_text = "délelőtt / nappal" if slot == "DAY" else "délután / este"
 
-    # Modell env-ből (alap: régi)
-    # GPT-5 mini hivatalos név: gpt-5-mini  [oai_citation:2‡OpenAI Platform](https://platform.openai.com/docs/models/gpt-5-mini?utm_source=chatgpt.com)
     model_name = os.getenv("TIPPMIX_MODEL", "gpt-4.1-mini")
+    reasoning_effort = os.getenv("TIPPMIX_REASONING_EFFORT", "low")
+    verbosity = os.getenv("TIPPMIX_VERBOSITY", "low")
 
-    # GPT-5-höz a Responses API ajánlott reasoning paraméterekkel.  [oai_citation:3‡OpenAI Platform](https://platform.openai.com/docs/guides/reasoning?utm_source=chatgpt.com)
-    reasoning_effort = os.getenv("TIPPMIX_REASONING_EFFORT", "low")  # low/medium/high
-    verbosity = os.getenv("TIPPMIX_VERBOSITY", "low")  # low/medium/high
-
-    # 1) shortlist
     shortlist = _prefilter_matches(matches_norm, slot)
+
+    # ha túl kevés, lazítás: csak odds + overround
     if len(shortlist) < 10:
         tmp: List[Dict[str, Any]] = []
         for m in matches_norm:
@@ -366,16 +386,7 @@ def _call_openai_for_tips(matches_norm: List[Dict[str, Any]]) -> Dict[str, Any]:
         "KIZÁRÓLAG JSON-t adj vissza a megadott struktúrában."
     )
 
-    # Ha gpt-5-öt használsz, preferáld Responses API-t.  [oai_citation:4‡OpenAI Platform](https://platform.openai.com/docs/guides/migrate-to-responses?utm_source=chatgpt.com)
-    force_responses_env = os.getenv("TIPPMIX_USE_RESPONSES", "").strip().lower()
-    if force_responses_env in ("1", "true", "yes"):
-        use_responses = True
-    elif force_responses_env in ("0", "false", "no"):
-        use_responses = False
-    else:
-        use_responses = model_name.startswith("gpt-5")
-
-    if use_responses:
+    if _should_use_responses(model_name):
         resp = client.responses.create(
             model=model_name,
             reasoning={"effort": reasoning_effort},
@@ -398,8 +409,8 @@ def _call_openai_for_tips(matches_norm: List[Dict[str, Any]]) -> Dict[str, Any]:
             except Exception:
                 content = ""
     else:
-        # Chat Completions fallback
         kwargs: Dict[str, Any] = {}
+        # csak nem-gpt-5 esetben használunk temperature-t
         if not model_name.startswith("gpt-5"):
             kwargs["temperature"] = float(os.getenv("TIPPMIX_TEMP", "0.25"))
 
@@ -414,16 +425,40 @@ def _call_openai_for_tips(matches_norm: List[Dict[str, Any]]) -> Dict[str, Any]:
         )
         content = response.choices[0].message.content or ""
 
-    try:
-        data = json.loads(content)
-        if not isinstance(data, dict):
-            raise ValueError("JSON root is not an object")
-        return data
-    except Exception:
-        print("Nem sikerült JSON-ként értelmezni az LLM választ:")
-        print(content)
-        return {}
+    data = json.loads(content)
+    if not isinstance(data, dict):
+        raise ValueError("LLM JSON root is not an object")
+    return data
 
+
+def _call_openai_with_fallback(matches_norm: List[Dict[str, Any]]) -> Dict[str, Any]:
+    primary = os.getenv("TIPPMIX_MODEL", "gpt-4.1-mini")
+    fallback = os.getenv("TIPPMIX_FALLBACK_MODEL", "gpt-4.1-mini")
+
+    try:
+        return _call_openai_primary(matches_norm)
+    except Exception as e:
+        msg = str(e).lower()
+
+        retryable = any(x in msg for x in [
+            "model", "not found", "insufficient", "permission",
+            "rate limit", "quota", "overloaded", "timeout", "503", "429", "403", "404"
+        ])
+
+        print(f"[OpenAI] Primary model failed: {primary} | Error: {repr(e)}")
+
+        if (not retryable) or (primary == fallback):
+            raise
+
+        print(f"[OpenAI] Falling back to: {fallback}")
+        os.environ["TIPPMIX_MODEL"] = fallback
+        try:
+            return _call_openai_primary(matches_norm)
+        finally:
+            os.environ["TIPPMIX_MODEL"] = primary
+
+
+# ------------------------------ FALLBACK TIPS (NO AI) ------------------------------
 
 def _fallback_tips(matches_norm: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     if not matches_norm:
@@ -445,7 +480,7 @@ def _fallback_tips(matches_norm: List[Dict[str, Any]]) -> Tuple[List[Dict[str, A
             "is_highlighted": idx < 3,
             "confidence": 3.0,
             "risk_level": "közepes",
-            "reason": "Fallback tipp (nem állt rendelkezésre stabil AI válasz).",
+            "reason": "Fallback tipp (AI válasz nem volt stabil / elérhető).",
             "odds_estimate": None,
         }
         if idx < 3:
@@ -455,6 +490,8 @@ def _fallback_tips(matches_norm: List[Dict[str, Any]]) -> Tuple[List[Dict[str, A
 
     return vip_raw, free_raw
 
+
+# ------------------------------ POST GUARDRAILS ------------------------------
 
 def _enforce_vip_highlights(vips: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     if not vips:
@@ -495,6 +532,8 @@ def _drop_weird_picks(tips: List[Dict[str, Any]], id_to_match: Dict[int, Dict[st
     return cleaned
 
 
+# ------------------------------ MAIN ENTRY ------------------------------
+
 def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     if not matches:
         return {
@@ -509,14 +548,18 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         m["fixture_id"]: m for m in matches_norm if m.get("fixture_id") is not None
     }
 
+    free_raw: List[Dict[str, Any]] = []
+    vip_raw: List[Dict[str, Any]] = []
+
     try:
-        ai_data = _call_openai_for_tips(matches_norm)
+        ai_data = _call_openai_with_fallback(matches_norm)
         free_raw = ai_data.get("free_tips") or []
         vip_raw = ai_data.get("vip_tips") or []
     except Exception as e:
-        print("Hiba az OpenAI hívásnál:", repr(e))
+        print("Hiba az OpenAI hívásnál (még fallback után is):", repr(e))
         free_raw, vip_raw = [], []
 
+    # Ha az AI semmit nem adott
     if not free_raw and not vip_raw:
         print("LLM nem adott vissza használható tippeket, fallback logika lép életbe.")
         vip_raw, free_raw = _fallback_tips(matches_norm)
@@ -553,14 +596,16 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     vip_tips = _clean_list(vip_raw)
     free_tips = _clean_list(free_raw)
 
-    # post-guardrails
+    # post-guardrails (stabil hitrate felé)
     vip_tips = _drop_weird_picks(vip_tips, id_to_match)
     free_tips = _drop_weird_picks(free_tips, id_to_match)
 
+    # VIP highlight kivasalás
     vip_tips = _enforce_vip_highlights(vip_tips)
     for t in free_tips:
         t["is_highlighted"] = False
 
+    # limit
     if len(vip_tips) > 7:
         vip_tips = vip_tips[:7]
     if len(free_tips) > 5:
@@ -570,7 +615,7 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     slot = os.getenv("TIPPMIX_SLOT", "DAY").upper()
     slot_text = "délelőtt / nappal" if slot == "DAY" else "délután / este"
 
-    # VIP TELEGRAM
+    # --- VIP TELEGRAM ---
     vip_lines: List[str] = []
     vip_lines.append("🔥 SZELVÉNYKIRÁLY VIP – KIRÁLYI KOMBI 🔥")
     vip_lines.append(f"Dátum: {today}")
@@ -602,7 +647,7 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
 
     telegram_vip_text = "\n\n".join(vip_lines)
 
-    # FREE TELEGRAM
+    # --- FREE TELEGRAM ---
     free_lines: List[str] = []
     free_lines.append("👑 SZELVÉNYKIRÁLY FREE – NAPI TIPPEK")
     free_lines.append(f"Dátum: {today}")
@@ -633,6 +678,7 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
 
     telegram_public_text = "\n\n".join(free_lines)
 
+    # --- JSON recap-hez / mentéshez ---
     vip_bets: List[Dict[str, Any]] = []
     for tip in vip_tips:
         m = id_to_match.get(tip["fixture_id"])
