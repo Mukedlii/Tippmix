@@ -3,104 +3,80 @@ from typing import Any, Dict, Optional
 
 import requests
 
-SPORTMONKS_API_TOKEN = (os.getenv("SPORTMONKS_API_TOKEN") or "").strip()
-
-# SportMonks: Fulltime Result (1X2) market id = 1
-SPORTMONKS_1X2_MARKET_ID = 1
-
-# Debug ki/be (GitHub Actions logba)
-DEBUG = (os.getenv("SPORTMONKS_DEBUG") or "0").lower() in ("1", "true", "yes")
+API_FOOTBALL_KEY = (os.getenv("SPORTS_API_KEY") or "").strip()
+DEBUG = (os.getenv("TIPPMIX_ODDS_DEBUG") or "0").lower() in ("1", "true", "yes")
 
 
 def _safe_float(x: Any) -> Optional[float]:
     try:
         if x is None:
             return None
-        return float(str(x).strip())
+        return float(x)
     except Exception:
         return None
 
 
-def fetch_sportmonks_1x2_odds(fixture_id: int) -> Optional[Dict[str, float]]:
+def fetch_api_football_1x2_odds(fixture_id: int) -> Optional[Dict[str, float]]:
     """
-    SportMonks pre-match odds 1X2 (market 1).
-    Vissza: {"1": 2.10, "X": 3.40, "2": 3.60} vagy None
+    API-FOOTBALL odds lekérés fixture ID alapján.
+    Vissza: {"1": 2.1, "X": 3.3, "2": 3.6} vagy None
 
-    FIGYELEM:
-    - fixture_id-nek SportMonks fixture ID-nak kell lennie.
-    - Ha te API-Sports fixture ID-t adsz ide, akkor gyakran None lesz.
+    Megjegyzés: csomag/limit függő. Ha nem elérhető, None.
     """
-    if not SPORTMONKS_API_TOKEN:
+    if not API_FOOTBALL_KEY:
         if DEBUG:
-            print("[SPORTMONKS] Nincs SPORTMONKS_API_TOKEN beállítva.")
+            print("[odds] SPORTS_API_KEY nincs beállítva.")
         return None
 
-    url = (
-        f"https://api.sportmonks.com/v3/football/odds/pre-match/"
-        f"fixtures/{fixture_id}/markets/{SPORTMONKS_1X2_MARKET_ID}"
-    )
-    params = {"api_token": SPORTMONKS_API_TOKEN}
-
-    if DEBUG:
-        print(f"[SPORTMONKS] odds lookup fixture_id={fixture_id} url={url}")
+    url = "https://v3.football.api-sports.io/odds"
+    headers = {"x-apisports-key": API_FOOTBALL_KEY}
+    params = {"fixture": int(fixture_id)}
 
     try:
-        r = requests.get(url, params=params, timeout=25)
+        r = requests.get(url, headers=headers, params=params, timeout=25)
     except Exception as e:
         if DEBUG:
-            print("[SPORTMONKS] request error:", repr(e))
+            print(f"[odds] request error fixture={fixture_id}: {repr(e)}")
         return None
-
-    if DEBUG:
-        print(f"[SPORTMONKS] HTTP {r.status_code}")
 
     if r.status_code != 200:
         if DEBUG:
-            print("[SPORTMONKS] non-200 body:", r.text[:500])
+            print(f"[odds] HTTP {r.status_code} fixture={fixture_id}: {r.text[:300]}")
         return None
 
     try:
         data = r.json() or {}
     except Exception as e:
         if DEBUG:
-            print("[SPORTMONKS] JSON parse error:", repr(e))
-            print("[SPORTMONKS] raw body:", r.text[:500])
+            print(f"[odds] JSON parse error fixture={fixture_id}: {repr(e)}")
         return None
 
-    if DEBUG:
-        print("[SPORTMONKS] response keys:", list(data.keys()))
-        # ne dumpold ki az egész body-t, csak a data elemek számát
-        rows = data.get("data") or []
-        print("[SPORTMONKS] data rows:", len(rows) if isinstance(rows, list) else "not-a-list")
-
-    rows = data.get("data") or []
-    if not isinstance(rows, list) or not rows:
+    resp = data.get("response") or []
+    if not resp:
         return None
 
-    # Több bookmaker / sor jöhet, a "legjobb" oddsot vesszük (max)
-    best_1: Optional[float] = None
-    best_x: Optional[float] = None
-    best_2: Optional[float] = None
+    best_1 = best_x = best_2 = None
 
-    for row in rows:
-        if not isinstance(row, dict):
-            continue
-
-        if row.get("stopped") is True:
-            continue
-
-        label = str(row.get("label") or row.get("name") or "").strip().lower()
-        val = _safe_float(row.get("value"))
-        if not val or val <= 1.01:
-            continue
-
-        # label mapping: gyakori formák: "1", "x", "2" vagy "Home", "Draw", "Away"
-        if label in ("1", "home", "hazai"):
-            best_1 = val if best_1 is None else max(best_1, val)
-        elif label in ("x", "draw", "döntetlen", "dontetlen"):
-            best_x = val if best_x is None else max(best_x, val)
-        elif label in ("2", "away", "vendeg", "vendég"):
-            best_2 = val if best_2 is None else max(best_2, val)
+    for row in resp:
+        bookmakers = row.get("bookmakers") or []
+        for bm in bookmakers:
+            bets = bm.get("bets") or []
+            for bet in bets:
+                bet_name = str(bet.get("name") or "").lower()
+                if ("match winner" not in bet_name) and ("1x2" not in bet_name) and ("fulltime result" not in bet_name):
+                    continue
+                values = bet.get("values") or []
+                for v in values:
+                    label = str(v.get("value") or "").strip().lower()
+                    odd = _safe_float(v.get("odd"))
+                    if not odd or odd <= 1.01:
+                        continue
+                    if label in ("home", "1"):
+                        best_1 = odd if best_1 is None else max(best_1, odd)
+                    elif label in ("draw", "x"):
+                        best_x = odd if best_x is None else max(best_x, odd)
+                    elif label in ("away", "2"):
+                        best_2 = odd if best_2 is None else max(best_2, odd)
 
     out: Dict[str, float] = {}
     if best_1 is not None:
@@ -111,6 +87,6 @@ def fetch_sportmonks_1x2_odds(fixture_id: int) -> Optional[Dict[str, float]]:
         out["2"] = best_2
 
     if DEBUG:
-        print("[SPORTMONKS] parsed odds:", out if out else "None")
+        print(f"[odds] fixture={fixture_id} parsed={out if out else None}")
 
     return out if out else None
