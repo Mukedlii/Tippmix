@@ -13,11 +13,18 @@ jobs:
   tips-evening-and-day-recap:
     runs-on: ubuntu-latest
     env:
+      # --- Telegram + API kulcsok ---
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
       TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
       SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      # --- OpenAI modell beállítások (minden step használja) ---
+      TIPPMIX_MODEL: gpt-5-mini
+      TIPPMIX_USE_RESPONSES: "true"
+      TIPPMIX_REASONING_EFFORT: "low"
+      TIPPMIX_VERBOSITY: "low"
 
     steps:
       - name: Checkout repo
@@ -29,7 +36,9 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
       - name: Run evening tips bot (16–23 meccsek)
         env:
@@ -59,3 +68,4 @@ jobs:
         env:
           TIPPMIX_SLOT: DAY
         run: python -m bot.daily_recap_main
+
