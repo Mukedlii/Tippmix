@@ -13,24 +13,22 @@ jobs:
   tips-evening-and-day-recap:
     runs-on: ubuntu-latest
     env:
-      # --- Telegram + API kulcsok ---
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
       TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
       SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
-      # --- OpenAI modellek ---
-      TIPPMIX_MODEL: gpt-5-mini
-      TIPPMIX_FALLBACK_MODEL: gpt-4.1-mini
-
-      # --- GPT-5 beállítások ---
-      TIPPMIX_USE_RESPONSES: "true"
+      # --- OpenAI / tip logic ---
+      TIPPMIX_SLOT: EVENING
+      TIPPMIX_MODEL: "gpt-5-mini"
+      TIPPMIX_FALLBACK_MODEL: "gpt-4.1-mini"
+      TIPPMIX_USE_RESPONSES: "1"
       TIPPMIX_REASONING_EFFORT: "low"
       TIPPMIX_VERBOSITY: "low"
-
-      # --- (nem GPT-5 modellekhez) ---
       TIPPMIX_TEMP: "0.25"
+      TIPPMIX_MIN_VIP: "6"
+      TIPPMIX_MIN_FREE: "3"
 
     steps:
       - name: Checkout repo
@@ -42,13 +40,9 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
       - name: Run evening tips bot (16–23 meccsek)
-        env:
-          TIPPMIX_SLOT: EVENING
         run: python -m bot.main
 
       - name: Commit evening bets JSON to repo
