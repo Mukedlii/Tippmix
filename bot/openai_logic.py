@@ -2,17 +2,9 @@ import os
 import json
 import datetime
 from typing import Any, Dict, List, Optional, Tuple
-import os
-import json
-import datetime
-from bot.odds 
-import fetch_sportmonks_1x2_odds
-from typing import Any, Dict, List, Optional, Tuple
 
 from openai import OpenAI
-
-
-from openai import OpenAI
+from bot.odds import fetch_sportmonks_1x2_odds
 
 client = OpenAI()
 
@@ -30,11 +22,11 @@ Te egy profi futball-elemző vagy. 1X2 piacon adsz tippeket.
 Döntési elvek:
 - Elemezd a dossziét: tabella/helyezés, forma (ha van), sérülések/hiányzók (ha van), hazai pálya.
 - Odds csak sanity check, nem vakon.
+- Mindig adj tippeket: FREE legalább 3, VIP legalább 6. Ha kevés meccs van, töltsd fel a legjobb elérhetőkből.
 
 Szabályok:
 - Csak: "Hazai győzelem" | "Döntetlen" | "Vendég győzelem"
 - VIP-ben pontosan 3 KIEMELT.
-- FREE >= 3, VIP >= 6 (ha kevés meccs van a listában, akkor a legjobb elérhetőkből dolgozz).
 - Csak JSON-t adj vissza.
 """
 
@@ -148,7 +140,8 @@ def _odds_for_selection(m: Dict[str, Any], sel: str) -> Optional[float]:
 def _baseline_risk_conf(m: Dict[str, Any], sel: str) -> Tuple[str, float]:
     imp = _implied_probs(m.get("odds_1"), m.get("odds_x"), m.get("odds_2"))
     if not imp:
-        return "közepes", 3.1
+        # odds nélkül ne legyen túl magabiztos
+        return "közepes", 2.8
 
     p = imp["p1"] if sel == "Hazai győzelem" else (imp["px"] if sel == "Döntetlen" else imp["p2"])
     conf = 2.3 + 7.0 * (p - 0.33)
@@ -172,7 +165,7 @@ def _call_llm(dossiers: List[Dict[str, Any]]) -> Dict[str, Any]:
     if slot_note:
         slot_text += f" – {slot_note}"
 
-    model = os.getenv("TIPPMIX_MODEL", "gpt-5-mini")
+    model = os.getenv("TIPPMIX_MODEL", "gpt-4.1-mini")
     temp = float(os.getenv("TIPPMIX_TEMP", "0.25"))
 
     prompt = (
@@ -184,26 +177,11 @@ def _call_llm(dossiers: List[Dict[str, Any]]) -> Dict[str, Any]:
         + json.dumps(dossiers, ensure_ascii=False, indent=2)
     )
 
-    # Responses API (openai>=2)
-    if hasattr(client, "responses") and (os.getenv("TIPPMIX_USE_RESPONSES", "1").lower() in ("1", "true", "yes")):
-        resp = client.responses.create(
-            model=model,
-            instructions=SYSTEM_PROMPT,
-            input=[{"role": "user", "content": prompt}],
-            reasoning={"effort": os.getenv("TIPPMIX_REASONING_EFFORT", "low")},
-            text={
-                "format": {"type": "json_schema", "name": "tippmix_tips", "schema": SCHEMA, "strict": True},
-                "verbosity": os.getenv("TIPPMIX_VERBOSITY", "low"),
-            },
-        )
-        return json.loads(resp.output_text or "{}")
-
-    # Chat fallback
     r = client.chat.completions.create(
         model=model,
         messages=[{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": prompt}],
         temperature=temp,
-        response_format={"type": "json_schema", "json_schema": {"name": "tippmix_tips", "schema": SCHEMA, "strict": True}},
+        response_format={"type": "json_object"},
     )
     return json.loads(r.choices[0].message.content or "{}")
 
@@ -246,11 +224,7 @@ def _enforce_highlights(vip: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return vip_sorted
 
 
-def _clean_and_harden(
-    raw: List[Dict[str, Any]],
-    id_to_match: Dict[int, Dict[str, Any]],
-    used_ids: set
-) -> List[Dict[str, Any]]:
+def _clean_and_harden(raw: List[Dict[str, Any]], id_to_match: Dict[int, Dict[str, Any]], used_ids: set) -> List[Dict[str, Any]]:
     out: List[Dict[str, Any]] = []
     for it in raw or []:
         try:
@@ -273,7 +247,6 @@ def _clean_and_harden(
         if ai_conf is None:
             conf = base_conf
         else:
-            # AI csak finoman térhet el
             conf = max(1.0, min(5.0, base_conf + max(-0.7, min(0.7, ai_conf - 3.0))))
 
         risk = (it.get("risk_level") or base_risk).lower().strip()
@@ -293,10 +266,38 @@ def _clean_and_harden(
             "confidence": conf,
             "risk_level": risk,
             "reason": reason,
-            # odds_estimate NEM az AI-ból: csak a valós odds a kiválasztott kimenetre
             "odds_estimate": _odds_for_selection(m, sel),
         })
     return out
+
+
+def _ensure_odds_from_sportmonks(tips: List[Dict[str, Any]], id_to_match: Dict[int, Dict[str, Any]]) -> None:
+    """
+    Ha nincs odds a meccshez, megpróbáljuk SportMonks-ból behúzni.
+    """
+    for t in tips:
+        fid = int(t["fixture_id"])
+        m = id_to_match.get(fid)
+        if not m:
+            continue
+
+        # ha már van mindhárom odds, ok
+        if m.get("odds_1") and m.get("odds_x") and m.get("odds_2"):
+            continue
+
+        sm = fetch_sportmonks_1x2_odds(fid)
+        if not sm:
+            continue
+
+        if m.get("odds_1") is None and sm.get("1") is not None:
+            m["odds_1"] = float(sm["1"])
+        if m.get("odds_x") is None and sm.get("X") is not None:
+            m["odds_x"] = float(sm["X"])
+        if m.get("odds_2") is None and sm.get("2") is not None:
+            m["odds_2"] = float(sm["2"])
+
+        # frissítsük a tipp odds_estimate-jét is
+        t["odds_estimate"] = _odds_for_selection(m, t["selection"])
 
 
 def _fill_minimum_from_pool(matches_norm: List[Dict[str, Any]], vip: List[Dict[str, Any]], free: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
@@ -305,20 +306,26 @@ def _fill_minimum_from_pool(matches_norm: List[Dict[str, Any]], vip: List[Dict[s
     def best_sel(m: Dict[str, Any]) -> str:
         imp = _implied_probs(m.get("odds_1"), m.get("odds_x"), m.get("odds_2"))
         if not imp:
+            # odds nélkül ne legyen mindig hazai: válassz a standings alapján
+            hr = (m.get("standings_home") or {}).get("rank")
+            ar = (m.get("standings_away") or {}).get("rank")
+            if isinstance(hr, int) and isinstance(ar, int):
+                if hr < ar:
+                    return "Hazai győzelem"
+                if ar < hr:
+                    return "Vendég győzelem"
             return "Hazai győzelem"
+
         items = [("Hazai győzelem", imp["p1"]), ("Döntetlen", imp["px"]), ("Vendég győzelem", imp["p2"])]
         items.sort(key=lambda x: x[1], reverse=True)
         return items[0][0]
 
-    def score(m: Dict[str, Any]) -> Tuple[int, int]:
+    def score(m: Dict[str, Any]) -> Tuple[int, int, str]:
+        # HELYES: oddsos meccs legyen előrébb
         has_odds = 1 if (m.get("odds_1") and m.get("odds_x") and m.get("odds_2")) else 0
         st_ok = 1 if ((m.get("standings_home") or {}).get("rank") is not None and (m.get("standings_away") or {}).get("rank") is not None) else 0
-        hour = 99
-        try:
-            hour = int(str(m.get("kickoff") or "").split("T")[1][:2])
-        except Exception:
-            pass
-        return (-has_odds, -st_ok, hour)
+        kickoff = str(m.get("kickoff") or "9999")
+        return (-has_odds, -st_ok, kickoff)
 
     pool = sorted(matches_norm, key=score)
 
@@ -365,8 +372,8 @@ def _fill_minimum_from_pool(matches_norm: List[Dict[str, Any]], vip: List[Dict[s
 def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     if not matches:
         return {
-            "telegram_public_text": "⚠️ Ma egyik API-ból sem jött vissza meccs. (SportAPI / Football-Data / SportMonks) \nKérlek nézd meg a kulcsokat/limitet.",
-            "telegram_vip_text": "⚠️ Ma egyik API-ból sem jött vissza meccs. (SportAPI / Football-Data / SportMonks) \nKérlek nézd meg a kulcsokat/limitet.",
+            "telegram_public_text": "⚠️ Ma nem jött vissza meccs az API-ból.",
+            "telegram_vip_text": "⚠️ Ma nem jött vissza meccs az API-ból.",
             "public_bets": [],
             "vip_bets": [],
         }
@@ -390,6 +397,10 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     free = _clean_and_harden(free_raw, id_to_match, used_ids)
 
     vip, free = _fill_minimum_from_pool(matches_norm, vip, free)
+
+    # ✅ odds kiegészítés SportMonks-ból (ha hiányzik)
+    _ensure_odds_from_sportmonks(vip, id_to_match)
+    _ensure_odds_from_sportmonks(free, id_to_match)
 
     today = datetime.date.today().strftime("%Y.%m.%d.")
     slot = (os.getenv("TIPPMIX_SLOT", "DAY") or "DAY").upper()
