@@ -2,8 +2,8 @@ name: Tippmix Evening Tips + Day Recap
 
 on:
   schedule:
-    # 16:00 Europe/Budapest -> 15:00 UTC
-    - cron: '0 15 * * *'
+    # 16:00 Europe/Budapest (téli időszámítás) = 15:00 UTC
+    - cron: "0 15 * * *"
   workflow_dispatch:
 
 permissions:
@@ -17,23 +17,30 @@ jobs:
       TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
       TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
 
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      # API kulcsok
+      SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
+      FOOTBALL_DATA_TOKEN: ${{ secrets.FOOTBALL_DATA_TOKEN }}
       SPORTMONKS_API_TOKEN: ${{ secrets.SPORTMONKS_API_TOKEN }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
-      # --- slot + model ---
-      TIPPMIX_SLOT: EVENING
+      # Modell és LLM beállítások
       TIPPMIX_MODEL: "gpt-5-mini"
-      TIPPMIX_FALLBACK_MODEL: "gpt-4.1-mini"
       TIPPMIX_USE_RESPONSES: "1"
       TIPPMIX_REASONING_EFFORT: "low"
       TIPPMIX_VERBOSITY: "low"
       TIPPMIX_TEMP: "0.25"
 
-      # --- minimum tippek (fizetős bot) ---
+      # Kötelező tippszámok
       TIPPMIX_MIN_VIP: "6"
       TIPPMIX_MIN_FREE: "3"
 
-      TIPPMIX_MAX_ODDS_LOOKUP: "80"
+      # Mennyi meccset dossziézunk (API hívások miatt fontos)
+      TIPPMIX_ENRICH_LIMIT: "40"
+
+      # Odds / nyeremény csak megjelenítéshez
+      TIPPMIX_STAKE_HUF: "1000"
+
+      SPORTS_API_TIMEZONE: "Europe/Budapest"
 
     steps:
       - name: Checkout repo
@@ -42,12 +49,14 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run evening tips bot (16–23 meccsek)
+      - name: Run evening tips bot (EVENING)
+        env:
+          TIPPMIX_SLOT: EVENING
         run: python -m bot.main
 
       - name: Commit evening bets JSON to repo
@@ -69,7 +78,7 @@ jobs:
             git push
           fi
 
-      - name: Run day recap (09–16 meccsek)
+      - name: Run day recap (DAY)
         env:
           TIPPMIX_SLOT: DAY
         run: python -m bot.daily_recap_main
