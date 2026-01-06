@@ -52,7 +52,7 @@ def send_telegram_message(token: str, chat_id: str, text: str, label: str) -> Tu
         payload: Dict[str, Any] = {
             "chat_id": chat_id,
             "text": part,
-            "parse_mode": "HTML",  # marad, ahogy nálad volt
+            "parse_mode": "HTML",
             "disable_web_page_preview": True,
         }
 
@@ -93,8 +93,6 @@ def _extract_kickoff_hour(match: Dict[str, Any]) -> Optional[int]:
       - datetime objektumot
       - ISO stringet (2025-12-10T11:00:00 vagy +01:00)
       - sima 'HH:MM' stringet
-
-    Ha nem tudjuk, None.
     """
     dt = (
         match.get("kickoff_local")
@@ -112,14 +110,12 @@ def _extract_kickoff_hour(match: Dict[str, Any]) -> Optional[int]:
     if isinstance(dt, str):
         s = dt.strip()
 
-        # ISO datetime (támogatja a +01:00-t is)
         try:
             parsed = datetime.datetime.fromisoformat(s)
             return parsed.hour
         except Exception:
             pass
 
-        # Ha Z van a végén (UTC), fromisoformat régi verzióknál gondos lehet
         if s.endswith("Z"):
             try:
                 parsed = datetime.datetime.fromisoformat(s[:-1])
@@ -127,7 +123,6 @@ def _extract_kickoff_hour(match: Dict[str, Any]) -> Optional[int]:
             except Exception:
                 pass
 
-        # HH:MM
         parts = s.split(":")
         if len(parts) >= 1:
             try:
@@ -159,7 +154,7 @@ def _filter_matches_for_slot(matches: List[Dict[str, Any]], slot: str) -> List[D
         if slot == "DAY":
             if 9 <= h < 16:
                 filtered.append(m)
-        else:  # EVENING
+        else:
             if 16 <= h <= 23:
                 filtered.append(m)
 
@@ -199,6 +194,13 @@ def main() -> None:
             matches = fetch_matches_for_today()
 
         print(f"Talált meccsek száma (összes): {len(matches)}")
+
+        # -------- DEBUG: NYERS MATCH PÉLDA (ideiglenes) --------
+        if matches:
+            print("RAW MATCH EXAMPLE:")
+            print(json.dumps(matches[0], ensure_ascii=False, indent=2))
+        # -------------------------------------------------------
+
     except Exception as e:
         err_msg = (
             "⚠️ SPORT API HIBA ⚠️\n\n"
@@ -232,7 +234,7 @@ def main() -> None:
     slot_matches = _filter_matches_for_slot(matches, slot)
     print(f"Idősávra szűrt meccsek száma: {len(slot_matches)}")
 
-    # 2) Tipp generálás (OpenAI + fallback az openai_logic.py-ban)
+    # 2) Tipp generálás
     tips_data = generate_tips(slot_matches)
 
     public_text = tips_data.get("telegram_public_text") or "Hiba a FREE tippek generálásánál."
