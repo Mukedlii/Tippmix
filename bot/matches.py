@@ -13,9 +13,7 @@ from bot.sportmonks_client import (
 )
 
 BUDAPEST_TZ = ZoneInfo("Europe/Budapest")
-
-# Ha túl sok meccs van, limitáljuk az odds-hívásokat
-MAX_ODDS_LOOKUP = int(os.getenv("TIPPMIX_MAX_ODDS_LOOKUP", "70"))
+MAX_ODDS_LOOKUP = int(os.getenv("TIPPMIX_MAX_ODDS_LOOKUP", "80"))
 
 
 def _extract_hour(kickoff_local_iso: str) -> Optional[int]:
@@ -44,21 +42,16 @@ def _slot_filter(matches: List[Dict[str, Any]], slot: str) -> List[Dict[str, Any
 
 
 def fetch_matches_for_today(slot: str = "DAY") -> List[Dict[str, Any]]:
-    """
-    Ma meccsei SportMonks-ból + 1X2 odds hozzá.
-    """
-    # Budapesti “mai nap”
     now_local = datetime.datetime.now(BUDAPEST_TZ)
     date_str = now_local.date().isoformat()
 
     fixtures = get_fixtures_for_date(date_str)
 
     raw_matches: List[Dict[str, Any]] = []
-
     for fx in fixtures:
-        fixture_id = fx.get("id")
+        fid = fx.get("id")
         try:
-            fixture_id = int(fixture_id)
+            fid = int(fid)
         except Exception:
             continue
 
@@ -69,38 +62,34 @@ def fetch_matches_for_today(slot: str = "DAY") -> List[Dict[str, Any]]:
         raw_matches.append(
             {
                 "sport": "football",
-                "fixture_id": fixture_id,
+                "fixture_id": fid,
                 "league_name": league_name,
                 "country_name": country_name,
                 "kickoff_local": kickoff_local,
                 "home_team": home_team,
                 "away_team": away_team,
-                # extra hely a statoknak (később bővíthető)
+                # később bővíthető (forma/tabella)
                 "home_form": None,
                 "home_avg_goals_for": None,
                 "home_avg_goals_against": None,
                 "away_form": None,
                 "away_avg_goals_for": None,
                 "away_avg_goals_against": None,
-                # odds ide kerül majd
+                # odds ide
                 "odds": {"1": None, "X": None, "2": None},
             }
         )
 
-    # slot szűrés előbb, hogy kevesebb odds hívás kelljen
     slot_matches = _slot_filter(raw_matches, slot)
 
-    # Odds hozzáadása (max limitálva, hogy ne fusson ki időből)
     enriched: List[Dict[str, Any]] = []
     looked_up = 0
-
     for m in slot_matches:
         if looked_up >= MAX_ODDS_LOOKUP:
             enriched.append(m)
             continue
 
-        fid = int(m["fixture_id"])
-        odds_items = get_prematch_odds_for_fixture(fid)
+        odds_items = get_prematch_odds_for_fixture(int(m["fixture_id"]))
         o1, ox, o2 = extract_1x2_odds_from_sportmonks_odds(odds_items, m["home_team"], m["away_team"])
 
         m["odds"]["1"] = o1
@@ -110,5 +99,7 @@ def fetch_matches_for_today(slot: str = "DAY") -> List[Dict[str, Any]]:
         looked_up += 1
         enriched.append(m)
 
-    print(f"fetch_matches_for_today: {len(raw_matches)} fixture összesen, slot={slot} után {len(slot_matches)}, odds lekérés: {looked_up}.")
+    print(
+        f"fetch_matches_for_today: total fixtures={len(raw_matches)}, slot={slot} => {len(slot_matches)}, odds lookups={looked_up}"
+    )
     return enriched
