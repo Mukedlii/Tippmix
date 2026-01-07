@@ -1,22 +1,17 @@
 [
   {
-    "fixture_id": 1488640,
-    "match": "El Gouna FC vs Petrojet (League Cup Egypt, 2026-01-06T16:00:00+01:00)",
+    "fixture_id": 1502193,
+    "match": "Wally Daan vs DSC (Ligue 1 Senegal, 2026-01-07T18:00:00+01:00)",
+    "tip": "Döntetlen"
+  },
+  {
+    "fixture_id": 1503014,
+    "match": "Al Hilal Omdurman vs Kober (Sudani Premier League Sudan, 2026-01-07T17:00:00+01:00)",
+    "tip": "Vendég győzelem"
+  },
+  {
+    "fixture_id": 1502187,
+    "match": "Casa Sport vs La Linguère (Ligue 1 Senegal, 2026-01-07T17:30:00+01:00)",
     "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1456534,
-    "match": "Hapoel Beit Shean vs Maccabi Ahi Nazareth (Liga Alef Israel, 2026-01-06T16:30:00+01:00)",
-    "tip": "Vendég győzelem"
-  },
-  {
-    "fixture_id": 1501663,
-    "match": "Flamengo SP U20 vs Capivariano U20 (São Paulo Youth Cup Brazil, 2026-01-06T16:45:00+01:00)",
-    "tip": "Vendég győzelem"
-  },
-  {
-    "fixture_id": 1437415,
-    "match": "Al Wehda Club vs Al Orubah (Division 1 Saudi-Arabia, 2026-01-06T16:35:00+01:00)",
-    "tip": "Vendég győzelem"
   }
 ]
