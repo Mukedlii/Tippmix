@@ -1,12 +1,32 @@
 [
   {
-    "fixture_id": 19590624,
-    "match": "Rangers vs Aberdeen (Premiership, 2026-01-06T21:00:00+01:00)",
+    "fixture_id": 1501592,
+    "match": "Japan U23 vs Syria U23 (AFC U23 Asian Cup World, 2026-01-07T12:30:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 19428102,
-    "match": "Livingston vs St. Mirren (Premiership, 2026-01-06T20:45:00+01:00)",
-    "tip": "Vendég győzelem"
+    "fixture_id": 1435612,
+    "match": "Yadanarbon vs Hantharwady United (National League Myanmar, 2026-01-07T10:30:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1489089,
+    "match": "Fiorentina U20 vs Napoli U20 (Coppa Italia Primavera Italy, 2026-01-07T11:30:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1489086,
+    "match": "Juventus U20 vs Frosinone U20 (Coppa Italia Primavera Italy, 2026-01-07T12:00:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1489087,
+    "match": "Sassuolo U20 vs Lecce U20 (Coppa Italia Primavera Italy, 2026-01-07T11:00:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1489090,
+    "match": "Hellas Verona U20 vs Lazio U20 (Coppa Italia Primavera Italy, 2026-01-07T11:00:00+01:00)",
+    "tip": "Hazai győzelem"
   }
 ]

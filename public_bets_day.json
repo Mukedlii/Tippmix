@@ -1,12 +1,17 @@
 [
   {
-    "fixture_id": 19428102,
-    "match": "Livingston vs St. Mirren (Premiership, 2026-01-06T20:45:00+01:00)",
-    "tip": "Vendég győzelem"
+    "fixture_id": 1501593,
+    "match": "Korea Republic U23 vs Iran U23 (AFC U23 Asian Cup World, 2026-01-07T12:30:00+01:00)",
+    "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 19590624,
-    "match": "Rangers vs Aberdeen (Premiership, 2026-01-06T21:00:00+01:00)",
+    "fixture_id": 1501681,
+    "match": "Nacional SP U20 vs Portuguesa Santista U20 (São Paulo Youth Cup Brazil, 2026-01-07T12:45:00+01:00)",
+    "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1476736,
+    "match": "Kitara vs UPDF (Premier League Uganda, 2026-01-07T14:00:00+01:00)",
     "tip": "Hazai győzelem"
   }
 ]
