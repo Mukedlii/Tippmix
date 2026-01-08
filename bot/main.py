@@ -11,6 +11,32 @@ from bot.openai_logic import generate_tips
 
 
 # -----------------------------
+# Simple file logger (before/after send)
+# -----------------------------
+
+def _utc_iso() -> str:
+    return datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat()
+
+
+def _ensure_dir(path: str) -> None:
+    try:
+        os.makedirs(path, exist_ok=True)
+    except Exception:
+        pass
+
+
+def log_event(event: Dict[str, Any]) -> None:
+    _ensure_dir("logs")
+    event = dict(event or {})
+    event.setdefault("ts_utc", _utc_iso())
+    try:
+        with open("logs/send_log.jsonl", "a", encoding="utf-8") as f:
+            f.write(json.dumps(event, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+
+
+# -----------------------------
 # Telegram utils
 # -----------------------------
 
@@ -32,9 +58,23 @@ def _split_telegram(text: str, max_len: int = 3900) -> List[str]:
     return parts
 
 
-def send_telegram_message(token: str, chat_id: str, text: str, label: str) -> Tuple[bool, str]:
+def send_telegram_message(
+    token: str,
+    chat_id: str,
+    text: str,
+    label: str,
+    meta: Optional[Dict[str, Any]] = None,
+) -> Tuple[bool, str]:
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     parts = _split_telegram(text)
+
+    log_event({
+        "event": "telegram_send_start",
+        "label": label,
+        "chat_id": chat_id,
+        "parts": len(parts),
+        "meta": meta or {},
+    })
 
     print(f"\n[{label}] Telegram küldés indul... üzenet részek: {len(parts)}")
 
@@ -52,21 +92,63 @@ def send_telegram_message(token: str, chat_id: str, text: str, label: str) -> Tu
         except Exception as e:
             err = f"Requests hiba: {repr(e)}"
             print(f"[{label}] {err}")
+            log_event({
+                "event": "telegram_send_error",
+                "label": label,
+                "chat_id": chat_id,
+                "part": idx,
+                "error": err,
+                "meta": meta or {},
+            })
             return False, err
 
         print(f"[{label}] HTTP status: {resp.status_code}")
         if resp.status_code != 200:
-            return False, f"HTTP {resp.status_code}: {resp.text}"
+            err = f"HTTP {resp.status_code}: {resp.text}"
+            log_event({
+                "event": "telegram_send_error",
+                "label": label,
+                "chat_id": chat_id,
+                "part": idx,
+                "error": err,
+                "meta": meta or {},
+            })
+            return False, err
 
         try:
             data = resp.json()
         except Exception as e:
-            return False, f"JSON parse hiba: {repr(e)}"
+            err = f"JSON parse hiba: {repr(e)}"
+            log_event({
+                "event": "telegram_send_error",
+                "label": label,
+                "chat_id": chat_id,
+                "part": idx,
+                "error": err,
+                "meta": meta or {},
+            })
+            return False, err
 
         if not data.get("ok"):
-            return False, f"Telegram API error: {data}"
+            err = f"Telegram API error: {data}"
+            log_event({
+                "event": "telegram_send_error",
+                "label": label,
+                "chat_id": chat_id,
+                "part": idx,
+                "error": err,
+                "meta": meta or {},
+            })
+            return False, err
 
     print(f"[{label}] Üzenet(ek) sikeresen elküldve.")
+    log_event({
+        "event": "telegram_send_ok",
+        "label": label,
+        "chat_id": chat_id,
+        "parts": len(parts),
+        "meta": meta or {},
+    })
     return True, ""
 
 
@@ -150,12 +232,11 @@ def _safe_json_loads(s: str) -> Optional[Dict[str, Any]]:
     except Exception:
         pass
 
-    # fallback: try to extract first {...last}
     try:
         start = s.find("{")
         end = s.rfind("}")
         if start != -1 and end != -1 and end > start:
-            return json.loads(s[start:end+1])
+            return json.loads(s[start:end + 1])
     except Exception:
         return None
 
@@ -163,7 +244,6 @@ def _safe_json_loads(s: str) -> Optional[Dict[str, Any]]:
 
 
 def _xai_base_url() -> str:
-    # docs base: https://api.x.ai, endpoint: /v1/chat/completions
     base = (os.getenv("XAI_BASE_URL") or "https://api.x.ai").rstrip("/")
     return base
 
@@ -195,21 +275,17 @@ def _xai_list_models() -> Optional[List[Dict[str, Any]]]:
 
 
 def _xai_pick_model() -> Optional[str]:
-    # 1) explicit env wins
     env_model = (os.getenv("XAI_MODEL") or "").strip()
     if env_model:
         return env_model
 
-    # 2) try list models and pick a "grok" language model
     models = _xai_list_models()
     if not models:
         return None
 
-    # heuristic: prefer ids containing "grok" and "latest" / higher version
     ids = [m.get("id") for m in models if isinstance(m, dict) and m.get("id")]
     grok_ids = [i for i in ids if isinstance(i, str) and "grok" in i.lower()]
     if not grok_ids:
-        # fallback to first model id
         return ids[0] if ids else None
 
     def score(mid: str) -> int:
@@ -234,7 +310,7 @@ def _xai_chat(messages: List[Dict[str, str]], temperature: float = 0.2) -> Tuple
 
     model = _xai_pick_model()
     if not model:
-        return None, "Nem találtam xAI modelt. Állítsd be: XAI_MODEL"
+        return None, "Nem találtam xAI modelt. Állítsd be: XAI_MODEL (vagy legyen elérhető /v1/models)."
 
     url = f"{_xai_base_url()}/v1/chat/completions"
     payload = {
@@ -269,37 +345,16 @@ def grok_review_vip_bets(
     slot: str,
     run_date: str,
 ) -> Dict[str, Any]:
-    """
-    Grok audit: visszaad egy dict-et:
-    {
-      "enabled": bool,
-      "model": "...",
-      "veto_keys": [ ... ],
-      "flags": [ {key, reason, risk}, ... ],
-      "overall_confidence": 0..100,
-      "comment": "...",
-      "raw": "..."
-    }
-    """
     enabled = (os.getenv("ENABLE_GROK_REVIEW", "0").strip() == "1")
     if not enabled:
         return {"enabled": False}
 
-    # build quick lookup from key -> match
     by_key: Dict[str, Dict[str, Any]] = {_match_key(m): m for m in slot_matches}
 
     compact_bets: List[Dict[str, Any]] = []
     for b in (vip_bets or []):
-        # Try to attach match info for Grok
         fid = b.get("fixture_id")
-        key = f"fid:{fid}" if fid else b.get("match_key") or ""
-        if not key:
-            # try reconstruct by teams if present
-            home = (b.get("home_team") or "").strip()
-            away = (b.get("away_team") or "").strip()
-            ko = (b.get("kickoff_local") or "").strip()
-            key = f"key:{home}__{away}__{ko}" if (home or away or ko) else ""
-
+        key = f"fid:{fid}" if fid else (b.get("match_key") or "")
         m = by_key.get(key) if key else None
 
         compact_bets.append({
@@ -310,9 +365,13 @@ def grok_review_vip_bets(
             "kickoff_local": b.get("kickoff_local") or (m.get("kickoff_local") if m else None),
             "home": b.get("home_team") or (m.get("home_team") if m else None),
             "away": b.get("away_team") or (m.get("away_team") if m else None),
-            "market": b.get("market") or b.get("bet_type") or "1X2",
+            "market": b.get("market") or "1X2",
             "pick": b.get("pick") or b.get("tip") or b.get("selection"),
-            "odds": b.get("odds") or b.get("odd") or (b.get("odds_1x2") if b.get("odds_1x2") else None),
+            "odds_pick": b.get("odds_pick"),
+            "odds_1x2": b.get("odds_1x2") or (m.get("odds") if m else None),
+            "confidence": b.get("confidence"),
+            "risk_level": b.get("risk_level"),
+            "is_highlighted": b.get("is_highlighted"),
             "extra": {
                 "standings": (m.get("standings") if m else {}),
                 "injuries_count": len(m.get("injuries") or []) if m else 0,
@@ -326,20 +385,20 @@ def grok_review_vip_bets(
         "KIZÁRÓLAG érvényes JSON-t adhatsz válaszul, semmi mást."
     )
 
-    user = {
+    user_payload = {
         "run_date": run_date,
         "slot": slot,
         "rules": {
             "veto_only_if_strong_reason": True,
             "prefer_keep_if_uncertain": True,
-            "max_veto": 3
+            "max_veto": 3,
         },
-        "vip_bets": compact_bets
+        "vip_bets": compact_bets,
     }
 
     messages = [
         {"role": "system", "content": system},
-        {"role": "user", "content": "JSON input:\n" + json.dumps(user, ensure_ascii=False)},
+        {"role": "user", "content": "JSON input:\n" + json.dumps(user_payload, ensure_ascii=False)},
         {"role": "user", "content": (
             "Adj vissza JSON-t ebben a sémában:\n"
             "{\n"
@@ -383,13 +442,12 @@ def _append_grok_section(vip_text: str, audit: Dict[str, Any]) -> str:
     conf = audit.get("overall_confidence")
     comment = audit.get("comment") or ""
 
-    lines = []
+    lines: List[str] = []
     lines.append("<b>🧠 Grok audit</b>")
     if conf is not None:
         lines.append(f"📊 Össz-bizalom: <b>{conf}</b>/100")
     if comment:
         lines.append(f"🗒️ {comment}")
-
     if veto:
         lines.append(f"⛔ Vétó javaslat: <b>{len(veto)}</b> meccs")
     if flags:
@@ -399,14 +457,89 @@ def _append_grok_section(vip_text: str, audit: Dict[str, Any]) -> str:
 
 
 # -----------------------------
+# Enrichment for JSON bets (backtest/recap-ready)
+# -----------------------------
+
+def _odds_pick_from_1x2(tip: str, odds: Dict[str, Any]) -> Optional[float]:
+    if not isinstance(odds, dict):
+        return None
+    mapping = {"Hazai győzelem": "1", "Döntetlen": "X", "Vendég győzelem": "2"}
+    k = mapping.get(tip)
+    if not k:
+        return None
+    try:
+        v = odds.get(k)
+        return float(v) if v is not None else None
+    except Exception:
+        return None
+
+
+def _enrich_bets_for_storage(
+    bets: List[Dict[str, Any]],
+    slot_matches: List[Dict[str, Any]],
+    run_date: str,
+    slot: str,
+) -> List[Dict[str, Any]]:
+    by_fid = {int(m["fixture_id"]): m for m in slot_matches if m.get("fixture_id") is not None}
+
+    out: List[Dict[str, Any]] = []
+    for b in (bets or []):
+        bb = dict(b)
+        fid = bb.get("fixture_id")
+        try:
+            fid_int = int(fid) if fid is not None else None
+        except Exception:
+            fid_int = None
+
+        m = by_fid.get(fid_int) if fid_int is not None else None
+
+        tip = bb.get("tip") or bb.get("selection") or bb.get("pick")
+        bb["tip"] = tip
+
+        if m:
+            bb["match_key"] = _match_key(m)
+            bb["league_name"] = m.get("league_name")
+            bb["country_name"] = m.get("country_name")
+            bb["kickoff_local"] = m.get("kickoff_local")
+            bb["home_team"] = m.get("home_team")
+            bb["away_team"] = m.get("away_team")
+            bb["odds_1x2"] = m.get("odds") or {}
+            bb["odds_pick"] = _odds_pick_from_1x2(str(tip), bb["odds_1x2"])
+        else:
+            bb.setdefault("match_key", f"fid:{fid}" if fid is not None else None)
+            bb.setdefault("odds_1x2", bb.get("odds_1x2") or {})
+
+        bb["run_date"] = run_date
+        bb["slot"] = slot
+
+        out.append(bb)
+
+    return out
+
+
+# -----------------------------
+# Safe fetch (RUN_DATE support)
+# -----------------------------
+
+def _fetch_matches(slot: str, date_obj: datetime.date) -> List[Dict[str, Any]]:
+    try:
+        return fetch_matches_for_today(slot=slot, date=date_obj.isoformat())  # type: ignore
+    except TypeError:
+        return fetch_matches_for_today(slot=slot)
+    except Exception:
+        raise
+
+
+# -----------------------------
 # Main
 # -----------------------------
 
 def main() -> None:
-    # opcionális: override date futtatáskor (pl. backfill)
     run_date_env = (os.getenv("RUN_DATE") or "").strip()
     today = datetime.date.fromisoformat(run_date_env) if run_date_env else datetime.date.today()
-    print(f"Meccsek lekérése erre a napra: {today.isoformat()}")
+    run_date_str = today.isoformat()
+
+    print(f"Meccsek lekérése erre a napra: {run_date_str}")
 
     slot = (os.getenv("TIPPMIX_SLOT") or "DAY").upper()
     print(f"Aktuális idősáv (TIPPMIX_SLOT): {slot}")
@@ -429,46 +562,41 @@ def main() -> None:
     if not vip_chat_id:
         print("[WARN] TELEGRAM_VIP_CHAT_ID nincs beállítva! VIP üzenet nem fog kimenni.")
 
-    # 1) meccsek lekérése
     try:
-        matches = fetch_matches_for_today(slot=slot)
+        matches = _fetch_matches(slot=slot, date_obj=today)
         print(f"Talált meccsek száma (összes): {len(matches)}")
     except Exception as e:
         err = f"⚠️ SPORT API HIBA ⚠️\n\nNem tudtam meccseket lekérni.\n\nTechnikai info:\n{repr(e)}"
         print("Meccslekérés közben hiba:", repr(e))
+
+        meta = {"slot": slot, "run_date": run_date_str, "stage": "fetch_matches"}
         if public_chat_id:
-            send_telegram_message(telegram_token, public_chat_id, err, f"PUBLIC_API_ERROR_{slot}")
+            send_telegram_message(telegram_token, public_chat_id, err, f"PUBLIC_API_ERROR_{slot}", meta=meta)
         if vip_chat_id:
-            send_telegram_message(telegram_token, vip_chat_id, err, f"VIP_API_ERROR_{slot}")
+            send_telegram_message(telegram_token, vip_chat_id, err, f"VIP_API_ERROR_{slot}", meta=meta)
         return
 
-    # 1/b) slot szűrés
     slot_matches = _filter_matches_for_slot(matches, slot)
     print(f"Idősávra szűrt meccsek száma: {len(slot_matches)}")
 
-    # 2) tippek (GPT)
     tips_data = generate_tips(slot_matches)
 
-    # 2/b) Grok audit + közös döntés (VIP-t újrageneráljuk vétó esetén)
     suffix = "day" if slot == "DAY" else "evening"
-    run_date_str = today.isoformat()
-
     consensus_passes: List[Dict[str, Any]] = []
     enable_grok = (os.getenv("ENABLE_GROK_REVIEW", "0").strip() == "1")
 
     if enable_grok:
-        # max 2 kör: (1) audit, (2) ha vétó, újragenerálás és új audit
         for attempt in range(1, 3):
             vip_bets_try = tips_data.get("vip_bets", []) or []
+            vip_bets_try = _enrich_bets_for_storage(vip_bets_try, slot_matches, run_date_str, slot)
+
             audit = grok_review_vip_bets(slot_matches, vip_bets_try, slot, run_date_str)
             consensus_passes.append({"attempt": attempt, "audit": audit})
 
             veto_keys = set(audit.get("veto_keys") or [])
             if not veto_keys:
-                # nincs vétó -> kész
                 break
 
-            # ha túl sok meccset vennénk ki, inkább ne bontsuk szét a pool-t
             min_vip = int(os.getenv("TIPPMIX_MIN_VIP", "6"))
             min_free = int(os.getenv("TIPPMIX_MIN_FREE", "3"))
             min_need = min_vip + min_free
@@ -480,44 +608,43 @@ def main() -> None:
 
             print(f"[GROK] Vétózott meccsek: {len(veto_keys)}. Újragenerálás tiltólistával... (attempt={attempt})")
             tips_data = generate_tips(filtered_pool)
-            # kis szünet, hogy ne verje szét a rate limitet
             time.sleep(1.0)
 
-        # audit szekció hozzáfűzés VIP üzenethez (utolsó audit)
         final_audit = consensus_passes[-1]["audit"] if consensus_passes else {"enabled": False}
         if tips_data.get("telegram_vip_text"):
             tips_data["telegram_vip_text"] = _append_grok_section(tips_data["telegram_vip_text"], final_audit)
 
-    # 3) mentés (kompatibilis: listák maradnak)
     public_text = tips_data.get("telegram_public_text") or "⚠️ Hiba a FREE tippek generálásánál."
     vip_text = tips_data.get("telegram_vip_text") or "⚠️ Hiba a VIP tippek generálásánál."
 
     public_bets = tips_data.get("public_bets", []) or []
     vip_bets = tips_data.get("vip_bets", []) or []
 
+    public_bets_enriched = _enrich_bets_for_storage(public_bets, slot_matches, run_date_str, slot)
+    vip_bets_enriched = _enrich_bets_for_storage(vip_bets, slot_matches, run_date_str, slot)
+
     public_json_path = f"public_bets_{suffix}.json"
     vip_json_path = f"vip_bets_{suffix}.json"
 
-    # + meta fájlok (statisztikához / recap-hez)
     public_meta_path = f"public_bets_{suffix}_meta.json"
     vip_meta_path = f"vip_bets_{suffix}_meta.json"
 
     try:
         with open(public_json_path, "w", encoding="utf-8") as f:
-            json.dump(public_bets, f, ensure_ascii=False, indent=2)
+            json.dump(public_bets_enriched, f, ensure_ascii=False, indent=2)
         with open(vip_json_path, "w", encoding="utf-8") as f:
-            json.dump(vip_bets, f, ensure_ascii=False, indent=2)
+            json.dump(vip_bets_enriched, f, ensure_ascii=False, indent=2)
 
         public_meta = {
             "run_date": run_date_str,
             "slot": slot,
-            "bets_count": len(public_bets),
+            "bets_count": len(public_bets_enriched),
             "source": "gpt",
         }
         vip_meta = {
             "run_date": run_date_str,
             "slot": slot,
-            "bets_count": len(vip_bets),
+            "bets_count": len(vip_bets_enriched),
             "source": "gpt+grok" if enable_grok else "gpt",
             "consensus_passes": consensus_passes,
         }
@@ -533,11 +660,18 @@ def main() -> None:
     except Exception as e:
         print("Nem sikerült JSON-ba menteni:", repr(e))
 
-    # 4) küldés
+    base_meta = {
+        "slot": slot,
+        "run_date": run_date_str,
+        "public_bets_count": len(public_bets_enriched),
+        "vip_bets_count": len(vip_bets_enriched),
+        "enable_grok": enable_grok,
+    }
+
     if public_chat_id:
-        send_telegram_message(telegram_token, public_chat_id, public_text, f"PUBLIC_{slot}")
+        send_telegram_message(telegram_token, public_chat_id, public_text, f"PUBLIC_{slot}", meta=base_meta)
     if vip_chat_id:
-        send_telegram_message(telegram_token, vip_chat_id, vip_text, f"VIP_{slot}")
+        send_telegram_message(telegram_token, vip_chat_id, vip_text, f"VIP_{slot}", meta=base_meta)
 
 
 if __name__ == "__main__":
