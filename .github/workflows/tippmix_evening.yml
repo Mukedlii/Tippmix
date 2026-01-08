@@ -2,8 +2,8 @@ name: Tippmix Evening Tips + Day Recap
 
 on:
   schedule:
-    # 16:00 Europe/Budapest (téli időszámítás) = 15:00 UTC
-    - cron: "0 15 * * *"
+    # 15:00 Europe/Budapest (téli időszámítás) = 14:00 UTC
+    - cron: "0 14 * * *"
   workflow_dispatch:
 
 permissions:
