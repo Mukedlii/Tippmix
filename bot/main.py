@@ -86,6 +86,11 @@ def _extract_kickoff_hour(match: Dict[str, Any]) -> Optional[int]:
 
 
 def _filter_matches_for_slot(matches: List[Dict[str, Any]], slot: str) -> List[Dict[str, Any]]:
+    """
+    Biztonsági slot-szűrés, DE:
+    - ha túl kevés meccs maradna, visszaadjuk az eredeti listát
+    (mert tipp mindig kell)
+    """
     slot = (slot or "DAY").upper()
     filtered: List[Dict[str, Any]] = []
 
@@ -102,8 +107,13 @@ def _filter_matches_for_slot(matches: List[Dict[str, Any]], slot: str) -> List[D
             if 16 <= h <= 23:
                 filtered.append(m)
 
-    if not filtered:
-        print(f"[DEBUG] Slot szűrés üres (slot={slot}), visszaadom az összes meccset.")
+    # Minimumok (fizetős szolgáltatás -> mindig legyen elég meccs)
+    min_vip = int(os.getenv("TIPPMIX_MIN_VIP", "6"))
+    min_free = int(os.getenv("TIPPMIX_MIN_FREE", "3"))
+    min_need = min_vip + min_free  # pool minimálisan legyen ekkora
+
+    if len(filtered) < min_need:
+        print(f"[DEBUG] Slot szűrés után kevés meccs maradt ({len(filtered)} < {min_need}). Visszaadom az összes meccset.")
         return matches
 
     print(f"[DEBUG] Szűrt meccsszám slot={slot}: {len(filtered)} (eredeti: {len(matches)})")
@@ -130,8 +140,12 @@ def main() -> None:
         print("NINCS TELEGRAM_BOT_TOKEN, kilépek.")
         return
 
-    # 1) meccsek lekérése (csak aznapi)
-    matches: List[Dict[str, Any]] = []
+    if not public_chat_id:
+        print("[WARN] TELEGRAM_PUBLIC_CHAT_ID nincs beállítva! FREE üzenet nem fog kimenni.")
+    if not vip_chat_id:
+        print("[WARN] TELEGRAM_VIP_CHAT_ID nincs beállítva! VIP üzenet nem fog kimenni.")
+
+    # 1) meccsek lekérése (matches.py már bővíti napokra, ha kell)
     try:
         matches = fetch_matches_for_today(slot=slot)
         print(f"Talált meccsek száma (összes): {len(matches)}")
@@ -144,7 +158,7 @@ def main() -> None:
             send_telegram_message(telegram_token, vip_chat_id, err, f"VIP_API_ERROR_{slot}")
         return
 
-    # 1/b) slot szűrés (biztos ami biztos)
+    # 1/b) Biztonsági slot szűrés (de nem engedjük, hogy túl kevés legyen)
     slot_matches = _filter_matches_for_slot(matches, slot)
     print(f"Idősávra szűrt meccsek száma: {len(slot_matches)}")
 
