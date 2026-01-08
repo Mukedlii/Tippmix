@@ -20,15 +20,17 @@ SYSTEM_PROMPT = """
 Te egy profi futball-elemző vagy. 1X2 piacon adsz tippeket.
 
 Elemzés:
-- Hazai pálya, erőviszonyok, liga-szint (komoly vs egzotikus), odds csak sanity check.
-- Indoklás legyen rövid és konkrét (max 2-3 mondat).
+- Hazai pálya, erőviszonyok, liga-szint (komoly vs egzotikus), tabella/forma/sérülés (ha van).
+- Odds csak sanity check, nem vakon.
 
 Szabály:
 - Csak: "Hazai győzelem" | "Döntetlen" | "Vendég győzelem"
 - VIP-ben pontosan 3 KIEMELT.
 - VIP legalább 6 tipp, FREE legalább 3 tipp (ha a meccspool engedi).
+- Ne add ugyanazt a meccset többször.
 - Csak JSON-t adj vissza (se előtte, se utána szöveg).
 """
+
 
 def _safe_float(x: Any) -> Optional[float]:
     try:
@@ -41,6 +43,9 @@ def _safe_float(x: Any) -> Optional[float]:
 
 def _normalize_match(m: Dict[str, Any]) -> Dict[str, Any]:
     odds = m.get("odds") or {}
+    standings = m.get("standings") or {}
+    form = m.get("form") or {}
+    injuries = m.get("injuries") or []
     return {
         "fixture_id": int(m["fixture_id"]),
         "league": m.get("league_name") or "",
@@ -48,9 +53,19 @@ def _normalize_match(m: Dict[str, Any]) -> Dict[str, Any]:
         "kickoff": m.get("kickoff_local") or "",
         "home_team": m.get("home_team") or "",
         "away_team": m.get("away_team") or "",
+
+        # odds
         "odds_1": _safe_float(odds.get("1")),
         "odds_x": _safe_float(odds.get("X")),
         "odds_2": _safe_float(odds.get("2")),
+
+        # extra dosszié mezők (ha matches.py tölti)
+        "standings_home": (standings.get("home") or {}),
+        "standings_away": (standings.get("away") or {}),
+        "home_last5": (form.get("home_last5") or {}),
+        "away_last5": (form.get("away_last5") or {}),
+        "injuries_count": len(injuries),
+        "injuries_sample": injuries[:6],
     }
 
 
@@ -76,8 +91,7 @@ def _odds_for_selection(m: Dict[str, Any], sel: str) -> Optional[float]:
 
 def _baseline_pick(m: Dict[str, Any]) -> str:
     """
-    Ha nincs AI tipp / kevés, ezzel töltjük fel.
-    Ne legyen mindig hazai: odds alapján, vagy ha nincs odds, kis random diverzitás.
+    Fallback pick: odds alapján favorit, ha nincs odds, diverz random.
     """
     imp = _implied_probs(m.get("odds_1"), m.get("odds_x"), m.get("odds_2"))
     if imp:
@@ -85,11 +99,10 @@ def _baseline_pick(m: Dict[str, Any]) -> str:
         items.sort(key=lambda x: x[1], reverse=True)
         return items[0][0]
 
-    # odds nélkül: ne 100% hazai
     r = random.random()
-    if r < 0.70:
+    if r < 0.62:
         return "Hazai győzelem"
-    if r < 0.85:
+    if r < 0.82:
         return "Vendég győzelem"
     return "Döntetlen"
 
@@ -125,8 +138,9 @@ def _call_llm(dossiers: List[Dict[str, Any]]) -> Dict[str, Any]:
         f"Dátum: {today}\n"
         f"Idősáv: {slot_text}\n"
         f"Kötelező: VIP>={MIN_VIP}, FREE>={MIN_FREE}, VIP-ben pontosan 3 kiemelt.\n"
-        "Kérlek ne add ugyanazt a meccset többször.\n\n"
-        "Meccsek:\n"
+        "Kérlek ne add ugyanazt a meccset többször.\n"
+        "A tippek legyenek vegyesek (ne csak hazai), ha a dosszié alapján indokolt.\n\n"
+        "Meccs dossziék:\n"
         + json.dumps(dossiers, ensure_ascii=False, indent=2)
     )
 
@@ -139,7 +153,7 @@ def _call_llm(dossiers: List[Dict[str, Any]]) -> Dict[str, Any]:
         "response_format": {"type": "json_object"},
     }
 
-    # gpt-5-mini modelleknél NE küldj temperature-t (nálad 400-at dobott)
+    # gpt-5-mini esetén NE küldj temperature-t (különben 400 hibát dob)
     if not str(model).startswith("gpt-5"):
         kwargs["temperature"] = temp
 
@@ -232,13 +246,12 @@ def _clean_list(raw: List[Dict[str, Any]], id_to_match: Dict[int, Dict[str, Any]
 def _fill_minimum(matches_norm: List[Dict[str, Any]], vip: List[Dict[str, Any]], free: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     used = {t["fixture_id"] for t in vip + free}
 
-    # először oddsos meccsek, aztán bármi
-    def score(m: Dict[str, Any]) -> int:
+    def has_full_odds(m: Dict[str, Any]) -> int:
         return 1 if (m.get("odds_1") and m.get("odds_x") and m.get("odds_2")) else 0
 
-    pool = sorted(matches_norm, key=score, reverse=True)
+    pool = sorted(matches_norm, key=has_full_odds, reverse=True)
 
-    def add_one(target: List[Dict[str, Any]]):
+    def add_one(target: List[Dict[str, Any]]) -> bool:
         for m in pool:
             fid = m["fixture_id"]
             if fid in used:
@@ -257,15 +270,17 @@ def _fill_minimum(matches_norm: List[Dict[str, Any]], vip: List[Dict[str, Any]],
                 }
             )
             used.add(fid)
-            return
+            return True
+        return False
 
-    while len(vip) < MIN_VIP and len(vip) + len(free) < len(matches_norm):
-        add_one(vip)
+    while len(vip) < MIN_VIP:
+        if not add_one(vip):
+            break
 
-    while len(free) < MIN_FREE and len(vip) + len(free) < len(matches_norm):
-        add_one(free)
+    while len(free) < MIN_FREE:
+        if not add_one(free):
+            break
 
-    # maxok
     vip = vip[:MAX_VIP]
     free = free[:MAX_FREE]
 
@@ -277,7 +292,6 @@ def _fill_minimum(matches_norm: List[Dict[str, Any]], vip: List[Dict[str, Any]],
 
 
 def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
-    # akkor is küldjünk valamit, ha gond van
     if not matches:
         msg = "⚠️ Ma nem jött vissza meccs az API-ból. Nézd meg a SPORTS_API_KEY-t / limitet."
         return {
@@ -290,6 +304,7 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     matches_norm = [_normalize_match(m) for m in matches]
     id_to_match = {m["fixture_id"]: m for m in matches_norm}
 
+    # AI-nek shortlist (ne 200 meccset kapjon)
     dossiers = matches_norm[:60]
 
     free_raw: List[Dict[str, Any]] = []
@@ -359,8 +374,14 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             f"🧠 Miért? {t['reason']}"
         )
 
-    vip_bets = [{"fixture_id": t["fixture_id"], "match": _build_match_label(id_to_match[t["fixture_id"]]), "tip": t["selection"]} for t in vip]
-    public_bets = [{"fixture_id": t["fixture_id"], "match": _build_match_label(id_to_match[t["fixture_id"]]), "tip": t["selection"]} for t in free]
+    vip_bets = [
+        {"fixture_id": t["fixture_id"], "match": _build_match_label(id_to_match[t["fixture_id"]]), "tip": t["selection"]}
+        for t in vip
+    ]
+    public_bets = [
+        {"fixture_id": t["fixture_id"], "match": _build_match_label(id_to_match[t["fixture_id"]]), "tip": t["selection"]}
+        for t in free
+    ]
 
     return {
         "telegram_public_text": "\n\n".join(free_lines),
