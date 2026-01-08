@@ -1,3 +1,4 @@
+# bot/openai_logic.py
 import os
 import json
 import datetime
@@ -6,30 +7,20 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from openai import OpenAI
 
-# --- Clients ---
-gpt_client = OpenAI()  # OPENAI_API_KEY alapján
+client = OpenAI()
 
-def _build_grok_client() -> Optional[OpenAI]:
-    xai_key = os.getenv("XAI_API_KEY")
-    if not xai_key:
-        return None
-    base_url = os.getenv("XAI_BASE_URL", "https://api.x.ai/v1")
-    return OpenAI(api_key=xai_key, base_url=base_url)
-
-grok_client = _build_grok_client()
-
-# --- Config ---
 MIN_VIP = int(os.getenv("TIPPMIX_MIN_VIP", "6"))
 MIN_FREE = int(os.getenv("TIPPMIX_MIN_FREE", "3"))
-MAX_VIP = int(os.getenv("TIPPMIX_MAX_VIP", "7"))
-MAX_FREE = int(os.getenv("TIPPMIX_MAX_FREE", "5"))
+
+# Ha nem akarsz plafont, hagyd defaulton (nagy szám), vagy állítsd env-ben még nagyobbra.
+MAX_VIP = int(os.getenv("TIPPMIX_MAX_VIP", "50"))
+MAX_FREE = int(os.getenv("TIPPMIX_MAX_FREE", "50"))
+
 STAKE_HUF = int(os.getenv("TIPPMIX_STAKE_HUF", "1000"))
 
 ALLOWED = {"Hazai győzelem", "Döntetlen", "Vendég győzelem"}
 
-USE_GROK_REVIEW = (os.getenv("TIPPMIX_USE_GROK_REVIEW", "1").strip().lower() in ("1", "true", "yes", "y"))
-
-SYSTEM_PROMPT_GPT = """
+SYSTEM_PROMPT = """
 Te egy profi futball-elemző vagy. 1X2 piacon adsz tippeket.
 
 Elemzés:
@@ -42,43 +33,37 @@ Szabály:
 - VIP legalább 6 tipp, FREE legalább 3 tipp (ha a meccspool engedi).
 - Ne add ugyanazt a meccset többször.
 - Csak JSON-t adj vissza (se előtte, se utána szöveg).
-
-Várt JSON séma:
+Kimenet példa:
 {
-  "vip_tips": [
-    {"fixture_id": 123, "selection": "...", "confidence": 1-5, "risk_level": "alacsony|közepes|magas", "reason": "...", "is_highlighted": true|false}
-  ],
-  "free_tips": [
-    {"fixture_id": 123, "selection": "...", "confidence": 1-5, "risk_level": "alacsony|közepes|magas", "reason": "..."}
-  ]
+  "vip_tips":[{"fixture_id":123,"selection":"Hazai győzelem","confidence":4.3,"risk_level":"közepes","reason":"...","is_highlighted":true}, ...],
+  "free_tips":[{"fixture_id":456,"selection":"Vendég győzelem","confidence":3.8,"risk_level":"magas","reason":"..."}, ...]
 }
-""".strip()
+"""
 
-SYSTEM_PROMPT_GROK = """
-Te egy másodvélemény “reviewer” vagy.
+VALIDATOR_SYSTEM_PROMPT = """
+Te egy szigorú sportfogadási QA (minőségellenőr) vagy.
+Feladat: a javasolt tipplista tisztítása.
 
-Feladat:
-- Ugyanazokat a meccs-dossziékat és a GPT által javasolt tippeket kapod.
-- A cél: hibák kiszűrése (rossz favorit, túl rizikós döntetlen stb.), következetesebb kockázat/bizalom.
-- MINDIG tartsd meg a fixture_id-k listáját. (Nem adhatsz hozzá újat.)
-- Ha változtatsz, röviden indokold.
+Szabályok:
+- Ne legyen túl sok döntetlen (VIP max 1, FREE max 1).
+- Friendlies csak akkor maradhat, ha (odds <= 1.60) ÉS (confidence >= 4.2).
+- Egzotikus ligák: ha odds>2.20 és confidence<4.0, inkább cseréld/eldobod.
+- Ne legyen duplikált fixture.
+- VIP: legalább 6 tipp, pontosan 3 kiemelt.
+- FREE: legalább 3 tipp.
+- Csak a megadott fixture_id-k közül válassz.
 
-Szabály:
-- Csak: "Hazai győzelem" | "Döntetlen" | "Vendég győzelem"
-- risk_level csak: "alacsony" | "közepes" | "magas"
-- confidence 1.0–5.0
-
-Visszaadás: CSAK JSON (se előtte, se utána).
-Várt JSON:
+Kimenet: csak JSON, mezők:
 {
-  "vip_review": [
-    {"fixture_id": 123, "selection": "...", "confidence": 1-5, "risk_level": "...", "reason": "...", "verdict": "agree|change"}
-  ],
-  "free_review": [
-    {"fixture_id": 123, "selection": "...", "confidence": 1-5, "risk_level": "...", "reason": "...", "verdict": "agree|change"}
-  ]
+  "vip_tips":[...],
+  "free_tips":[...],
+  "notes":"rövid megjegyzés"
 }
-""".strip()
+"""
+
+# LLM nélküli döntetlen-vágás
+MAX_DRAWS_VIP = int(os.getenv("TIPPMIX_MAX_DRAWS_VIP", "1"))
+MAX_DRAWS_FREE = int(os.getenv("TIPPMIX_MAX_DRAWS_FREE", "1"))
 
 
 def _safe_float(x: Any) -> Optional[float]:
@@ -102,11 +87,9 @@ def _normalize_match(m: Dict[str, Any]) -> Dict[str, Any]:
         "kickoff": m.get("kickoff_local") or "",
         "home_team": m.get("home_team") or "",
         "away_team": m.get("away_team") or "",
-
         "odds_1": _safe_float(odds.get("1")),
         "odds_x": _safe_float(odds.get("X")),
         "odds_2": _safe_float(odds.get("2")),
-
         "standings_home": (standings.get("home") or {}),
         "standings_away": (standings.get("away") or {}),
         "home_last5": (form.get("home_last5") or {}),
@@ -134,17 +117,6 @@ def _odds_for_selection(m: Dict[str, Any], sel: str) -> Optional[float]:
     if sel == "Döntetlen":
         return _safe_float(m.get("odds_x"))
     return _safe_float(m.get("odds_2"))
-
-
-def _prob_for_selection(m: Dict[str, Any], sel: str) -> Optional[float]:
-    imp = _implied_probs(m.get("odds_1"), m.get("odds_x"), m.get("odds_2"))
-    if not imp:
-        return None
-    if sel == "Hazai győzelem":
-        return imp["p1"]
-    if sel == "Döntetlen":
-        return imp["px"]
-    return imp["p2"]
 
 
 def _baseline_pick(m: Dict[str, Any]) -> str:
@@ -181,25 +153,7 @@ def _baseline_risk_conf(m: Dict[str, Any], sel: str) -> Tuple[str, float]:
     return risk, conf
 
 
-def _parse_json_strict(s: str) -> Dict[str, Any]:
-    s = (s or "").strip()
-    if not s:
-        return {}
-    try:
-        return json.loads(s)
-    except Exception:
-        # Utolsó mentsvár: kivágjuk az első { ... } blokkot
-        start = s.find("{")
-        end = s.rfind("}")
-        if start >= 0 and end > start:
-            try:
-                return json.loads(s[start:end + 1])
-            except Exception:
-                return {}
-        return {}
-
-
-def _call_gpt(dossiers: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _call_llm(dossiers: List[Dict[str, Any]]) -> Dict[str, Any]:
     today = datetime.date.today().strftime("%Y.%m.%d.")
     slot = (os.getenv("TIPPMIX_SLOT", "DAY") or "DAY").upper()
     slot_text = "délelőtt / nappal" if slot == "DAY" else "délután / este"
@@ -220,48 +174,54 @@ def _call_gpt(dossiers: List[Dict[str, Any]]) -> Dict[str, Any]:
     kwargs: Dict[str, Any] = {
         "model": model,
         "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT_GPT},
+            {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt},
         ],
         "response_format": {"type": "json_object"},
     }
 
-    # gpt-5* esetén ne küldj temperature-t (nálad már bevált)
+    # gpt-5* esetén NE küldj temperature-t
     if not str(model).startswith("gpt-5"):
         kwargs["temperature"] = temp
 
-    r = gpt_client.chat.completions.create(**kwargs)
-    return _parse_json_strict(r.choices[0].message.content or "")
+    r = client.chat.completions.create(**kwargs)
+    return json.loads(r.choices[0].message.content or "{}")
 
 
-def _call_grok_review(dossiers: List[Dict[str, Any]], gpt_out: Dict[str, Any]) -> Dict[str, Any]:
-    if not grok_client:
-        return {}
-    if not USE_GROK_REVIEW:
-        return {}
+def _call_validator(dossiers: List[Dict[str, Any]], vip_raw: List[Dict[str, Any]], free_raw: List[Dict[str, Any]]) -> Dict[str, Any]:
+    model = os.getenv("TIPPMIX_VALIDATOR_MODEL") or os.getenv("TIPPMIX_MODEL", "gpt-5-mini")
+    temp = float(os.getenv("TIPPMIX_TEMP", "0.25"))
 
-    grok_model = os.getenv("TIPPMIX_GROK_MODEL", "grok-4")
-    grok_temp = float(os.getenv("TIPPMIX_GROK_TEMP", "0.2"))
+    allowed_ids = [d.get("fixture_id") for d in dossiers if d.get("fixture_id") is not None]
 
-    prompt = (
-        "Meccs dossziék (azonosak a GPT-vel):\n"
-        + json.dumps(dossiers, ensure_ascii=False, indent=2)
-        + "\n\nGPT tippek (ezeket review-zd):\n"
-        + json.dumps(gpt_out, ensure_ascii=False, indent=2)
-    )
-
-    kwargs: Dict[str, Any] = {
-        "model": grok_model,
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT_GROK},
-            {"role": "user", "content": prompt},
-        ],
-        "response_format": {"type": "json_object"},
-        "temperature": grok_temp,
+    prompt_obj = {
+        "allowed_fixture_ids": allowed_ids,
+        "vip_tips_proposed": vip_raw,
+        "free_tips_proposed": free_raw,
+        "constraints": {
+            "min_vip": MIN_VIP,
+            "min_free": MIN_FREE,
+            "vip_exact_highlights": 3,
+            "max_draws_vip": MAX_DRAWS_VIP,
+            "max_draws_free": MAX_DRAWS_FREE,
+        },
+        "note": "Csak a megadott allowed_fixture_ids listából válassz. Csak 1X2. Csak JSON.",
     }
 
-    r = grok_client.chat.completions.create(**kwargs)
-    return _parse_json_strict(r.choices[0].message.content or "")
+    kwargs: Dict[str, Any] = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": VALIDATOR_SYSTEM_PROMPT},
+            {"role": "user", "content": json.dumps(prompt_obj, ensure_ascii=False)},
+        ],
+        "response_format": {"type": "json_object"},
+    }
+
+    if not str(model).startswith("gpt-5"):
+        kwargs["temperature"] = temp
+
+    r = client.chat.completions.create(**kwargs)
+    return json.loads(r.choices[0].message.content or "{}")
 
 
 def _risk_to_emoji(r: str) -> str:
@@ -330,8 +290,8 @@ def _clean_list(raw: List[Dict[str, Any]], id_to_match: Dict[int, Dict[str, Any]
             risk = base_risk
 
         reason = (it.get("reason") or "").strip()[:220] or "Összkép alapján."
-
         used.add(fid)
+
         out.append(
             {
                 "fixture_id": fid,
@@ -341,100 +301,23 @@ def _clean_list(raw: List[Dict[str, Any]], id_to_match: Dict[int, Dict[str, Any]
                 "risk_level": risk,
                 "reason": reason,
                 "odds_estimate": _odds_for_selection(m, sel),
-
-                # audit mezők (későbbi stathoz)
-                "gpt_selection": sel,
-                "grok_selection": None,
-                "consensus": "gpt_only",
             }
         )
     return out
 
 
-def _apply_grok_review(
-    tips: List[Dict[str, Any]],
-    review: List[Dict[str, Any]],
-    id_to_match: Dict[int, Dict[str, Any]],
-) -> List[Dict[str, Any]]:
-    review_map: Dict[int, Dict[str, Any]] = {}
-    for r in (review or []):
-        try:
-            fid = int(r.get("fixture_id"))
-        except Exception:
-            continue
-        review_map[fid] = r
-
+def _cap_draws(tips: List[Dict[str, Any]], max_draws: int) -> List[Dict[str, Any]]:
+    if max_draws < 0:
+        return tips
+    out: List[Dict[str, Any]] = []
+    draws = 0
     for t in tips:
-        fid = t["fixture_id"]
-        r = review_map.get(fid)
-        if not r:
-            continue
-
-        grok_sel = (r.get("selection") or "").strip()
-        grok_verdict = (r.get("verdict") or "").strip().lower()
-
-        if grok_sel in ALLOWED:
-            t["grok_selection"] = grok_sel
-
-        m = id_to_match.get(fid)
-        gpt_sel = t["selection"]
-        if not m or not t.get("grok_selection"):
-            continue
-
-        grok_sel = t["grok_selection"]
-
-        # Ha egyetértenek: átlagolunk bizalmat, és oké
-        if grok_sel == gpt_sel or grok_verdict == "agree":
-            t["consensus"] = "agree"
-            g_conf = _safe_float(r.get("confidence"))
-            if g_conf is not None:
-                t["confidence"] = max(1.0, min(5.0, (t["confidence"] + g_conf) / 2.0))
-            # risk: maradhat, vagy finoman igazítjuk
-            g_risk = (r.get("risk_level") or "").strip().lower()
-            if g_risk in ("alacsony", "közepes", "magas"):
-                t["risk_level"] = g_risk
-            # reason: hozzáfűzzük röviden
-            g_reason = (r.get("reason") or "").strip()
-            if g_reason:
-                t["reason"] = (t["reason"][:160] + f" | Grok: {g_reason[:160]}")[:220]
-            t["odds_estimate"] = _odds_for_selection(m, t["selection"])
-            continue
-
-        # Ha nem értenek egyet: odds-sanity-check alapján döntünk
-        p_gpt = _prob_for_selection(m, gpt_sel)
-        p_grok = _prob_for_selection(m, grok_sel)
-
-        chosen = gpt_sel
-        if p_gpt is not None and p_grok is not None:
-            # ha Grok javára érzékelhetően jobb az implied prob, átállunk
-            if (p_grok - p_gpt) >= 0.06:
-                chosen = grok_sel
-            else:
-                chosen = gpt_sel
-        else:
-            # ha nincs odds, marad a GPT (de bizalmat csökkentjük)
-            chosen = gpt_sel
-
-        if chosen == grok_sel:
-            t["selection"] = grok_sel
-            t["consensus"] = "grok_override"
-        else:
-            t["consensus"] = "gpt_override"
-
-        # Disagreement penalty (kicsit visszavesszük a conf-ot)
-        t["confidence"] = max(1.0, min(5.0, t["confidence"] - 0.4))
-
-        g_risk = (r.get("risk_level") or "").strip().lower()
-        if g_risk in ("alacsony", "közepes", "magas"):
-            t["risk_level"] = g_risk
-
-        g_reason = (r.get("reason") or "").strip()
-        if g_reason:
-            t["reason"] = (t["reason"][:150] + f" | Grok: {g_reason[:150]}")[:220]
-
-        t["odds_estimate"] = _odds_for_selection(m, t["selection"])
-
-    return tips
+        if t.get("selection") == "Döntetlen":
+            if draws >= max_draws:
+                continue
+            draws += 1
+        out.append(t)
+    return out
 
 
 def _fill_minimum(matches_norm: List[Dict[str, Any]], vip: List[Dict[str, Any]], free: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
@@ -461,10 +344,6 @@ def _fill_minimum(matches_norm: List[Dict[str, Any]], vip: List[Dict[str, Any]],
                     "risk_level": risk,
                     "reason": "Feltöltés: kevés AI tipp, a legjobb elérhető meccsekből.",
                     "odds_estimate": _odds_for_selection(m, sel),
-
-                    "gpt_selection": sel,
-                    "grok_selection": None,
-                    "consensus": "fill",
                 }
             )
             used.add(fid)
@@ -479,8 +358,26 @@ def _fill_minimum(matches_norm: List[Dict[str, Any]], vip: List[Dict[str, Any]],
         if not add_one(free):
             break
 
-    vip = vip[:MAX_VIP]
-    free = free[:MAX_FREE]
+    # Döntetlen cap + utána újra feltöltés, hogy a minimumok biztosan meglegyenek
+    vip = _cap_draws(vip, MAX_DRAWS_VIP)
+    free = _cap_draws(free, MAX_DRAWS_FREE)
+
+    used2 = {t["fixture_id"] for t in vip + free}
+    used.clear()
+    used.update(used2)
+
+    while len(vip) < MIN_VIP:
+        if not add_one(vip):
+            break
+    while len(free) < MIN_FREE:
+        if not add_one(free):
+            break
+
+    # NEM vágjuk kicsire agresszíven, de ha valaki beállította a MAX-ot, akkor érvényes.
+    if MAX_VIP > 0:
+        vip = vip[:MAX_VIP]
+    if MAX_FREE > 0:
+        free = free[:MAX_FREE]
 
     for t in free:
         t["is_highlighted"] = False
@@ -492,40 +389,34 @@ def _fill_minimum(matches_norm: List[Dict[str, Any]], vip: List[Dict[str, Any]],
 def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     if not matches:
         msg = "⚠️ Ma nem jött vissza meccs az API-ból. Nézd meg a SPORTS_API_KEY-t / limitet."
-        return {
-            "telegram_public_text": msg,
-            "telegram_vip_text": msg,
-            "public_bets": [],
-            "vip_bets": [],
-        }
+        return {"telegram_public_text": msg, "telegram_vip_text": msg, "public_bets": [], "vip_bets": []}
 
     matches_norm = [_normalize_match(m) for m in matches]
     id_to_match = {m["fixture_id"]: m for m in matches_norm}
 
-    dossiers = matches_norm[:60]
+    dossiers = matches_norm[: int(os.getenv("TIPPMIX_DOSSIER_LIMIT", "60"))]
 
-    gpt_out: Dict[str, Any] = {}
     free_raw: List[Dict[str, Any]] = []
     vip_raw: List[Dict[str, Any]] = []
     try:
-        gpt_out = _call_gpt(dossiers)
-        free_raw = gpt_out.get("free_tips") or []
-        vip_raw = gpt_out.get("vip_tips") or []
+        data = _call_llm(dossiers)
+        free_raw = data.get("free_tips") or []
+        vip_raw = data.get("vip_tips") or []
     except Exception as e:
-        print("GPT/OpenAI hiba:", repr(e))
+        print("OpenAI hiba (primary):", repr(e))
+
+    # Validator kör (opcionális)
+    if os.getenv("TIPPMIX_USE_VALIDATOR", "1") == "1":
+        try:
+            v = _call_validator(dossiers, vip_raw, free_raw)
+            vip_raw = v.get("vip_tips") or vip_raw
+            free_raw = v.get("free_tips") or free_raw
+        except Exception as e:
+            print("OpenAI hiba (validator):", repr(e))
 
     used: set = set()
     vip = _clean_list(vip_raw, id_to_match, used)
     free = _clean_list(free_raw, id_to_match, used)
-
-    # Grok review (opcionális, de nálad default ON)
-    try:
-        if grok_client and USE_GROK_REVIEW and gpt_out:
-            grok_out = _call_grok_review(dossiers, gpt_out)
-            vip = _apply_grok_review(vip, grok_out.get("vip_review") or [], id_to_match)
-            free = _apply_grok_review(free, grok_out.get("free_review") or [], id_to_match)
-    except Exception as e:
-        print("Grok review hiba:", repr(e))
 
     vip, free = _fill_minimum(matches_norm, vip, free)
 
@@ -548,12 +439,6 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         odds_val = t.get("odds_estimate")
         odds_txt = f"{odds_val:.2f}" if odds_val else "n/a"
         prefix = "💎 KIEMELT – " if t.get("is_highlighted") else ""
-
-        # apró audit sor (nem kötelező, de hasznos)
-        audit = ""
-        if t.get("grok_selection"):
-            audit = f"\n🧾 GPT: {t.get('gpt_selection')} | Grok: {t.get('grok_selection')} | ✅ {t.get('consensus')}"
-
         vip_lines.append(
             f"{i}. {prefix}{label}\n"
             f"🎯 Tipp: {t['selection']}\n"
@@ -562,7 +447,6 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             f"⚠️ Kockázat: {_risk_to_emoji(t['risk_level'])}\n"
             f"💡 Bizalom: {_stars(t['confidence'])}\n"
             f"🧠 Miért? {t['reason']}"
-            f"{audit}"
         )
 
     free_lines = [
@@ -588,41 +472,38 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             f"🧠 Miért? {t['reason']}"
         )
 
-    # JSON mentéshez: bővebb mezők (statisztikához nagyon jó lesz)
-    vip_bets = []
-    for t in vip:
-        m = id_to_match[t["fixture_id"]]
-        vip_bets.append(
-            {
-                "fixture_id": t["fixture_id"],
-                "match": _build_match_label(m),
-                "tip": t["selection"],
-                "odds": t.get("odds_estimate"),
-                "confidence": t.get("confidence"),
-                "risk_level": t.get("risk_level"),
-                "is_highlighted": t.get("is_highlighted"),
-                "gpt_tip": t.get("gpt_selection"),
-                "grok_tip": t.get("grok_selection"),
-                "consensus": t.get("consensus"),
-            }
-        )
+    # 1/B: kibővített mezők a JSON exporthoz
+    vip_bets = [
+        {
+            "fixture_id": t["fixture_id"],
+            "match": _build_match_label(id_to_match[t["fixture_id"]]),
+            "tip": t["selection"],
+            "odds": t.get("odds_estimate"),
+            "confidence": t.get("confidence"),
+            "risk_level": t.get("risk_level"),
+            "is_highlighted": bool(t.get("is_highlighted")),
+            "league": id_to_match[t["fixture_id"]].get("league"),
+            "country": id_to_match[t["fixture_id"]].get("country"),
+            "kickoff": id_to_match[t["fixture_id"]].get("kickoff"),
+        }
+        for t in vip
+    ]
 
-    public_bets = []
-    for t in free:
-        m = id_to_match[t["fixture_id"]]
-        public_bets.append(
-            {
-                "fixture_id": t["fixture_id"],
-                "match": _build_match_label(m),
-                "tip": t["selection"],
-                "odds": t.get("odds_estimate"),
-                "confidence": t.get("confidence"),
-                "risk_level": t.get("risk_level"),
-                "gpt_tip": t.get("gpt_selection"),
-                "grok_tip": t.get("grok_selection"),
-                "consensus": t.get("consensus"),
-            }
-        )
+    public_bets = [
+        {
+            "fixture_id": t["fixture_id"],
+            "match": _build_match_label(id_to_match[t["fixture_id"]]),
+            "tip": t["selection"],
+            "odds": t.get("odds_estimate"),
+            "confidence": t.get("confidence"),
+            "risk_level": t.get("risk_level"),
+            "is_highlighted": False,
+            "league": id_to_match[t["fixture_id"]].get("league"),
+            "country": id_to_match[t["fixture_id"]].get("country"),
+            "kickoff": id_to_match[t["fixture_id"]].get("kickoff"),
+        }
+        for t in free
+    ]
 
     return {
         "telegram_public_text": "\n\n".join(free_lines),
