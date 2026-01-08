@@ -1,92 +1,84 @@
 import os
 from typing import Any, Dict, Optional
-
 import requests
 
 API_FOOTBALL_KEY = (os.getenv("SPORTS_API_KEY") or "").strip()
-DEBUG = (os.getenv("TIPPMIX_ODDS_DEBUG") or "0").lower() in ("1", "true", "yes")
+
+_API_FOOTBALL_BASE = "https://v3.football.api-sports.io"
+
+# egyszerű futás-cache
+_ODDS_CACHE: Dict[int, Dict[str, float]] = {}
 
 
-def _safe_float(x: Any) -> Optional[float]:
-    try:
-        if x is None:
-            return None
-        return float(x)
-    except Exception:
-        return None
-
-
-def fetch_api_football_1x2_odds(fixture_id: int) -> Optional[Dict[str, float]]:
-    """
-    API-FOOTBALL odds lekérés fixture ID alapján.
-    Vissza: {"1": 2.1, "X": 3.3, "2": 3.6} vagy None
-
-    Megjegyzés: csomag/limit függő. Ha nem elérhető, None.
-    """
+def _headers() -> Dict[str, str]:
     if not API_FOOTBALL_KEY:
-        if DEBUG:
-            print("[odds] SPORTS_API_KEY nincs beállítva.")
-        return None
+        raise RuntimeError("SPORTS_API_KEY nincs beállítva.")
+    return {"x-apisports-key": API_FOOTBALL_KEY}
 
-    url = "https://v3.football.api-sports.io/odds"
-    headers = {"x-apisports-key": API_FOOTBALL_KEY}
-    params = {"fixture": int(fixture_id)}
+
+def fetch_api_football_1x2_odds(fixture_id: int) -> Dict[str, float]:
+    """
+    API-FOOTBALL odds lekérés (1X2 / Match Winner).
+
+    Visszaad: {"1": 2.02, "X": 3.80, "2": 3.15} vagy {} ha nincs / nem található.
+    """
+    try:
+        fid = int(fixture_id)
+    except Exception:
+        return {}
+
+    if fid in _ODDS_CACHE:
+        return _ODDS_CACHE[fid]
 
     try:
-        r = requests.get(url, headers=headers, params=params, timeout=25)
-    except Exception as e:
-        if DEBUG:
-            print(f"[odds] request error fixture={fixture_id}: {repr(e)}")
-        return None
+        url = f"{_API_FOOTBALL_BASE}/odds"
+        r = requests.get(url, headers=_headers(), params={"fixture": fid}, timeout=25)
+        if r.status_code != 200:
+            _ODDS_CACHE[fid] = {}
+            return {}
 
-    if r.status_code != 200:
-        if DEBUG:
-            print(f"[odds] HTTP {r.status_code} fixture={fixture_id}: {r.text[:300]}")
-        return None
-
-    try:
         data = r.json() or {}
-    except Exception as e:
-        if DEBUG:
-            print(f"[odds] JSON parse error fixture={fixture_id}: {repr(e)}")
-        return None
+        resp = data.get("response") or []
+        if not resp:
+            _ODDS_CACHE[fid] = {}
+            return {}
 
-    resp = data.get("response") or []
-    if not resp:
-        return None
+        best: Dict[str, float] = {}
 
-    best_1 = best_x = best_2 = None
+        # Keressük a "Match Winner"/"Match Result"/"1X2" jellegű piacot.
+        for item in resp:
+            for bm in (item.get("bookmakers") or []):
+                for bet in (bm.get("bets") or []):
+                    name = (bet.get("name") or "").lower()
+                    if ("match winner" in name) or ("match result" in name) or (name.strip() == "1x2"):
+                        tmp: Dict[str, float] = {}
+                        for v in (bet.get("values") or []):
+                            val = (v.get("value") or "").strip()
+                            odd_raw = v.get("odd")
+                            try:
+                                odd = float(odd_raw)
+                            except Exception:
+                                continue
 
-    for row in resp:
-        bookmakers = row.get("bookmakers") or []
-        for bm in bookmakers:
-            bets = bm.get("bets") or []
-            for bet in bets:
-                bet_name = str(bet.get("name") or "").lower()
-                if ("match winner" not in bet_name) and ("1x2" not in bet_name) and ("fulltime result" not in bet_name):
-                    continue
-                values = bet.get("values") or []
-                for v in values:
-                    label = str(v.get("value") or "").strip().lower()
-                    odd = _safe_float(v.get("odd"))
-                    if not odd or odd <= 1.01:
-                        continue
-                    if label in ("home", "1"):
-                        best_1 = odd if best_1 is None else max(best_1, odd)
-                    elif label in ("draw", "x"):
-                        best_x = odd if best_x is None else max(best_x, odd)
-                    elif label in ("away", "2"):
-                        best_2 = odd if best_2 is None else max(best_2, odd)
+                            # különböző elnevezések
+                            if val in ("Home", "1"):
+                                tmp["1"] = odd
+                            elif val in ("Draw", "X"):
+                                tmp["X"] = odd
+                            elif val in ("Away", "2"):
+                                tmp["2"] = odd
 
-    out: Dict[str, float] = {}
-    if best_1 is not None:
-        out["1"] = best_1
-    if best_x is not None:
-        out["X"] = best_x
-    if best_2 is not None:
-        out["2"] = best_2
+                        if tmp.get("1") and tmp.get("X") and tmp.get("2"):
+                            best = tmp
+                            break
+                if best:
+                    break
+            if best:
+                break
 
-    if DEBUG:
-        print(f"[odds] fixture={fixture_id} parsed={out if out else None}")
+        _ODDS_CACHE[fid] = best or {}
+        return _ODDS_CACHE[fid]
 
-    return out if out else None
+    except Exception:
+        _ODDS_CACHE[fid] = {}
+        return {}
