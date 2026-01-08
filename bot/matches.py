@@ -1,7 +1,7 @@
 import os
 import re
 import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import requests
 
@@ -10,12 +10,19 @@ from bot.odds import fetch_api_football_1x2_odds
 API_FOOTBALL_KEY = (os.getenv("SPORTS_API_KEY") or "").strip()
 TZ = os.getenv("TIPPMIX_TIMEZONE", "Europe/Budapest")
 
-MAX_FIXTURES = int(os.getenv("TIPPMIX_MAX_FIXTURES", "220"))
-
+MAX_FIXTURES = int(os.getenv("TIPPMIX_MAX_FIXTURES", "200"))
 ODDS_LOOKUP_LIMIT = int(os.getenv("TIPPMIX_ODDS_LOOKUP_LIMIT", "120"))
-STANDINGS_LOOKUP_LIMIT = int(os.getenv("TIPPMIX_STANDINGS_LOOKUP_LIMIT", "40"))  # ligánként cache
-LAST5_LOOKUP_LIMIT = int(os.getenv("TIPPMIX_LAST5_LOOKUP_LIMIT", "80"))          # csapatonként cache
-INJURY_LOOKUP_LIMIT = int(os.getenv("TIPPMIX_INJURY_LOOKUP_LIMIT", "80"))        # fixture-önként
+
+# minimumok (hogy matches.py is tudja, mennyi meccs kell minimum a poolhoz)
+MIN_VIP = int(os.getenv("TIPPMIX_MIN_VIP", "6"))
+MIN_FREE = int(os.getenv("TIPPMIX_MIN_FREE", "3"))
+
+# mennyire terjesszük ki a keresést "ma + hány napra előre", ha kevés a meccs
+MAX_DAYS_AHEAD = int(os.getenv("TIPPMIX_MAX_DAYS_AHEAD", "3"))
+
+# mekkora legyen minimum a pool (slot után számolva)
+# ha nincs beállítva, számoljuk: VIP+FREE+12 (hogy legyen miből válogatni)
+MIN_POOL = int(os.getenv("TIPPMIX_MIN_POOL", str(MIN_VIP + MIN_FREE + 12)))
 
 TOP_LEAGUE_KEYWORDS = [
     "Premier League", "La Liga", "Bundesliga", "Serie A", "Ligue 1",
@@ -27,22 +34,17 @@ TOP_LEAGUE_KEYWORDS = [
 ]
 
 YOUTH_PATTERNS = [
-    r"\bU\d{2}\b", r"\bU-?\d{2}\b", r"\bYouth\b", r"\bReserve\b", r"\bB Team\b", r"\bPrimavera\b"
+    r"\bU\d{2}\b", r"\bU-?\d{2}\b", r"\bYouth\b", r"\bReserve\b", r"\bB Team\b",
+    r"\bPrimavera\b", r"\bU23\b", r"\bU21\b", r"\bU20\b", r"\bU19\b"
 ]
+
 FRIENDLY_PATTERNS = [r"friendly", r"barátságos"]
-
-_API_BASE = "https://v3.football.api-sports.io"
-
-# futás-cache-ek (rate-limit ellen)
-_STANDINGS_CACHE: Dict[Tuple[int, int], Dict[int, Dict[str, Any]]] = {}  # (league_id, season) -> team_id -> row
-_LAST5_CACHE: Dict[Tuple[int, int, int], Dict[str, Any]] = {}           # (team_id, league_id, season) -> summary
-_INJ_CACHE: Dict[int, List[str]] = {}                                   # fixture_id -> injuries list
 
 
 def _api_get(path: str, params: Dict[str, Any], timeout: int = 25) -> Dict[str, Any]:
     if not API_FOOTBALL_KEY:
         raise RuntimeError("SPORTS_API_KEY nincs beállítva")
-    url = f"{_API_BASE}/{path.lstrip('/')}"
+    url = f"https://v3.football.api-sports.io/{path.lstrip('/')}"
     headers = {"x-apisports-key": API_FOOTBALL_KEY}
     r = requests.get(url, headers=headers, params=params, timeout=timeout)
     if r.status_code != 200:
@@ -104,24 +106,20 @@ def _priority_bucket_evening(match: Dict[str, Any]) -> int:
     """
     0 = top / komoly felnőtt
     1 = felnőtt (nem top), nem youth, nem friendly
-    2 = egzotikus/alsóbb felnőtt
-    3 = youth
-    4 = friendly
+    2 = youth
+    3 = friendly / legalja
     """
     if _is_friendly(match):
-        return 4
+        return 3
     if _is_top_match(match) and not _is_youth(match):
         return 0
-    if (not _is_youth(match)) and (match.get("country_name") in ("England", "Spain", "Germany", "Italy", "France", "Netherlands", "Portugal", "Scotland")):
-        return 1
     if not _is_youth(match):
-        return 2
-    return 3
+        return 1
+    return 2
 
 
-def _fetch_today_fixtures() -> List[Dict[str, Any]]:
-    today = datetime.date.today().strftime("%Y-%m-%d")
-    data = _api_get("fixtures", params={"date": today, "timezone": TZ})
+def _fetch_fixtures_for_date(date_str: str) -> List[Dict[str, Any]]:
+    data = _api_get("fixtures", params={"date": date_str, "timezone": TZ})
     resp = data.get("response") or []
 
     out: List[Dict[str, Any]] = []
@@ -132,192 +130,80 @@ def _fetch_today_fixtures() -> List[Dict[str, Any]]:
 
         fixture_id = fixture.get("id")
         kickoff = fixture.get("date")
+        home = (teams.get("home") or {}).get("name")
+        away = (teams.get("away") or {}).get("name")
 
-        league_id = league.get("id")
-        season = league.get("season")
-        league_name = league.get("name") or ""
-        country = league.get("country") or ""
-
-        home = teams.get("home") or {}
-        away = teams.get("away") or {}
-        home_id = home.get("id")
-        away_id = away.get("id")
-        home_name = home.get("name")
-        away_name = away.get("name")
-
-        if not fixture_id or not home_name or not away_name:
+        if not fixture_id or not home or not away:
             continue
 
         out.append(
             {
                 "sport": "football",
                 "fixture_id": int(fixture_id),
-                "league_id": int(league_id) if league_id else None,
-                "season": int(season) if season else None,
-                "league_name": league_name,
-                "country_name": country,
+                "league_name": league.get("name") or "",
+                "country_name": league.get("country") or "",
                 "kickoff_local": kickoff or "",
-
-                "home_team_id": int(home_id) if home_id else None,
-                "away_team_id": int(away_id) if away_id else None,
-                "home_team": home_name,
-                "away_team": away_name,
-
-                # enrichment
+                "home_team": home,
+                "away_team": away,
                 "odds": {},
                 "standings": {},
                 "injuries": [],
-                "form": {},  # home_last5 / away_last5
             }
         )
-
     return out
 
 
-def _fetch_standings_map(league_id: int, season: int) -> Dict[int, Dict[str, Any]]:
-    key = (int(league_id), int(season))
-    if key in _STANDINGS_CACHE:
-        return _STANDINGS_CACHE[key]
+def _fetch_fixtures_expanding(slot: str) -> List[Dict[str, Any]]:
+    """
+    Bővülő keresés: ma, holnap, holnapután...
+    addig, amíg slot-szűrés után megvan legalább MIN_POOL db meccs.
+    """
+    slot = (slot or "DAY").upper()
+    base = datetime.date.today()
 
-    try:
-        data = _api_get("standings", params={"league": league_id, "season": season})
-        resp = data.get("response") or []
-        if not resp:
-            _STANDINGS_CACHE[key] = {}
-            return {}
+    all_fx: List[Dict[str, Any]] = []
 
-        league_obj = (resp[0].get("league") or {})
-        groups = league_obj.get("standings") or []
-        if not groups:
-            _STANDINGS_CACHE[key] = {}
-            return {}
+    for days_ahead in range(0, MAX_DAYS_AHEAD + 1):
+        day = (base + datetime.timedelta(days=days_ahead)).strftime("%Y-%m-%d")
+        chunk = _fetch_fixtures_for_date(day)
+        all_fx.extend(chunk)
 
-        table = groups[0] or []
-        out: Dict[int, Dict[str, Any]] = {}
+        slot_fx = _slot_filter(all_fx, slot)
+        print(f"[matches] api-football fixtures: date={day} added={len(chunk)} | slot={slot} now={len(slot_fx)} total={len(all_fx)}")
 
-        for row in table:
-            team = row.get("team") or {}
-            tid = team.get("id")
-            if not tid:
-                continue
-            all_ = row.get("all") or {}
-            goals = all_.get("goals") or {}
-            out[int(tid)] = {
-                "rank": row.get("rank"),
-                "points": row.get("points"),
-                "goalsDiff": row.get("goalsDiff"),
-                "form": row.get("form"),
-                "played": all_.get("played"),
-                "gf": goals.get("for"),
-                "ga": goals.get("against"),
-            }
+        if len(slot_fx) >= MIN_POOL:
+            return all_fx
 
-        _STANDINGS_CACHE[key] = out
-        return out
-
-    except Exception:
-        _STANDINGS_CACHE[key] = {}
-        return {}
-
-
-def _summarize_last5(team_id: int, league_id: int, season: int) -> Dict[str, Any]:
-    key = (int(team_id), int(league_id), int(season))
-    if key in _LAST5_CACHE:
-        return _LAST5_CACHE[key]
-
-    try:
-        data = _api_get("fixtures", params={
-            "team": team_id,
-            "league": league_id,
-            "season": season,
-            "last": 5,
-            "status": "FT",
-            "timezone": TZ,
-        })
-        resp = data.get("response") or []
-        if not resp:
-            _LAST5_CACHE[key] = {}
-            return {}
-
-        w = d = l = gf = ga = pts = 0
-        seq: List[str] = []
-
-        for it in resp[:5]:
-            teams = it.get("teams") or {}
-            goals = it.get("goals") or {}
-            home = teams.get("home") or {}
-            away = teams.get("away") or {}
-            hg = goals.get("home")
-            ag = goals.get("away")
-            if hg is None or ag is None:
-                continue
-
-            is_home = int(home.get("id") or 0) == int(team_id)
-            my = hg if is_home else ag
-            opp = ag if is_home else hg
-            gf += my
-            ga += opp
-
-            if my > opp:
-                w += 1; pts += 3; seq.append("W")
-            elif my == opp:
-                d += 1; pts += 1; seq.append("D")
-            else:
-                l += 1; seq.append("L")
-
-        out = {"wdl": "-".join(seq), "points": pts, "gf": gf, "ga": ga, "w": w, "d": d, "l": l}
-        _LAST5_CACHE[key] = out
-        return out
-
-    except Exception:
-        _LAST5_CACHE[key] = {}
-        return {}
-
-
-def _fetch_injuries_for_fixture(fixture_id: int) -> List[str]:
-    if fixture_id in _INJ_CACHE:
-        return _INJ_CACHE[fixture_id]
-
-    try:
-        data = _api_get("injuries", params={"fixture": fixture_id})
-        resp = data.get("response") or []
-        out: List[str] = []
-        for it in resp[:12]:
-            player = (it.get("player") or {}).get("name") or ""
-            reason = it.get("reason") or ""
-            if player:
-                out.append(f"{player} – {reason}".strip(" –"))
-        _INJ_CACHE[fixture_id] = out
-        return out
-    except Exception:
-        _INJ_CACHE[fixture_id] = []
-        return []
+    return all_fx
 
 
 def fetch_matches_for_today(slot: str = "DAY") -> List[Dict[str, Any]]:
     """
-    - csak aznapi meccsek (timezone=Europe/Budapest)
+    - bővülő meccs-pool (ma -> max MAX_DAYS_AHEAD), hogy meglegyen a minimum tipp pool
     - slot szűrés (DAY / EVENING)
-    - EVENING-ben: top felnőtt -> felnőtt -> egzotikus -> youth -> friendly
-    - enrichment: odds + standings + last5 + injuries (free plan kompatibilis, hibát lenyel)
+    - EVENING-ben: top felnőtt -> felnőtt egzotikus -> youth -> friendly
+    - odds enrichment API-FOOTBALL odds endpointtal (limitálva)
     """
     slot = (slot or "DAY").upper()
 
-    fixtures = _fetch_today_fixtures()
-    print(f"[matches] api-football fixtures today -> {len(fixtures)}")
+    # ✅ EZ A LÉNYEG: nem csak "ma", hanem bővülő keresés, hogy legyen elég meccs
+    fixtures = _fetch_fixtures_expanding(slot)
+    print(f"[matches] api-football fixtures expanded total -> {len(fixtures)}")
 
     slot_fixtures = _slot_filter(fixtures, slot)
     print(f"[matches] slot={slot} -> {len(slot_fixtures)}")
 
+    # ha valamiért a slot üres, akkor is visszaadjuk a teljes poolt (mert tipp mindig kell)
     if not slot_fixtures:
-        print(f"[matches] slot üres ({slot}), visszaadom a mai összes meccset.")
+        print(f"[matches] slot üres ({slot}), visszaadom a pool összes meccsét.")
         slot_fixtures = fixtures
 
+    # ESTE prioritás
     if slot == "EVENING":
         slot_fixtures = sorted(slot_fixtures, key=_priority_bucket_evening)
-        print("[matches] EVENING priority: top -> adult -> exotic -> youth -> friendly")
+        print("[matches] EVENING priority: top -> adult -> youth -> friendly")
 
-    # --- ODDS enrichment (limit)
+    # Odds enrichment (limitált)
     odds_ok = 0
     looked = 0
     for m in slot_fixtures:
@@ -329,45 +215,8 @@ def fetch_matches_for_today(slot: str = "DAY") -> List[Dict[str, Any]]:
         if odds and odds.get("1") and odds.get("X") and odds.get("2"):
             m["odds"] = odds
             odds_ok += 1
+
     print(f"[matches] odds enriched: {odds_ok}/{min(len(slot_fixtures), ODDS_LOOKUP_LIMIT)} (limit={ODDS_LOOKUP_LIMIT})")
-
-    # --- STANDINGS + LAST5 + INJURIES enrichment (limitálva / cache)
-    standings_done = 0
-    last5_done = 0
-    inj_done = 0
-
-    for m in slot_fixtures:
-        league_id = m.get("league_id")
-        season = m.get("season")
-        home_id = m.get("home_team_id")
-        away_id = m.get("away_team_id")
-        fixture_id = m.get("fixture_id")
-
-        # standings (ligánként cache-elve)
-        if standings_done < STANDINGS_LOOKUP_LIMIT and league_id and season and home_id and away_id:
-            st_map = _fetch_standings_map(int(league_id), int(season))
-            standings_done += 1
-            if st_map:
-                m["standings"] = {
-                    "home": st_map.get(int(home_id), {}),
-                    "away": st_map.get(int(away_id), {}),
-                }
-
-        # last5 (csapatonként cache-elve)
-        if last5_done < LAST5_LOOKUP_LIMIT and league_id and season:
-            if home_id:
-                m["form"]["home_last5"] = _summarize_last5(int(home_id), int(league_id), int(season))
-                last5_done += 1
-            if away_id and last5_done < LAST5_LOOKUP_LIMIT:
-                m["form"]["away_last5"] = _summarize_last5(int(away_id), int(league_id), int(season))
-                last5_done += 1
-
-        # injuries
-        if inj_done < INJURY_LOOKUP_LIMIT and fixture_id:
-            inj = _fetch_injuries_for_fixture(int(fixture_id))
-            inj_done += 1
-            if inj:
-                m["injuries"] = inj
 
     if slot_fixtures:
         print("[matches] RAW MATCH EXAMPLE:\n", slot_fixtures[0])
