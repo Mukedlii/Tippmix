@@ -1,32 +1,32 @@
 [
   {
-    "fixture_id": 1476738,
-    "match": "NEC vs Lugazi (Premier League Uganda, 2026-01-07T18:00:00+01:00)",
+    "fixture_id": 1476739,
+    "match": "Express vs SC Villa (Premier League Uganda, 2026-01-08T18:00:00+01:00)",
+    "tip": "Vendég győzelem"
+  },
+  {
+    "fixture_id": 1422797,
+    "match": "ES Setif vs Paradou AC (Ligue 1 Algeria, 2026-01-08T17:45:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1502192,
-    "match": "Gorée vs AS Camberene (Ligue 1 Senegal, 2026-01-07T17:30:00+01:00)",
+    "fixture_id": 1467047,
+    "match": "Al Shabab vs Al-Hidd (Premier League Bahrain, 2026-01-08T17:00:00+01:00)",
+    "tip": "Vendég győzelem"
+  },
+  {
+    "fixture_id": 1502194,
+    "match": "Jaraaf vs Génération Foot (Ligue 1 Senegal, 2026-01-08T17:30:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1502191,
-    "match": "Teungueth vs Ouakam (Ligue 1 Senegal, 2026-01-07T17:30:00+01:00)",
+    "fixture_id": 1467049,
+    "match": "Al Ahli vs Budaiya (Premier League Bahrain, 2026-01-08T17:00:00+01:00)",
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1502190,
-    "match": "Pikine vs Sonacos (Ligue 1 Senegal, 2026-01-07T17:30:00+01:00)",
+    "fixture_id": 1378045,
+    "match": "Cremonese vs Cagliari (Serie A Italy, 2026-01-08T18:30:00+01:00)",
     "tip": "Hazai győzelem"
-  },
-  {
-    "fixture_id": 1502189,
-    "match": "Stade de Mbour vs AJEL (Ligue 1 Senegal, 2026-01-07T17:30:00+01:00)",
-    "tip": "Döntetlen"
-  },
-  {
-    "fixture_id": 1502188,
-    "match": "Guédiawaye vs HLM (Ligue 1 Senegal, 2026-01-07T17:30:00+01:00)",
-    "tip": "Döntetlen"
   }
 ]
