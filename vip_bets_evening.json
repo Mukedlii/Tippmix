@@ -10,11 +10,6 @@
     "tip": "Hazai győzelem"
   },
   {
-    "fixture_id": 1467047,
-    "match": "Al Shabab vs Al-Hidd (Premier League Bahrain, 2026-01-08T17:00:00+01:00)",
-    "tip": "Vendég győzelem"
-  },
-  {
     "fixture_id": 1502194,
     "match": "Jaraaf vs Génération Foot (Ligue 1 Senegal, 2026-01-08T17:30:00+01:00)",
     "tip": "Hazai győzelem"
@@ -23,6 +18,11 @@
     "fixture_id": 1467049,
     "match": "Al Ahli vs Budaiya (Premier League Bahrain, 2026-01-08T17:00:00+01:00)",
     "tip": "Hazai győzelem"
+  },
+  {
+    "fixture_id": 1467047,
+    "match": "Al Shabab vs Al-Hidd (Premier League Bahrain, 2026-01-08T17:00:00+01:00)",
+    "tip": "Vendég győzelem"
   },
   {
     "fixture_id": 1378045,
