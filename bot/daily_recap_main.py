@@ -1,7 +1,6 @@
 # bot/daily_recap_main.py
 import os
 import json
-import time
 import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -10,6 +9,9 @@ import requests
 from bot.tips_logger import read_tips
 
 
+# -----------------------------
+# Telegram
+# -----------------------------
 def _split_telegram(text: str, max_len: int = 3900) -> List[str]:
     text = text or ""
     if len(text) <= max_len:
@@ -31,7 +33,8 @@ def _split_telegram(text: str, max_len: int = 3900) -> List[str]:
 def send_telegram_message(token: str, chat_id: str, text: str, label: str) -> Tuple[bool, str]:
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     parts = _split_telegram(text)
-    print(f"\n[{label}] Telegram küldés indul... üzenet részek: {len(parts)}")
+
+    print(f"\n[{label}] Telegram recap küldés indul... üzenet részek: {len(parts)}")
 
     for idx, part in enumerate(parts, start=1):
         payload: Dict[str, Any] = {
@@ -40,6 +43,7 @@ def send_telegram_message(token: str, chat_id: str, text: str, label: str) -> Tu
             "parse_mode": "HTML",
             "disable_web_page_preview": True,
         }
+
         print(f"[{label}] Part {idx}/{len(parts)} sendMessage...")
         try:
             resp = requests.post(url, json=payload, timeout=25)
@@ -60,83 +64,136 @@ def send_telegram_message(token: str, chat_id: str, text: str, label: str) -> Tu
         if not data.get("ok"):
             return False, f"Telegram API error: {data}"
 
-    print(f"[{label}] Üzenet(ek) sikeresen elküldve.")
+    print(f"[{label}] Recap üzenet(ek) sikeresen elküldve.")
     return True, ""
 
 
-def _safe_float(x: Any) -> Optional[float]:
-    try:
-        if x is None:
-            return None
-        return float(x)
-    except Exception:
+# -----------------------------
+# API-Football (api-sports) result fetch
+# -----------------------------
+def _api_football_headers() -> Dict[str, str]:
+    key = (os.getenv("SPORTS_API_KEY") or "").strip()
+    # api-sports v3 header
+    return {"x-apisports-key": key}
+
+
+def _fetch_fixture(fixture_id: int) -> Optional[Dict[str, Any]]:
+    key = (os.getenv("SPORTS_API_KEY") or "").strip()
+    if not key:
         return None
 
-
-def odds_band(o: float) -> str:
-    if o < 1.30:
-        return "<1.30"
-    if o < 1.60:
-        return "1.30-1.59"
-    if o < 2.00:
-        return "1.60-1.99"
-    if o < 3.00:
-        return "2.00-2.99"
-    return "3.00+"
-
-
-def _fetch_fixture(api_key: str, fixture_id: int) -> Optional[Dict[str, Any]]:
     url = "https://v3.football.api-sports.io/fixtures"
-    headers = {"x-apisports-key": api_key}
     try:
-        r = requests.get(url, headers=headers, params={"id": fixture_id}, timeout=25)
-        if r.status_code != 200:
-            return None
-        data = r.json()
-        resp = (data or {}).get("response") or []
-        if not resp:
-            return None
-        return resp[0]
+        resp = requests.get(url, headers=_api_football_headers(), params={"id": str(fixture_id)}, timeout=25)
     except Exception:
         return None
 
-
-def _fixture_outcome_1x2(f: Dict[str, Any]) -> Optional[str]:
-    """
-    returns "1" | "X" | "2" if finished, else None
-    """
-    fixture = f.get("fixture") or {}
-    status = (fixture.get("status") or {}).get("short") or ""
-    # FT, AET, PEN -> eldöntött
-    if status not in ("FT", "AET", "PEN"):
+    if resp.status_code != 200:
         return None
 
-    goals = f.get("goals") or {}
-    hg = goals.get("home")
-    ag = goals.get("away")
-    if hg is None or ag is None:
-        return None
     try:
-        hg = int(hg)
-        ag = int(ag)
+        data = resp.json()
     except Exception:
         return None
 
-    if hg > ag:
+    arr = (data.get("response") or [])
+    if not arr:
+        return None
+    return arr[0]
+
+
+def _status_is_finished(short: str) -> bool:
+    s = (short or "").upper()
+    return s in {"FT", "AET", "PEN"}
+
+
+def _result_1x2(goals_home: Optional[int], goals_away: Optional[int]) -> Optional[str]:
+    if goals_home is None or goals_away is None:
+        return None
+    if goals_home > goals_away:
         return "1"
-    if hg < ag:
+    if goals_home < goals_away:
         return "2"
     return "X"
 
 
-def _sel_to_1x2(sel_hu: str) -> Optional[str]:
-    if sel_hu == "Hazai győzelem":
+def _pick_to_1x2(pick_hu: str) -> Optional[str]:
+    p = (pick_hu or "").strip()
+    if p == "Hazai győzelem":
         return "1"
-    if sel_hu == "Döntetlen":
-        return "X"
-    if sel_hu == "Vendég győzelem":
+    if p == "Vendég győzelem":
         return "2"
+    if p == "Döntetlen":
+        return "X"
     return None
+
+
+def _format_score(fx: Dict[str, Any]) -> str:
+    goals = (fx.get("goals") or {})
+    gh = goals.get("home")
+    ga = goals.get("away")
+    if gh is None or ga is None:
+        return "–"
+    return f"{gh}–{ga}"
+
+
+# -----------------------------
+# Recap builder
+# -----------------------------
+def _evaluate_bets(bets: List[Dict[str, Any]]) -> Tuple[int, int, int, List[str]]:
+    """
+    returns: (win, loss, pending, lines)
+    """
+    win = loss = pending = 0
+    lines: List[str] = []
+
+    for i, b in enumerate(bets, 1):
+        fid = b.get("fixture_id")
+        pick = b.get("tip") or b.get("selection") or b.get("pick") or ""
+        match_label = b.get("match") or b.get("label") or f"fixture_id={fid}"
+
+        try:
+            fid_int = int(fid)
+        except Exception:
+            pending += 1
+            lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ❓ hibás fixture_id")
+            continue
+
+        fx = _fetch_fixture(fid_int)
+        if not fx:
+            pending += 1
+            lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ❓ nincs adat (API)")
+            continue
+
+        st = ((fx.get("fixture") or {}).get("status") or {})
+        short = st.get("short") or ""
+        score = _format_score(fx)
+
+        if not _status_is_finished(short):
+            pending += 1
+            lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ⏳ függő ({score}, status={short})")
+            continue
+
+        goals = (fx.get("goals") or {})
+        gh = goals.get("home")
+        ga = goals.get("away")
+
+        res = _result_1x2(gh, ga)
+        sel = _pick_to_1x2(pick)
+
+        if not res or not sel:
+            pending += 1
+            lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ❓ nem értelmezhető ({score})")
+            continue
+
+        if res == sel:
+            win += 1
+            lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ✅ Nyert ({score})")
+        else:
+            loss += 1
+            lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ❌ Vesztett ({score})")
+
+    return win, loss, pending, lines
 
 
 def main() -> None:
@@ -144,179 +201,71 @@ def main() -> None:
     vip_chat_id = os.getenv("TELEGRAM_VIP_CHAT_ID")
     public_chat_id = os.getenv("TELEGRAM_PUBLIC_CHAT_ID")
 
-    api_key = os.getenv("SPORTS_API_KEY")
-    stake = int(os.getenv("TIPPMIX_STAKE_HUF", "1000"))
-
     if not telegram_token:
         print("NINCS TELEGRAM_BOT_TOKEN, kilépek.")
         return
-    if not api_key:
-        msg = "⚠️ Nincs SPORTS_API_KEY beállítva, recap nem tud eredményt lekérni."
-        if vip_chat_id:
-            send_telegram_message(telegram_token, vip_chat_id, msg, "VIP_RECAP_ERR")
-        if public_chat_id:
-            send_telegram_message(telegram_token, public_chat_id, msg, "PUBLIC_RECAP_ERR")
-        return
 
-    # Tegnapi nap recap
-    yday = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
-    tips = read_tips(yday)
-    if not tips:
-        msg = f"ℹ️ Nincs log a tegnapi napról ({yday})."
-        if vip_chat_id:
-            send_telegram_message(telegram_token, vip_chat_id, msg, "VIP_RECAP_NOLOG")
-        if public_chat_id:
-            send_telegram_message(telegram_token, public_chat_id, msg, "PUBLIC_RECAP_NOLOG")
-        return
+    slot = (os.getenv("TIPPMIX_SLOT") or "EVENING").upper()
+    # recap-nél az EVENING/DAY mindkettő jöhet
+    if slot not in {"DAY", "EVENING"}:
+        slot = "EVENING"
 
-    # Csak az eldönthető tippekhez kell fixture_id
-    fixture_ids = sorted({int(t["fixture_id"]) for t in tips if t.get("fixture_id") is not None})
+    today = datetime.date.today().strftime("%Y.%m.%d.")
+    slot_text = "délelőtt / nappal" if slot == "DAY" else "délután / este"
 
-    fixtures: Dict[int, Dict[str, Any]] = {}
-    for fid in fixture_ids:
-        f = _fetch_fixture(api_key, fid)
-        if f:
-            fixtures[fid] = f
-        time.sleep(float(os.getenv("TIPPMIX_RECAP_SLEEP_SEC", "0.15")))
+    tips = read_tips(slot=slot, base_dir=".")
+    vip_bets = tips.get("vip_bets") or []
+    public_bets = tips.get("public_bets") or []
 
-    decided_rows: List[Dict[str, Any]] = []
-    pending = 0
-
-    for t in tips:
-        fid = t.get("fixture_id")
-        if fid is None:
-            pending += 1
-            continue
-        fid = int(fid)
-        f = fixtures.get(fid)
-        if not f:
-            pending += 1
-            continue
-
-        outcome = _fixture_outcome_1x2(f)
-        if outcome is None:
-            pending += 1
-            continue
-
-        sel = _sel_to_1x2(t.get("selection") or "")
-        if not sel:
-            pending += 1
-            continue
-
-        win = (sel == outcome)
-        o = _safe_float(t.get("odds"))
-
-        decided_rows.append(
-            {
-                "tier": t.get("tier"),
-                "slot": t.get("slot"),
-                "league": (t.get("league") or "Unknown"),
-                "is_highlighted": bool(t.get("is_highlighted")),
-                "odds": o,
-                "win": win,
-            }
+    # ha nincs mentett tipp, ne bukjon a workflow
+    if not vip_bets and not public_bets:
+        msg = (
+            f"📊 SZELVÉNYKIRÁLY – NAPI MÉRLEG ({slot_text})\n"
+            f"Dátum: {today}\n\n"
+            "⚠️ Nincs mentett tipp fájl a recap-hez.\n"
+            "Ellenőrizd: vip_bets_*.json / public_bets_*.json"
         )
+        if vip_chat_id:
+            send_telegram_message(telegram_token, vip_chat_id, msg, f"VIP_RECAP_{slot}")
+        if public_chat_id:
+            send_telegram_message(telegram_token, public_chat_id, msg, f"PUBLIC_RECAP_{slot}")
+        return
 
-    wins = sum(1 for r in decided_rows if r["win"])
-    losses = sum(1 for r in decided_rows if not r["win"])
-    total_decided = wins + losses
-    hit_rate = (wins / total_decided * 100.0) if total_decided else 0.0
+    vip_w, vip_l, vip_p, vip_lines = _evaluate_bets(vip_bets)
+    pub_w, pub_l, pub_p, pub_lines = _evaluate_bets(public_bets)
 
-    # League hit rates
-    by_league: Dict[str, Dict[str, int]] = {}
-    for r in decided_rows:
-        lg = r["league"]
-        by_league.setdefault(lg, {"w": 0, "l": 0})
-        if r["win"]:
-            by_league[lg]["w"] += 1
-        else:
-            by_league[lg]["l"] += 1
+    def hitrate(w: int, l: int) -> float:
+        d = w + l
+        return (100.0 * w / d) if d > 0 else 0.0
 
-    # Odds band hit rates
-    by_band: Dict[str, Dict[str, int]] = {}
-    for r in decided_rows:
-        o = r["odds"]
-        if not o:
-            continue
-        b = odds_band(o)
-        by_band.setdefault(b, {"w": 0, "l": 0})
-        if r["win"]:
-            by_band[b]["w"] += 1
-        else:
-            by_band[b]["l"] += 1
+    vip_msg = (
+        f"📊 SZELVÉNYKIRÁLY – NAPI MÉRLEG (VIP ({slot_text}))\n"
+        f"Dátum: {today}\n\n"
+        f"Összefoglaló:\n"
+        f"✅ Nyertes tippek: {vip_w}\n"
+        f"❌ Vesztes tippek: {vip_l}\n"
+        f"⏳ Függő / nem értékelt: {vip_p}\n"
+        f"🎯 Találati arány (csak eldöntött tippek): {hitrate(vip_w, vip_l):.1f}%\n\n"
+        + "\n\n".join(vip_lines[:25])
+    )
 
-    # ROI highlighted vs non-highlighted (csak ahol van odds)
-    def roi_calc(rows: List[Dict[str, Any]]) -> Tuple[int, int]:
-        total_stake = 0
-        profit = 0
-        for r in rows:
-            o = r.get("odds")
-            if not o:
-                continue
-            total_stake += stake
-            if r["win"]:
-                profit += int(round((float(o) - 1.0) * stake))
-            else:
-                profit -= stake
-        return profit, total_stake
-
-    hl_rows = [r for r in decided_rows if r["is_highlighted"]]
-    nh_rows = [r for r in decided_rows if not r["is_highlighted"]]
-
-    hl_profit, hl_stake = roi_calc(hl_rows)
-    nh_profit, nh_stake = roi_calc(nh_rows)
-
-    def roi_pct(profit: int, st: int) -> float:
-        return (profit / st * 100.0) if st else 0.0
-
-    msg_lines = [
-        "📊 SZELVÉNYKIRÁLY – NAPI RECAP",
-        f"Dátum (log): {yday}",
-        "",
-        f"✅ Nyertes: {wins}",
-        f"❌ Vesztes: {losses}",
-        f"⏳ Függő/nem kiértékelt: {pending}",
-        f"🎯 Találati arány (csak eldöntött): {hit_rate:.1f}%",
-        "",
-        "🏆 ROI (csak ahol van odds):",
-        f"💎 KIEMELT: profit {hl_profit:,} Ft | tét {hl_stake:,} Ft | ROI {roi_pct(hl_profit, hl_stake):.1f}%".replace(",", " "),
-        f"📌 NEM KIEMELT: profit {nh_profit:,} Ft | tét {nh_stake:,} Ft | ROI {roi_pct(nh_profit, nh_stake):.1f}%".replace(",", " "),
-        "",
-        "📌 Hit rate liga szerint (csak eldöntött):",
-    ]
-
-    # top ligák (min 2 tipp)
-    league_items = []
-    for lg, wl in by_league.items():
-        n = wl["w"] + wl["l"]
-        if n < int(os.getenv("TIPPMIX_RECAP_MIN_LEAGUE_N", "2")):
-            continue
-        hr = wl["w"] / n * 100.0
-        league_items.append((n, hr, lg, wl["w"], wl["l"]))
-    league_items.sort(key=lambda x: (x[0], x[1]), reverse=True)
-    for n, hr, lg, w, l in league_items[: int(os.getenv("TIPPMIX_RECAP_TOP_LEAGUES", "12"))]:
-        msg_lines.append(f"• {lg}: {w}-{l} ({hr:.0f}%)")
-
-    msg_lines.append("")
-    msg_lines.append("🎲 Hit rate odds sáv szerint (csak ahol van odds):")
-    band_items = []
-    for b, wl in by_band.items():
-        n = wl["w"] + wl["l"]
-        if n < int(os.getenv("TIPPMIX_RECAP_MIN_BAND_N", "2")):
-            continue
-        hr = wl["w"] / n * 100.0
-        band_items.append((n, hr, b, wl["w"], wl["l"]))
-    band_items.sort(key=lambda x: (x[0], x[1]), reverse=True)
-    for n, hr, b, w, l in band_items:
-        msg_lines.append(f"• {b}: {w}-{l} ({hr:.0f}%)")
-
-    recap_text = "\n".join(msg_lines)
+    pub_msg = (
+        f"📊 SZELVÉNYKIRÁLY – NAPI MÉRLEG (FREE ({slot_text}))\n"
+        f"Dátum: {today}\n\n"
+        f"Összefoglaló:\n"
+        f"✅ Nyertes tippek: {pub_w}\n"
+        f"❌ Vesztes tippek: {pub_l}\n"
+        f"⏳ Függő / nem értékelt: {pub_p}\n"
+        f"🎯 Találati arány (csak eldöntött tippek): {hitrate(pub_w, pub_l):.1f}%\n\n"
+        + "\n\n".join(pub_lines[:25])
+    )
 
     if vip_chat_id:
-        send_telegram_message(telegram_token, vip_chat_id, recap_text, "VIP_RECAP")
-    if public_chat_id and os.getenv("TIPPMIX_RECAP_SEND_PUBLIC", "0") == "1":
-        send_telegram_message(telegram_token, public_chat_id, recap_text, "PUBLIC_RECAP")
+        send_telegram_message(telegram_token, vip_chat_id, vip_msg, f"VIP_RECAP_{slot}")
+    if public_chat_id:
+        send_telegram_message(telegram_token, public_chat_id, pub_msg, f"PUBLIC_RECAP_{slot}")
 
 
 if __name__ == "__main__":
     main()
+
