@@ -1,25 +1,63 @@
-import os
+# bot/tips_logger.py
 import json
-import datetime
-from typing import Any, Dict, Iterable
+import os
+from typing import Any, Dict, List, Optional
 
-LOG_DIR = os.getenv("TIPPMIX_LOG_DIR", "logs")
 
-def _ensure_dir() -> None:
-    os.makedirs(LOG_DIR, exist_ok=True)
+def _safe_load_json(path: str) -> Optional[Any]:
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
 
-def log_tips(date: str, rows: Iterable[Dict[str, Any]]) -> str:
+
+def _list_existing(paths: List[str]) -> List[str]:
+    return [p for p in paths if os.path.isfile(p)]
+
+
+def read_tips(slot: str, base_dir: str = ".") -> Dict[str, Any]:
     """
-    JSONL: 1 sor = 1 tipp log.
-    date: 'YYYY-MM-DD'
-    rows: dict tippek
-    """
-    _ensure_dir()
-    path = os.path.join(LOG_DIR, f"tips_{date}.jsonl")
-    with open(path, "a", encoding="utf-8") as f:
-        for r in rows:
-            f.write(json.dumps(r, ensure_ascii=False) + "\n")
-    return path
+    Visszaadja a mentett tippeket a repo rootból.
+    A te projektedben ezek a fájlok léteznek:
+      - vip_bets_day.json / vip_bets_evening.json
+      - public_bets_day.json / public_bets_evening.json
+      - (opcionális) *_meta.json
 
-def today_str() -> str:
-    return datetime.date.today().isoformat()
+    Return:
+      {
+        "vip_bets": [...],
+        "public_bets": [...],
+        "vip_meta": {...} | None,
+        "public_meta": {...} | None,
+      }
+    """
+    slot = (slot or "DAY").upper()
+    suffix = "day" if slot == "DAY" else "evening"
+
+    vip_path = os.path.join(base_dir, f"vip_bets_{suffix}.json")
+    pub_path = os.path.join(base_dir, f"public_bets_{suffix}.json")
+
+    vip_meta_path = os.path.join(base_dir, f"vip_bets_{suffix}_meta.json")
+    pub_meta_path = os.path.join(base_dir, f"public_bets_{suffix}_meta.json")
+
+    vip_bets = _safe_load_json(vip_path) or []
+    public_bets = _safe_load_json(pub_path) or []
+
+    vip_meta = _safe_load_json(vip_meta_path)
+    public_meta = _safe_load_json(pub_meta_path)
+
+    # mindig listát adjunk vissza
+    if not isinstance(vip_bets, list):
+        vip_bets = []
+    if not isinstance(public_bets, list):
+        public_bets = []
+
+    return {
+        "vip_bets": vip_bets,
+        "public_bets": public_bets,
+        "vip_meta": vip_meta,
+        "public_meta": public_meta,
+        "paths_found": _list_existing([vip_path, pub_path, vip_meta_path, pub_meta_path]),
+    }
+
