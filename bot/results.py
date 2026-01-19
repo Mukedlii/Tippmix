@@ -3,7 +3,8 @@ from typing import Any, Dict, List, Optional
 
 import requests
 
-from bot.api_keys import get_sports_api_key
+from bot.api_keys import get_api_sports_key, resolve_sports_provider
+from bot.providers import sportsdataio
 
 
 def _normalize_fixture_id(fixture_id_value: Any, match_text: Optional[str] = None) -> Optional[int]:
@@ -42,10 +43,16 @@ def _normalize_fixture_id(fixture_id_value: Any, match_text: Optional[str] = Non
 
 def _get_fixture_result(fixture_id: int) -> Dict[str, Any]:
     """
-    Lekéri egy meccs (fixture) állapotát/eredményét API-FOOTBALL (API-Sports) /fixtures endpointból.
+    Lekéri egy meccs (fixture) állapotát/eredményét.
+    API-FOOTBALL (API-Sports) vagy SportsDataIO provider alapján.
     """
+    provider = resolve_sports_provider()
+    if provider == "sportsdataio":
+        game = sportsdataio.fetch_game_by_id(fixture_id)
+        return game or {}
+
     url = "https://v3.football.api-sports.io/fixtures"
-    headers = {"x-apisports-key": get_sports_api_key()}
+    headers = {"x-apisports-key": get_api_sports_key()}
     params = {"id": fixture_id}
 
     resp = requests.get(url, headers=headers, params=params, timeout=25)
@@ -68,16 +75,24 @@ def _settle_tip_1x2(tip: str, fixture: Dict[str, Any]) -> str:
     if not fixture:
         return "unknown"
 
-    fx = fixture.get("fixture") or {}
-    status = ((fx.get("status") or {}).get("short") or "").upper()
+    if resolve_sports_provider() == "sportsdataio":
+        status = (fixture.get("Status") or "").upper()
+        home_goals = fixture.get("HomeTeamScore")
+        away_goals = fixture.get("AwayTeamScore")
+        if status not in ("FINAL", "FINAL/OT", "FINAL/SO", "FT"):
+            return "pending"
+    else:
+        fx = fixture.get("fixture") or {}
+        status = ((fx.get("status") or {}).get("short") or "").upper()
 
-    goals = fixture.get("goals") or {}
-    home_goals = goals.get("home")
-    away_goals = goals.get("away")
+        goals = fixture.get("goals") or {}
+        home_goals = goals.get("home")
+        away_goals = goals.get("away")
 
-    # még nem végleges
-    if status not in ("FT", "AET", "PEN"):
-        return "pending"
+    # még nem végleges (api-sports)
+    if resolve_sports_provider() != "sportsdataio":
+        if status not in ("FT", "AET", "PEN"):
+            return "pending"
 
     if home_goals is None or away_goals is None:
         return "unknown"
@@ -133,14 +148,21 @@ def evaluate_bets(bets: List[Dict[str, Any]]) -> Dict[str, Any]:
                 fixture_data = _get_fixture_result(int(fixture_id))
                 result = _settle_tip_1x2(tip, fixture_data)
 
-                fx = fixture_data.get("fixture") or {}
-                status = ((fx.get("status") or {}).get("short") or "").upper()
+                if resolve_sports_provider() == "sportsdataio":
+                    status = (fixture_data.get("Status") or "").upper()
+                    hg = fixture_data.get("HomeTeamScore")
+                    ag = fixture_data.get("AwayTeamScore")
+                    if isinstance(hg, int) and isinstance(ag, int):
+                        score = f"{hg}–{ag}"
+                else:
+                    fx = fixture_data.get("fixture") or {}
+                    status = ((fx.get("status") or {}).get("short") or "").upper()
 
-                goals = fixture_data.get("goals") or {}
-                hg = goals.get("home")
-                ag = goals.get("away")
-                if isinstance(hg, int) and isinstance(ag, int):
-                    score = f"{hg}–{ag}"
+                    goals = fixture_data.get("goals") or {}
+                    hg = goals.get("home")
+                    ag = goals.get("away")
+                    if isinstance(hg, int) and isinstance(ag, int):
+                        score = f"{hg}–{ag}"
             except Exception as e:
                 print(f"Hiba fixture {fixture_id} ellenőrzésekor: {repr(e)}")
                 result = "unknown"

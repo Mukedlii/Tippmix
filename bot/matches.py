@@ -5,8 +5,9 @@ from typing import Any, Dict, List, Optional
 
 import requests
 
-from bot.api_keys import get_sports_api_key
+from bot.api_keys import get_api_sports_key, resolve_sports_provider
 from bot.odds import fetch_api_football_1x2_odds
+from bot.providers import sportsdataio
 TZ = os.getenv("TIPPMIX_TIMEZONE", "Europe/Budapest")
 
 MAX_FIXTURES = int(os.getenv("TIPPMIX_MAX_FIXTURES", "200"))
@@ -42,7 +43,7 @@ FRIENDLY_PATTERNS = [r"friendly", r"barátságos"]
 
 def _api_get(path: str, params: Dict[str, Any], timeout: int = 25) -> Dict[str, Any]:
     url = f"https://v3.football.api-sports.io/{path.lstrip('/')}"
-    headers = {"x-apisports-key": get_sports_api_key()}
+    headers = {"x-apisports-key": get_api_sports_key()}
     r = requests.get(url, headers=headers, params=params, timeout=timeout)
     if r.status_code != 200:
         raise RuntimeError(f"API error {r.status_code}: {r.text[:300]}")
@@ -116,6 +117,16 @@ def _priority_bucket_evening(match: Dict[str, Any]) -> int:
 
 
 def _fetch_fixtures_for_date(date_str: str) -> List[Dict[str, Any]]:
+    provider = resolve_sports_provider()
+    if provider == "sportsdataio":
+        games = sportsdataio.fetch_games_by_date(date_str)
+        out: List[Dict[str, Any]] = []
+        for game in games[:MAX_FIXTURES]:
+            item = sportsdataio.normalize_game(game)
+            if item:
+                out.append(item)
+        return out
+
     data = _api_get("fixtures", params={"date": date_str, "timezone": TZ})
     resp = data.get("response") or []
 

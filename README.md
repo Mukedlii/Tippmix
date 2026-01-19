@@ -7,6 +7,10 @@ Ez egy alap projekt, ami:
 
 Fontos:
 - Minden API kulcsot (Telegram, OpenAI, sport API) **GitHub Secrets-ben** tárolj.
-- A sport API kulcshoz használhatod a `SPORTS_API_KEY` vagy a `SPORTSDATAIO_API` secretet (bármelyikből működik a fallback).
-- A `bot/matches.py` fájl jelenleg csak MINTA adatokat ad vissza.
-  Később ezt kell összekötni egy valódi sport/odds API-val.
+- A sport API kulcsok a providerhez kötődnek:
+  - API-FOOTBALL (API-Sports): `SPORTS_API_KEY`
+  - SportsDataIO (soccer): `SPORTSDATAIO_API`
+- A provider automatikusan választ:
+  - ha van `SPORTS_API_KEY` → API-FOOTBALL
+  - ha van `SPORTSDATAIO_API` → SportsDataIO
+  - felülírható `SPORTS_DATA_PROVIDER=api-sports|sportsdataio` env-vel

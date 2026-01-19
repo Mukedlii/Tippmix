@@ -6,8 +6,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
-from bot.api_keys import get_optional_sports_api_key
+from bot.api_keys import get_optional_api_sports_key, get_optional_sportsdataio_key
 from bot.tips_logger import read_tips
+from bot.providers import sportsdataio
 
 
 # -----------------------------
@@ -74,12 +75,25 @@ def send_telegram_message(token: str, chat_id: str, text: str, label: str) -> Tu
 # -----------------------------
 def _api_football_headers() -> Dict[str, str]:
     # api-sports v3 header
-    return {"x-apisports-key": get_optional_sports_api_key()}
+    return {"x-apisports-key": get_optional_api_sports_key()}
+
+
+def _detect_provider() -> Optional[str]:
+    if get_optional_api_sports_key():
+        return "api-sports"
+    if get_optional_sportsdataio_key():
+        return "sportsdataio"
+    return None
 
 
 def _fetch_fixture(fixture_id: int) -> Optional[Dict[str, Any]]:
-    if not get_optional_sports_api_key():
+    provider = _detect_provider()
+    if not provider:
         return None
+
+    if provider == "sportsdataio":
+        return sportsdataio.fetch_game_by_id(fixture_id)
+
     url = "https://v3.football.api-sports.io/fixtures"
     try:
         resp = requests.get(url, headers=_api_football_headers(), params={"id": str(fixture_id)}, timeout=25)
@@ -127,6 +141,13 @@ def _pick_to_1x2(pick_hu: str) -> Optional[str]:
 
 
 def _format_score(fx: Dict[str, Any]) -> str:
+    if _detect_provider() == "sportsdataio":
+        gh = fx.get("HomeTeamScore")
+        ga = fx.get("AwayTeamScore")
+        if gh is None or ga is None:
+            return "–"
+        return f"{gh}–{ga}"
+
     goals = (fx.get("goals") or {})
     gh = goals.get("home")
     ga = goals.get("away")
@@ -163,18 +184,29 @@ def _evaluate_bets(bets: List[Dict[str, Any]]) -> Tuple[int, int, int, List[str]
             lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ❓ nincs adat (API)")
             continue
 
-        st = ((fx.get("fixture") or {}).get("status") or {})
-        short = st.get("short") or ""
+        provider = _detect_provider()
         score = _format_score(fx)
 
-        if not _status_is_finished(short):
-            pending += 1
-            lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ⏳ függő ({score}, status={short})")
-            continue
+        if provider == "sportsdataio":
+            short = (fx.get("Status") or "").upper()
+            if short not in {"FINAL", "FINAL/OT", "FINAL/SO", "FT"}:
+                pending += 1
+                lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ⏳ függő ({score}, status={short})")
+                continue
+            gh = fx.get("HomeTeamScore")
+            ga = fx.get("AwayTeamScore")
+        else:
+            st = ((fx.get("fixture") or {}).get("status") or {})
+            short = st.get("short") or ""
 
-        goals = (fx.get("goals") or {})
-        gh = goals.get("home")
-        ga = goals.get("away")
+            if not _status_is_finished(short):
+                pending += 1
+                lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ⏳ függő ({score}, status={short})")
+                continue
+
+            goals = (fx.get("goals") or {})
+            gh = goals.get("home")
+            ga = goals.get("away")
 
         res = _result_1x2(gh, ga)
         sel = _pick_to_1x2(pick)

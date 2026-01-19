@@ -12,9 +12,9 @@ client = OpenAI()
 MIN_VIP = int(os.getenv("TIPPMIX_MIN_VIP", "6"))
 MIN_FREE = int(os.getenv("TIPPMIX_MIN_FREE", "3"))
 
-# Ha nem akarsz plafont, hagyd defaulton (nagy szám), vagy állítsd env-ben még nagyobbra.
-MAX_VIP = int(os.getenv("TIPPMIX_MAX_VIP", "50"))
-MAX_FREE = int(os.getenv("TIPPMIX_MAX_FREE", "50"))
+# Ha nem akarsz plafont, állítsd env-ben nagyobbra.
+MAX_VIP = int(os.getenv("TIPPMIX_MAX_VIP", str(MIN_VIP)))
+MAX_FREE = int(os.getenv("TIPPMIX_MAX_FREE", str(MIN_FREE)))
 
 STAKE_HUF = int(os.getenv("TIPPMIX_STAKE_HUF", "1000"))
 
