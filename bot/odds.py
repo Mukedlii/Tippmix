@@ -1,8 +1,7 @@
-import os
 from typing import Any, Dict, Optional
 import requests
 
-API_FOOTBALL_KEY = (os.getenv("SPORTS_API_KEY") or "").strip()
+from bot.api_keys import get_sports_api_key
 
 _API_FOOTBALL_BASE = "https://v3.football.api-sports.io"
 
@@ -11,9 +10,7 @@ _ODDS_CACHE: Dict[int, Dict[str, float]] = {}
 
 
 def _headers() -> Dict[str, str]:
-    if not API_FOOTBALL_KEY:
-        raise RuntimeError("SPORTS_API_KEY nincs beállítva.")
-    return {"x-apisports-key": API_FOOTBALL_KEY}
+    return {"x-apisports-key": get_sports_api_key()}
 
 
 def fetch_api_football_1x2_odds(fixture_id: int) -> Dict[str, float]:

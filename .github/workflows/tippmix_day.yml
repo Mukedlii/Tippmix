@@ -19,6 +19,7 @@ jobs:
 
       # API kulcsok
       SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
+      SPORTSDATAIO_API: ${{ secrets.SPORTSDATAIO_API }}
       FOOTBALL_DATA_TOKEN: ${{ secrets.FOOTBALL_DATA_TOKEN }}
       SPORTMONKS_API_TOKEN: ${{ secrets.SPORTMONKS_API_TOKEN }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

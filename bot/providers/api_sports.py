@@ -5,20 +5,15 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
+from bot.api_keys import get_sports_api_key
+
 BASE_URL = os.getenv("SPORTS_API_BASE_URL", "https://v3.football.api-sports.io").rstrip("/")
 TIMEZONE = os.getenv("SPORTS_API_TIMEZONE", "Europe/Budapest")
 
 
-def _key() -> str:
-    k = (os.getenv("SPORTS_API_KEY") or "").strip()
-    if not k:
-        raise RuntimeError("SPORTS_API_KEY nincs beállítva (GitHub Secrets).")
-    return k
-
-
 def _get(path: str, params: Dict[str, Any], timeout: int = 25) -> Dict[str, Any]:
     headers = {
-        "x-apisports-key": _key(),
+        "x-apisports-key": get_sports_api_key(),
     }
     url = f"{BASE_URL}{path}"
 

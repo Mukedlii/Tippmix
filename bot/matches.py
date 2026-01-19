@@ -5,9 +5,8 @@ from typing import Any, Dict, List, Optional
 
 import requests
 
+from bot.api_keys import get_sports_api_key
 from bot.odds import fetch_api_football_1x2_odds
-
-API_FOOTBALL_KEY = (os.getenv("SPORTS_API_KEY") or "").strip()
 TZ = os.getenv("TIPPMIX_TIMEZONE", "Europe/Budapest")
 
 MAX_FIXTURES = int(os.getenv("TIPPMIX_MAX_FIXTURES", "200"))
@@ -42,10 +41,8 @@ FRIENDLY_PATTERNS = [r"friendly", r"barátságos"]
 
 
 def _api_get(path: str, params: Dict[str, Any], timeout: int = 25) -> Dict[str, Any]:
-    if not API_FOOTBALL_KEY:
-        raise RuntimeError("SPORTS_API_KEY nincs beállítva")
     url = f"https://v3.football.api-sports.io/{path.lstrip('/')}"
-    headers = {"x-apisports-key": API_FOOTBALL_KEY}
+    headers = {"x-apisports-key": get_sports_api_key()}
     r = requests.get(url, headers=headers, params=params, timeout=timeout)
     if r.status_code != 200:
         raise RuntimeError(f"API error {r.status_code}: {r.text[:300]}")

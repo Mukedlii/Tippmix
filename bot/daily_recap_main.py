@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
+from bot.api_keys import get_optional_sports_api_key
 from bot.tips_logger import read_tips
 
 
@@ -72,16 +73,13 @@ def send_telegram_message(token: str, chat_id: str, text: str, label: str) -> Tu
 # API-Football (api-sports) result fetch
 # -----------------------------
 def _api_football_headers() -> Dict[str, str]:
-    key = (os.getenv("SPORTS_API_KEY") or "").strip()
     # api-sports v3 header
-    return {"x-apisports-key": key}
+    return {"x-apisports-key": get_optional_sports_api_key()}
 
 
 def _fetch_fixture(fixture_id: int) -> Optional[Dict[str, Any]]:
-    key = (os.getenv("SPORTS_API_KEY") or "").strip()
-    if not key:
+    if not get_optional_sports_api_key():
         return None
-
     url = "https://v3.football.api-sports.io/fixtures"
     try:
         resp = requests.get(url, headers=_api_football_headers(), params={"id": str(fixture_id)}, timeout=25)
@@ -268,4 +266,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

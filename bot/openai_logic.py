@@ -388,7 +388,7 @@ def _fill_minimum(matches_norm: List[Dict[str, Any]], vip: List[Dict[str, Any]],
 
 def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     if not matches:
-        msg = "⚠️ Ma nem jött vissza meccs az API-ból. Nézd meg a SPORTS_API_KEY-t / limitet."
+        msg = "⚠️ Ma nem jött vissza meccs az API-ból. Nézd meg a SPORTS_API_KEY / SPORTSDATAIO_API kulcsot és a limitet."
         return {"telegram_public_text": msg, "telegram_vip_text": msg, "public_bets": [], "vip_bets": []}
 
     matches_norm = [_normalize_match(m) for m in matches]

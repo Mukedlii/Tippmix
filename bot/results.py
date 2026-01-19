@@ -1,10 +1,9 @@
-import os
 import datetime
 from typing import Any, Dict, List, Optional
 
 import requests
 
-API_FOOTBALL_KEY = (os.getenv("SPORTS_API_KEY") or "").strip()
+from bot.api_keys import get_sports_api_key
 
 
 def _normalize_fixture_id(fixture_id_value: Any, match_text: Optional[str] = None) -> Optional[int]:
@@ -45,11 +44,8 @@ def _get_fixture_result(fixture_id: int) -> Dict[str, Any]:
     """
     Lekéri egy meccs (fixture) állapotát/eredményét API-FOOTBALL (API-Sports) /fixtures endpointból.
     """
-    if not API_FOOTBALL_KEY:
-        raise RuntimeError("SPORTS_API_KEY nincs beállítva (GitHub Secrets).")
-
     url = "https://v3.football.api-sports.io/fixtures"
-    headers = {"x-apisports-key": API_FOOTBALL_KEY}
+    headers = {"x-apisports-key": get_sports_api_key()}
     params = {"id": fixture_id}
 
     resp = requests.get(url, headers=headers, params=params, timeout=25)
