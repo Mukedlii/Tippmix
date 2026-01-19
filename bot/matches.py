@@ -1,14 +1,17 @@
 import os
 import re
 import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
+from zoneinfo import ZoneInfo
 
 import requests
 
 from bot.odds import fetch_api_football_1x2_odds
+from bot.providers import sportmonks as sportmonks_provider
 
 API_FOOTBALL_KEY = (os.getenv("SPORTS_API_KEY") or "").strip()
 TZ = os.getenv("TIPPMIX_TIMEZONE", "Europe/Budapest")
+SPORTMONKS_TOKEN = (os.getenv("SPORTMONKS_API_TOKEN") or "").strip()
 
 MAX_FIXTURES = int(os.getenv("TIPPMIX_MAX_FIXTURES", "200"))
 ODDS_LOOKUP_LIMIT = int(os.getenv("TIPPMIX_ODDS_LOOKUP_LIMIT", "120"))
@@ -23,6 +26,8 @@ MAX_DAYS_AHEAD = int(os.getenv("TIPPMIX_MAX_DAYS_AHEAD", "3"))
 # mekkora legyen minimum a pool (slot után számolva)
 # ha nincs beállítva, számoljuk: VIP+FREE+12 (hogy legyen miből válogatni)
 MIN_POOL = int(os.getenv("TIPPMIX_MIN_POOL", str(MIN_VIP + MIN_FREE + 12)))
+
+FIXTURE_PROVIDERS = [p.strip().lower() for p in os.getenv("TIPPMIX_FIXTURE_PROVIDERS", "api_sports").split(",") if p.strip()]
 
 TOP_LEAGUE_KEYWORDS = [
     "Premier League", "La Liga", "Bundesliga", "Serie A", "Ligue 1",
@@ -118,7 +123,33 @@ def _priority_bucket_evening(match: Dict[str, Any]) -> int:
     return 2
 
 
-def _fetch_fixtures_for_date(date_str: str) -> List[Dict[str, Any]]:
+def _norm_team_name(name: str) -> str:
+    return "".join(ch.lower() for ch in (name or "") if ch.isalnum() or ch.isspace()).strip()
+
+
+def _fixture_key(match: Dict[str, Any]) -> Tuple[str, str, str]:
+    kickoff = str(match.get("kickoff_local") or "")
+    date = kickoff.split("T")[0] if "T" in kickoff else kickoff.split(" ")[0]
+    home = _norm_team_name(str(match.get("home_team") or ""))
+    away = _norm_team_name(str(match.get("away_team") or ""))
+    return date, home, away
+
+
+def _merge_fixtures(fixtures_by_provider: List[Tuple[str, List[Dict[str, Any]]]]) -> List[Dict[str, Any]]:
+    merged: Dict[Tuple[str, str, str], Dict[str, Any]] = {}
+    ordered: List[Dict[str, Any]] = []
+    for provider, items in fixtures_by_provider:
+        for match in items:
+            key = _fixture_key(match)
+            if key in merged:
+                continue
+            merged[key] = match
+            match["provider"] = provider
+            ordered.append(match)
+    return ordered
+
+
+def _fetch_api_sports_fixtures_for_date(date_str: str) -> List[Dict[str, Any]]:
     data = _api_get("fixtures", params={"date": date_str, "timezone": TZ})
     resp = data.get("response") or []
 
@@ -153,7 +184,7 @@ def _fetch_fixtures_for_date(date_str: str) -> List[Dict[str, Any]]:
     return out
 
 
-def _fetch_fixtures_expanding(slot: str) -> List[Dict[str, Any]]:
+def _fetch_api_sports_fixtures_expanding(slot: str) -> List[Dict[str, Any]]:
     """
     Bővülő keresés: ma, holnap, holnapután...
     addig, amíg slot-szűrés után megvan legalább MIN_POOL db meccs.
@@ -165,11 +196,11 @@ def _fetch_fixtures_expanding(slot: str) -> List[Dict[str, Any]]:
 
     for days_ahead in range(0, MAX_DAYS_AHEAD + 1):
         day = (base + datetime.timedelta(days=days_ahead)).strftime("%Y-%m-%d")
-        chunk = _fetch_fixtures_for_date(day)
+        chunk = _fetch_api_sports_fixtures_for_date(day)
         all_fx.extend(chunk)
 
         slot_fx = _slot_filter(all_fx, slot)
-        print(f"[matches] api-football fixtures: date={day} added={len(chunk)} | slot={slot} now={len(slot_fx)} total={len(all_fx)}")
+        print(f"[matches] api-sports fixtures: date={day} added={len(chunk)} | slot={slot} now={len(slot_fx)} total={len(all_fx)}")
 
         if len(slot_fx) >= MIN_POOL:
             return all_fx
@@ -177,18 +208,140 @@ def _fetch_fixtures_expanding(slot: str) -> List[Dict[str, Any]]:
     return all_fx
 
 
+def _parse_sportmonks_fixture(raw: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    try:
+        fixture_id = int(raw.get("id"))
+    except Exception:
+        return None
+
+    starting = str(raw.get("starting_at") or "")
+    kickoff = ""
+    if starting:
+        try:
+            dt = datetime.datetime.fromisoformat(starting.replace("Z", "+00:00"))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=datetime.timezone.utc)
+            kickoff = dt.astimezone(ZoneInfo(TZ)).isoformat()
+        except Exception:
+            kickoff = starting
+
+    league = raw.get("league") or {}
+    league_name = league.get("name") or ""
+    country = league.get("country") or ""
+
+    participants = raw.get("participants") or []
+    home = away = None
+    for p in participants:
+        meta = p.get("meta") or {}
+        loc = (meta.get("location") or "").lower()
+        if loc == "home":
+            home = p.get("name")
+        elif loc == "away":
+            away = p.get("name")
+    if not home or not away:
+        if len(participants) >= 2:
+            home = home or participants[0].get("name")
+            away = away or participants[1].get("name")
+
+    if not home or not away:
+        return None
+
+    return {
+        "sport": "football",
+        "fixture_id": fixture_id,
+        "league_name": league_name or "",
+        "country_name": country or "",
+        "kickoff_local": kickoff or "",
+        "home_team": home,
+        "away_team": away,
+        "odds": {},
+        "standings": {},
+        "injuries": [],
+    }
+
+
+def _fetch_sportmonks_fixtures_for_date(date_str: str) -> List[Dict[str, Any]]:
+    if not SPORTMONKS_TOKEN:
+        return []
+    raw = sportmonks_provider.fixtures_between(date_str, date_str)
+    out: List[Dict[str, Any]] = []
+    for it in raw[:MAX_FIXTURES]:
+        parsed = _parse_sportmonks_fixture(it)
+        if parsed:
+            out.append(parsed)
+    return out
+
+
+def _fetch_sportmonks_fixtures_expanding(slot: str) -> List[Dict[str, Any]]:
+    slot = (slot or "DAY").upper()
+    base = datetime.date.today()
+
+    all_fx: List[Dict[str, Any]] = []
+
+    for days_ahead in range(0, MAX_DAYS_AHEAD + 1):
+        day = (base + datetime.timedelta(days=days_ahead)).strftime("%Y-%m-%d")
+        chunk = _fetch_sportmonks_fixtures_for_date(day)
+        all_fx.extend(chunk)
+
+        slot_fx = _slot_filter(all_fx, slot)
+        print(f"[matches] sportmonks fixtures: date={day} added={len(chunk)} | slot={slot} now={len(slot_fx)} total={len(all_fx)}")
+
+        if len(slot_fx) >= MIN_POOL:
+            return all_fx
+
+    return all_fx
+
+
+def _fetch_fixtures_expanding(slot: str) -> List[Dict[str, Any]]:
+    providers: List[Tuple[str, List[Dict[str, Any]]]] = []
+    for provider in FIXTURE_PROVIDERS:
+        if provider == "api_sports":
+            if not API_FOOTBALL_KEY:
+                print("[matches] api-sports provider disabled (SPORTS_API_KEY missing).")
+                continue
+            providers.append((provider, _fetch_api_sports_fixtures_expanding(slot)))
+        elif provider == "sportmonks":
+            if not SPORTMONKS_TOKEN:
+                print("[matches] sportmonks provider disabled (SPORTMONKS_API_TOKEN missing).")
+                continue
+            providers.append((provider, _fetch_sportmonks_fixtures_expanding(slot)))
+        else:
+            print(f"[matches] provider skipped: {provider}")
+
+    if not providers:
+        return []
+
+    return _merge_fixtures(providers)
+
+
+def _fetch_sportmonks_1x2_odds(match: Dict[str, Any]) -> Dict[str, float]:
+    if not SPORTMONKS_TOKEN:
+        return {}
+    try:
+        fid = int(match.get("fixture_id"))
+    except Exception:
+        return {}
+    odds_items = sportmonks_provider.prematch_odds_fixture(fid)
+    o1, ox, o2 = sportmonks_provider.extract_1x2(
+        odds_items, str(match.get("home_team") or ""), str(match.get("away_team") or "")
+    )
+    if not (o1 and ox and o2):
+        return {}
+    return {"1": float(o1), "X": float(ox), "2": float(o2)}
+
+
 def fetch_matches_for_today(slot: str = "DAY") -> List[Dict[str, Any]]:
     """
     - bővülő meccs-pool (ma -> max MAX_DAYS_AHEAD), hogy meglegyen a minimum tipp pool
     - slot szűrés (DAY / EVENING)
     - EVENING-ben: top felnőtt -> felnőtt egzotikus -> youth -> friendly
-    - odds enrichment API-FOOTBALL odds endpointtal (limitálva)
+    - odds enrichment provider-specifikus odds endpointtal (limitálva)
     """
     slot = (slot or "DAY").upper()
 
     # ✅ EZ A LÉNYEG: nem csak "ma", hanem bővülő keresés, hogy legyen elég meccs
     fixtures = _fetch_fixtures_expanding(slot)
-    print(f"[matches] api-football fixtures expanded total -> {len(fixtures)}")
+    print(f"[matches] fixtures expanded total -> {len(fixtures)}")
 
     slot_fixtures = _slot_filter(fixtures, slot)
     print(f"[matches] slot={slot} -> {len(slot_fixtures)}")
@@ -209,8 +362,13 @@ def fetch_matches_for_today(slot: str = "DAY") -> List[Dict[str, Any]]:
     for m in slot_fixtures:
         if looked >= ODDS_LOOKUP_LIMIT:
             break
-        fid = int(m["fixture_id"])
-        odds = fetch_api_football_1x2_odds(fid)
+        provider = (m.get("provider") or "api_sports").lower()
+        odds: Dict[str, float] = {}
+        if provider == "api_sports":
+            fid = int(m["fixture_id"])
+            odds = fetch_api_football_1x2_odds(fid)
+        elif provider == "sportmonks":
+            odds = _fetch_sportmonks_1x2_odds(m)
         looked += 1
         if odds and odds.get("1") and odds.get("X") and odds.get("2"):
             m["odds"] = odds
