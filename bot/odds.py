@@ -1,7 +1,7 @@
 from typing import Any, Dict, Optional
 import requests
 
-from bot.api_keys import get_sports_api_key
+from bot.api_keys import get_api_sports_key, resolve_sports_provider
 
 _API_FOOTBALL_BASE = "https://v3.football.api-sports.io"
 
@@ -10,7 +10,7 @@ _ODDS_CACHE: Dict[int, Dict[str, float]] = {}
 
 
 def _headers() -> Dict[str, str]:
-    return {"x-apisports-key": get_sports_api_key()}
+    return {"x-apisports-key": get_api_sports_key()}
 
 
 def fetch_api_football_1x2_odds(fixture_id: int) -> Dict[str, float]:
@@ -19,6 +19,9 @@ def fetch_api_football_1x2_odds(fixture_id: int) -> Dict[str, float]:
 
     Visszaad: {"1": 2.02, "X": 3.80, "2": 3.15} vagy {} ha nincs / nem található.
     """
+    if resolve_sports_provider() != "api-sports":
+        return {}
+
     try:
         fid = int(fixture_id)
     except Exception:
