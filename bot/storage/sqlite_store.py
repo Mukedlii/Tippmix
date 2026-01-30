@@ -83,6 +83,8 @@ def init_db() -> None:
             );
             """
         )
+        # One row per fixture_id (latest result snapshot)
+        con.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_results_fixture_id ON results(fixture_id);")
         con.commit()
     finally:
         con.close()
@@ -168,6 +170,42 @@ def insert_bets(run_id: int, tier: str, bets: List[Dict[str, Any]]) -> None:
                     json.dumps(b, ensure_ascii=False),
                 ),
             )
+        con.commit()
+    finally:
+        con.close()
+
+
+def upsert_result(
+    fixture_id: int,
+    final_score: Optional[str],
+    result_1x2: Optional[str],
+    status: Optional[str],
+    raw: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Store latest result snapshot for a fixture."""
+    init_db()
+    con = _connect()
+    try:
+        con.execute(
+            """
+            INSERT INTO results(fixture_id, final_score, result_1x2, status, updated_ts_utc, raw_json)
+            VALUES(?,?,?,?,?,?)
+            ON CONFLICT(fixture_id) DO UPDATE SET
+              final_score=excluded.final_score,
+              result_1x2=excluded.result_1x2,
+              status=excluded.status,
+              updated_ts_utc=excluded.updated_ts_utc,
+              raw_json=excluded.raw_json
+            """,
+            (
+                int(fixture_id),
+                str(final_score) if final_score is not None else None,
+                str(result_1x2) if result_1x2 is not None else None,
+                str(status) if status is not None else None,
+                _utc_iso(),
+                json.dumps(raw or {}, ensure_ascii=False),
+            ),
+        )
         con.commit()
     finally:
         con.close()

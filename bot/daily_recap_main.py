@@ -9,6 +9,7 @@ import requests
 from bot.api_keys import get_optional_api_sports_key, get_optional_sportsdataio_key
 from bot.tips_logger import read_tips
 from bot.providers import sportsdataio
+from bot.storage.sqlite_store import upsert_result
 
 
 # -----------------------------
@@ -160,9 +161,7 @@ def _format_score(fx: Dict[str, Any]) -> str:
 # Recap builder
 # -----------------------------
 def _evaluate_bets(bets: List[Dict[str, Any]]) -> Tuple[int, int, int, List[str]]:
-    """
-    returns: (win, loss, pending, lines)
-    """
+    """returns: (win, loss, pending, lines)"""
     win = loss = pending = 0
     lines: List[str] = []
 
@@ -181,6 +180,11 @@ def _evaluate_bets(bets: List[Dict[str, Any]]) -> Tuple[int, int, int, List[str]
         fx = _fetch_fixture(fid_int)
         if not fx:
             pending += 1
+            # store snapshot as missing
+            try:
+                upsert_result(fid_int, final_score=None, result_1x2=None, status="NO_DATA", raw={})
+            except Exception:
+                pass
             lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ❓ nincs adat (API)")
             continue
 
@@ -191,6 +195,10 @@ def _evaluate_bets(bets: List[Dict[str, Any]]) -> Tuple[int, int, int, List[str]
             short = (fx.get("Status") or "").upper()
             if short not in {"FINAL", "FINAL/OT", "FINAL/SO", "FT"}:
                 pending += 1
+                try:
+                    upsert_result(fid_int, final_score=score if score != "–" else None, result_1x2=None, status=short, raw=fx)
+                except Exception:
+                    pass
                 lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ⏳ függő ({score}, status={short})")
                 continue
             gh = fx.get("HomeTeamScore")
@@ -201,6 +209,10 @@ def _evaluate_bets(bets: List[Dict[str, Any]]) -> Tuple[int, int, int, List[str]
 
             if not _status_is_finished(short):
                 pending += 1
+                try:
+                    upsert_result(fid_int, final_score=score if score != "–" else None, result_1x2=None, status=short, raw=fx)
+                except Exception:
+                    pass
                 lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ⏳ függő ({score}, status={short})")
                 continue
 
@@ -213,8 +225,18 @@ def _evaluate_bets(bets: List[Dict[str, Any]]) -> Tuple[int, int, int, List[str]
 
         if not res or not sel:
             pending += 1
+            try:
+                upsert_result(fid_int, final_score=score if score != "–" else None, result_1x2=res, status=short, raw=fx)
+            except Exception:
+                pass
             lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ❓ nem értelmezhető ({score})")
             continue
+
+        # finished -> persist result
+        try:
+            upsert_result(fid_int, final_score=score if score != "–" else None, result_1x2=res, status=short, raw=fx)
+        except Exception:
+            pass
 
         if res == sel:
             win += 1
