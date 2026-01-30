@@ -8,8 +8,11 @@ import requests
 
 from bot.matches import fetch_matches_for_today
 from bot.openai_logic import generate_tips
+<<<<<<< HEAD
 from bot.api_keys import resolve_sports_provider
 from bot.storage.sqlite_store import insert_run, insert_bets
+=======
+>>>>>>> 847479774d73fbff76e3da3a5c46b02fc1ed2a02
 
 
 # -----------------------------
@@ -670,6 +673,7 @@ def main() -> None:
         "enable_grok": enable_grok,
     }
 
+<<<<<<< HEAD
     # --- Persist to SQLite (optional but default-on) ---
     try:
         provider = None
@@ -694,6 +698,8 @@ def main() -> None:
     except Exception as e:
         print("[DB] SQLite save failed:", repr(e))
 
+=======
+>>>>>>> 847479774d73fbff76e3da3a5c46b02fc1ed2a02
     if public_chat_id:
         send_telegram_message(telegram_token, public_chat_id, public_text, f"PUBLIC_{slot}", meta=base_meta)
     if vip_chat_id:
