@@ -1,0 +1,28 @@
+[
+  {
+    "match": "América Mineiro U20 vs São Paulo U20 (Copa do Brasil U20 Brazil, 00:00) [ID=1489236]",
+    "fixture_id": 1489236,
+    "tip": "Vendég győzelem",
+    "odds": 1.7,
+    "risk": "low",
+    "confidence": 4,
+    "reason": "São Paulo U20 jobb formában (WWDWW), magasabb gólátlaggal, stabilabb védekezéssel, esélyesebb idegenben."
+  },
+  {
+    "match": "FC Seoul vs Melbourne City (AFC Champions League World, 11:00) [ID=1438954]",
+    "fixture_id": 1438954,
+    "tip": "Vendég győzelem",
+    "odds": 1.75,
+    "risk": "low",
+    "confidence": 4,
+    "reason": "Melbourne City erős formában, jobb támadójáték, FC Seoul gyengébb hazai eredményekkel."
+  },
+  {
+    "match": "Football | América Mineiro U20 vs São Paulo U20 | Copa do Brasil U20 Brazil | 2025-12-10T00:00:00+01:00 | [ID=1489236]",
+    "fixture_id": 1489236,
+    "tip": "Hazai győzelem",
+    "odds": 1.45,
+    "confidence": 3,
+    "reason": "A hazai csapat formája és gólmutatója alapján a hazai oldal felé billen az esély."
+  }
+]

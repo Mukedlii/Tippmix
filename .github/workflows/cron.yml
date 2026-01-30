@@ -1,0 +1,67 @@
+name: Szelvenykiraly Cron
+
+on:
+  # kézzel is indítható
+  workflow_dispatch:
+
+  # IDŐZÍTÉS – UTC-ben
+  # (pl. 07, 13, 18 UTC ≈ 08, 14, 19 magyar idő – attól függ, mit használsz most)
+  schedule:
+    - cron: "0 7 * * *"
+    - cron: "0 13 * * *"
+    - cron: "0 18 * * *"
+
+# Kell, hogy tudjunk commitolni a repóba
+permissions:
+  contents: write
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0    # kell a push-hoz
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tip bot
+        run: python -m bot.main
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
+          SPORTSDATAIO_API: ${{ secrets.SPORTSDATAIO_API }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
+          TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
+
+      - name: Commit daily tips JSON files
+        run: |
+          echo "Jelenlegi fájlok:"
+          ls -l
+
+          if [ -f public_bets.json ] || [ -f vip_bets.json ]; then
+            echo "JSON fájlok megtalálva, készül a commit..."
+
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+
+            git add public_bets.json vip_bets.json || true
+
+            if git diff --cached --quiet; then
+              echo "Nincs változás a JSON-okban, nem commitolok."
+            else
+              git commit -m "Save daily tips JSON $(date -u +'%Y-%m-%d')" || true
+              git push
+            fi
+          else
+            echo "Nincs public_bets.json / vip_bets.json, nincs mit commitolni."
+          fi

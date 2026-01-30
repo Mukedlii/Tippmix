@@ -1,0 +1,56 @@
+[
+  {
+    "match": "Sanfrecce Hiroshima vs Shanghai Shenhua (AFC Champions League World, 11:00) [ID=1438955]",
+    "fixture_id": 1438955,
+    "tip": "Hazai győzelem",
+    "odds": 1.85,
+    "risk": "medium",
+    "confidence": 4,
+    "reason": "Sanfrecce Hiroshima jobb formában, hazai pálya előny, magasabb gólátlag, stabil védekezés."
+  },
+  {
+    "match": "Benfica U19 vs Napoli U19 (UEFA Youth League World, 12:00) [ID=1469145]",
+    "fixture_id": 1469145,
+    "tip": "Over 2.5 gól",
+    "odds": 1.9,
+    "risk": "medium",
+    "confidence": 3,
+    "reason": "Mindkét csapat támadó szellemben játszik, magas gólátlag mindkét oldalon, támadó fiatalok."
+  },
+  {
+    "match": "Iraq U23 vs UAE U23 (Arabian Gulf Cup U23 World, 13:00) [ID=1489192]",
+    "fixture_id": 1489192,
+    "tip": "Hazai győzelem",
+    "odds": 1.7,
+    "risk": "medium",
+    "confidence": 4,
+    "reason": "Iraq U23 jobb hazai formában és motivációval, UAE U23 gyengébb idegenbeli eredményekkel."
+  },
+  {
+    "match": "Persib Bandung vs Bangkok United (AFC Cup World, 13:15) [ID=1438648]",
+    "fixture_id": 1438648,
+    "tip": "Mindkét csapat szerez gólt",
+    "odds": 1.75,
+    "risk": "medium",
+    "confidence": 3,
+    "reason": "Mindkét csapat kiegyensúlyozott támadójátékkal rendelkezik, gyakori gólváltás jellemző."
+  },
+  {
+    "match": "Bayer Leverkusen U19 vs Newcastle United U19 (UEFA Youth League World, 14:00) [ID=1469142]",
+    "fixture_id": 1469142,
+    "tip": "Vendég győzelem",
+    "odds": 2.1,
+    "risk": "medium",
+    "confidence": 3,
+    "reason": "Newcastle U19 jobb formában, kiegyensúlyozott védekezéssel, esélyes idegenben."
+  },
+  {
+    "match": "Aluminium Arak vs Sepahan FC (Persian Gulf Pro League Iran, 14:00) [ID=1483268]",
+    "fixture_id": 1483268,
+    "tip": "Over 2.5 gól",
+    "odds": 1.8,
+    "risk": "medium",
+    "confidence": 3,
+    "reason": "Mindkét csapat támadó formában, magas gólátlag, nyitott mérkőzés várható."
+  }
+]

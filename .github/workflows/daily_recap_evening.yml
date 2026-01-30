@@ -1,0 +1,34 @@
+name: Tippmix Evening Recap
+
+on:
+  schedule:
+    # 23:00 Europe/Budapest -> 22:00 UTC
+    - cron: '0 22 * * *'
+  workflow_dispatch:
+
+jobs:
+  recap-evening:
+    runs-on: ubuntu-latest
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
+      TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
+      SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
+      SPORTSDATAIO_API: ${{ secrets.SPORTSDATAIO_API }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run evening recap (16–23 meccsek)
+        env:
+          TIPPMIX_SLOT: EVENING
+        run: python -m bot.daily_recap_main

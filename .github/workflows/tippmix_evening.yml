@@ -1,0 +1,85 @@
+name: Tippmix Evening Tips + Day Recap
+
+on:
+  schedule:
+    # 15:00 Europe/Budapest (téli időszámítás) = 14:00 UTC
+    - cron: "0 14 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  tips-evening-and-day-recap:
+    runs-on: ubuntu-latest
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
+      TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
+
+      # API kulcsok
+      SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
+      SPORTSDATAIO_API: ${{ secrets.SPORTSDATAIO_API }}
+      FOOTBALL_DATA_TOKEN: ${{ secrets.FOOTBALL_DATA_TOKEN }}
+      SPORTMONKS_API_TOKEN: ${{ secrets.SPORTMONKS_API_TOKEN }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      # Modell és LLM beállítások
+      TIPPMIX_MODEL: "gpt-5-mini"
+      TIPPMIX_USE_RESPONSES: "1"
+      TIPPMIX_REASONING_EFFORT: "low"
+      TIPPMIX_VERBOSITY: "low"
+      TIPPMIX_TEMP: "0.25"
+
+      # Kötelező tippszámok
+      TIPPMIX_MIN_VIP: "6"
+      TIPPMIX_MIN_FREE: "3"
+
+      # Mennyi meccset dossziézunk (API hívások miatt fontos)
+      TIPPMIX_ENRICH_LIMIT: "40"
+
+      # Odds / nyeremény csak megjelenítéshez
+      TIPPMIX_STAKE_HUF: "1000"
+
+      SPORTS_API_TIMEZONE: "Europe/Budapest"
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run evening tips bot (EVENING)
+        env:
+          TIPPMIX_SLOT: EVENING
+        run: python -m bot.main
+
+      - name: Commit evening bets JSON to repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [ -f public_bets_evening.json ]; then
+            git add public_bets_evening.json
+          fi
+          if [ -f vip_bets_evening.json ]; then
+            git add vip_bets_evening.json
+          fi
+
+          if git diff --cached --quiet; then
+            echo "Nothing to commit for evening JSON."
+          else
+            git commit -m "Update evening bets JSON"
+            git push
+          fi
+
+      - name: Run day recap (DAY)
+        env:
+          TIPPMIX_SLOT: DAY
+        run: python -m bot.daily_recap_main
