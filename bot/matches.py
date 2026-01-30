@@ -8,6 +8,7 @@ import requests
 from bot.api_keys import get_api_sports_key, resolve_sports_provider
 from bot.odds import fetch_api_football_1x2_odds
 from bot.providers import sportsdataio
+
 TZ = os.getenv("TIPPMIX_TIMEZONE", "Europe/Budapest")
 
 MAX_FIXTURES = int(os.getenv("TIPPMIX_MAX_FIXTURES", "200"))
@@ -18,13 +19,9 @@ MIN_VIP = int(os.getenv("TIPPMIX_MIN_VIP", "6"))
 MIN_FREE = int(os.getenv("TIPPMIX_MIN_FREE", "3"))
 
 # mennyire terjesszük ki a keresést "ma + hány napra előre", ha kevés a meccs
-<<<<<<< HEAD
 # Profi ajánlás fizetős csatornához: maradjunk az adott napnál (0), és csak akkor engedjünk egzotikus ligákat,
 # ha nem jön ki a minimum pool.
 MAX_DAYS_AHEAD = int(os.getenv("TIPPMIX_MAX_DAYS_AHEAD", "0"))
-=======
-MAX_DAYS_AHEAD = int(os.getenv("TIPPMIX_MAX_DAYS_AHEAD", "3"))
->>>>>>> 847479774d73fbff76e3da3a5c46b02fc1ed2a02
 
 # mekkora legyen minimum a pool (slot után számolva)
 # ha nincs beállítva, számoljuk: VIP+FREE+12 (hogy legyen miből válogatni)
@@ -41,7 +38,7 @@ TOP_LEAGUE_KEYWORDS = [
 
 YOUTH_PATTERNS = [
     r"\bU\d{2}\b", r"\bU-?\d{2}\b", r"\bYouth\b", r"\bReserve\b", r"\bB Team\b",
-    r"\bPrimavera\b", r"\bU23\b", r"\bU21\b", r"\bU20\b", r"\bU19\b"
+    r"\bPrimavera\b", r"\bU23\b", r"\bU21\b", r"\bU20\b", r"\bU19\b",
 ]
 
 FRIENDLY_PATTERNS = [r"friendly", r"barátságos"]
@@ -106,12 +103,12 @@ def _is_top_match(match: Dict[str, Any]) -> bool:
     return False
 
 
-def _priority_bucket_evening(match: Dict[str, Any]) -> int:
+def _rank_bucket(match: Dict[str, Any]) -> int:
     """
     0 = top / komoly felnőtt
-    1 = felnőtt (nem top), nem youth, nem friendly
+    1 = felnőtt (nem top), nem youth, nem friendly  ("exotic")
     2 = youth
-    3 = friendly / legalja
+    3 = friendly
     """
     if _is_friendly(match):
         return 3
@@ -167,7 +164,6 @@ def _fetch_fixtures_for_date(date_str: str) -> List[Dict[str, Any]]:
     return out
 
 
-<<<<<<< HEAD
 def _fetch_fixtures_expanding(slot: str, base_date: datetime.date) -> List[Dict[str, Any]]:
     """
     Bővülő keresés: alapból CSAK az adott nap.
@@ -176,33 +172,15 @@ def _fetch_fixtures_expanding(slot: str, base_date: datetime.date) -> List[Dict[
     Profi fizetős csatornához ajánlott: MAX_DAYS_AHEAD=0.
     """
     slot = (slot or "DAY").upper()
-=======
-def _fetch_fixtures_expanding(slot: str) -> List[Dict[str, Any]]:
-    """
-    Bővülő keresés: ma, holnap, holnapután...
-    addig, amíg slot-szűrés után megvan legalább MIN_POOL db meccs.
-    """
-    slot = (slot or "DAY").upper()
-    base = datetime.date.today()
->>>>>>> 847479774d73fbff76e3da3a5c46b02fc1ed2a02
 
     all_fx: List[Dict[str, Any]] = []
-
     for days_ahead in range(0, MAX_DAYS_AHEAD + 1):
-<<<<<<< HEAD
         day = (base_date + datetime.timedelta(days=days_ahead)).strftime("%Y-%m-%d")
-=======
-        day = (base + datetime.timedelta(days=days_ahead)).strftime("%Y-%m-%d")
->>>>>>> 847479774d73fbff76e3da3a5c46b02fc1ed2a02
         chunk = _fetch_fixtures_for_date(day)
         all_fx.extend(chunk)
 
         slot_fx = _slot_filter(all_fx, slot)
-<<<<<<< HEAD
         print(f"[matches] fixtures: date={day} added={len(chunk)} | slot={slot} now={len(slot_fx)} total={len(all_fx)}")
-=======
-        print(f"[matches] api-football fixtures: date={day} added={len(chunk)} | slot={slot} now={len(slot_fx)} total={len(all_fx)}")
->>>>>>> 847479774d73fbff76e3da3a5c46b02fc1ed2a02
 
         if len(slot_fx) >= MIN_POOL:
             return all_fx
@@ -210,29 +188,12 @@ def _fetch_fixtures_expanding(slot: str) -> List[Dict[str, Any]]:
     return all_fx
 
 
-<<<<<<< HEAD
-def _rank_bucket(match: Dict[str, Any]) -> int:
-    """
-    0 = top / komoly felnőtt (whitelist / TOP)
-    1 = felnőtt (nem top), nem youth, nem friendly  ("exotic")
-    2 = youth
-    3 = friendly
-    """
-    if _is_friendly(match):
-        return 3
-    if _is_top_match(match) and not _is_youth(match):
-        return 0
-    if not _is_youth(match):
-        return 1
-    return 2
-
-
 def fetch_matches_for_today(slot: str = "DAY", date: Optional[str] = None) -> List[Dict[str, Any]]:
     """
     Profi pool-logika (fizetős csatornára optimalizálva):
     - alapból CSAK az adott nap meccsei (MAX_DAYS_AHEAD=0)
     - először top/komoly felnőtt meccsek, aztán csak ha kell: egzotikus, youth, friendly
-    - odds enrichment API-FOOTBALL odds endpointtal (limitálva)
+    - odds enrichment API-FOOTBALL odds endpointtal (csak API-Sports esetén), limitálva
 
     Paraméterek:
     - slot: DAY / EVENING
@@ -247,7 +208,6 @@ def fetch_matches_for_today(slot: str = "DAY", date: Optional[str] = None) -> Li
         except Exception:
             base_date = datetime.date.today()
 
-    # bővülő keresés (alapból csak 0 nap előre)
     fixtures = _fetch_fixtures_expanding(slot, base_date=base_date)
     print(f"[matches] fixtures expanded total -> {len(fixtures)}")
 
@@ -258,17 +218,15 @@ def fetch_matches_for_today(slot: str = "DAY", date: Optional[str] = None) -> Li
         print(f"[matches] slot üres ({slot}), visszaadom a pool összes meccsét.")
         slot_fixtures_all = fixtures
 
-    # --- Profi prioritás: top -> adult exotic -> youth -> friendly ---
     ranked = sorted(slot_fixtures_all, key=_rank_bucket)
 
-    # Cél: legyen elég pool a LLM-nek (MIN_POOL), de ne töltsük tele szeméttel, ha nem muszáj
+    # építsünk minimum poolt, de csak amennyi kell
     slot_fixtures: List[Dict[str, Any]] = []
     for m in ranked:
         slot_fixtures.append(m)
         if len(slot_fixtures) >= MIN_POOL:
             break
 
-    # Ha így sem jött össze a minimum pool (ritka), akkor adjuk vissza az összes slot meccset.
     if len(slot_fixtures) < MIN_POOL and len(slot_fixtures_all) > len(slot_fixtures):
         slot_fixtures = ranked
 
@@ -279,35 +237,8 @@ def fetch_matches_for_today(slot: str = "DAY", date: Optional[str] = None) -> Li
         f"youth={sum(1 for m in slot_fixtures if _rank_bucket(m)==2)} "
         f"friendly={sum(1 for m in slot_fixtures if _rank_bucket(m)==3)}"
     )
-=======
-def fetch_matches_for_today(slot: str = "DAY") -> List[Dict[str, Any]]:
-    """
-    - bővülő meccs-pool (ma -> max MAX_DAYS_AHEAD), hogy meglegyen a minimum tipp pool
-    - slot szűrés (DAY / EVENING)
-    - EVENING-ben: top felnőtt -> felnőtt egzotikus -> youth -> friendly
-    - odds enrichment API-FOOTBALL odds endpointtal (limitálva)
-    """
-    slot = (slot or "DAY").upper()
 
-    # ✅ EZ A LÉNYEG: nem csak "ma", hanem bővülő keresés, hogy legyen elég meccs
-    fixtures = _fetch_fixtures_expanding(slot)
-    print(f"[matches] api-football fixtures expanded total -> {len(fixtures)}")
-
-    slot_fixtures = _slot_filter(fixtures, slot)
-    print(f"[matches] slot={slot} -> {len(slot_fixtures)}")
-
-    # ha valamiért a slot üres, akkor is visszaadjuk a teljes poolt (mert tipp mindig kell)
-    if not slot_fixtures:
-        print(f"[matches] slot üres ({slot}), visszaadom a pool összes meccsét.")
-        slot_fixtures = fixtures
-
-    # ESTE prioritás
-    if slot == "EVENING":
-        slot_fixtures = sorted(slot_fixtures, key=_priority_bucket_evening)
-        print("[matches] EVENING priority: top -> adult -> youth -> friendly")
->>>>>>> 847479774d73fbff76e3da3a5c46b02fc1ed2a02
-
-    # Odds enrichment (limitált)
+    # Odds enrichment (API-Sports only)
     odds_ok = 0
     looked = 0
     for m in slot_fixtures:
