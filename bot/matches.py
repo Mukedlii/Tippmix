@@ -256,4 +256,11 @@ def fetch_matches_for_today(slot: str = "DAY", date: Optional[str] = None) -> Li
     if slot_fixtures:
         print("[matches] RAW MATCH EXAMPLE:\n", slot_fixtures[0])
 
+    # annotate each match with its quality bucket for downstream DB storage / analysis
+    for m in slot_fixtures:
+        try:
+            m["bucket"] = _rank_bucket(m)
+        except Exception:
+            m["bucket"] = None
+
     return slot_fixtures

@@ -9,7 +9,7 @@ import requests
 from bot.matches import fetch_matches_for_today
 from bot.openai_logic import generate_tips
 from bot.api_keys import resolve_sports_provider
-from bot.storage.sqlite_store import insert_run, insert_bets
+from bot.storage.sqlite_store import insert_run, insert_bets, insert_fixtures
 
 
 # -----------------------------
@@ -688,9 +688,12 @@ def main() -> None:
             public_count=len(public_bets_enriched),
             meta=base_meta,
         )
+        # store the match pool we used (fixtures snapshot)
+        insert_fixtures(run_id, slot_matches)
+
         insert_bets(run_id, "FREE", public_bets_enriched)
         insert_bets(run_id, "VIP", vip_bets_enriched)
-        print(f"[DB] Saved run_id={run_id} + bets to SQLite.")
+        print(f"[DB] Saved run_id={run_id} + fixtures + bets to SQLite.")
     except Exception as e:
         print("[DB] SQLite save failed:", repr(e))
 

@@ -83,8 +83,34 @@ def init_db() -> None:
             );
             """
         )
+
+        # Snapshot of fixtures/matches used as the pool for a run
+        con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS fixtures (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              run_id INTEGER NOT NULL,
+              fixture_id INTEGER,
+              league_name TEXT,
+              country_name TEXT,
+              kickoff_local TEXT,
+              home_team TEXT,
+              away_team TEXT,
+              bucket INTEGER,
+              odds_1 REAL,
+              odds_x REAL,
+              odds_2 REAL,
+              raw_json TEXT,
+              FOREIGN KEY(run_id) REFERENCES runs(id)
+            );
+            """
+        )
+        con.execute("CREATE INDEX IF NOT EXISTS idx_fixtures_run_id ON fixtures(run_id);")
+        con.execute("CREATE INDEX IF NOT EXISTS idx_fixtures_fixture_id ON fixtures(fixture_id);")
+
         # One row per fixture_id (latest result snapshot)
         con.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_results_fixture_id ON results(fixture_id);")
+
         con.commit()
     finally:
         con.close()
@@ -168,6 +194,42 @@ def insert_bets(run_id: int, tier: str, bets: List[Dict[str, Any]]) -> None:
                     1 if b.get("is_highlighted") else 0,
                     b.get("reason"),
                     json.dumps(b, ensure_ascii=False),
+                ),
+            )
+        con.commit()
+    finally:
+        con.close()
+
+
+def insert_fixtures(run_id: int, matches: List[Dict[str, Any]]) -> None:
+    if not matches:
+        return
+
+    init_db()
+    con = _connect()
+    try:
+        for m in matches:
+            odds = m.get("odds") or {}
+            con.execute(
+                """
+                INSERT INTO fixtures(
+                  run_id, fixture_id, league_name, country_name, kickoff_local, home_team, away_team,
+                  bucket, odds_1, odds_x, odds_2, raw_json
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                (
+                    int(run_id),
+                    int(m.get("fixture_id")) if m.get("fixture_id") is not None else None,
+                    m.get("league_name"),
+                    m.get("country_name"),
+                    m.get("kickoff_local"),
+                    m.get("home_team"),
+                    m.get("away_team"),
+                    int(m.get("bucket")) if m.get("bucket") is not None else None,
+                    float(odds.get("1")) if odds.get("1") is not None else None,
+                    float(odds.get("X")) if odds.get("X") is not None else None,
+                    float(odds.get("2")) if odds.get("2") is not None else None,
+                    json.dumps(m, ensure_ascii=False),
                 ),
             )
         con.commit()
