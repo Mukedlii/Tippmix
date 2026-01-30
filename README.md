@@ -24,5 +24,12 @@ Fontos:
 Alapból a futások és tippek mentésre kerülnek SQLite-ba:
 - `data/tippmix.db`
 - felülírható: `TIPPMIX_DB_PATH`
+
+## Odds (opcionális)
+Ha SportsDataIO-t használsz, de szeretnél oddsokat (1X2), beköthető a The Odds API:
+- Secret: `ODDS_API_KEY`
+- Régió: `ODDS_REGIONS` (pl. `eu`)
+- Limit / futás: `ODDS_MAX_REQUESTS_PER_RUN` (free csomaghoz ajánlott 4–8)
+- (opcionális) sport kulcsok: `ODDS_SPORT_KEYS` (comma-separated)
 =======
 >>>>>>> 847479774d73fbff76e3da3a5c46b02fc1ed2a02

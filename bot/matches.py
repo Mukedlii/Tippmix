@@ -8,6 +8,7 @@ import requests
 from bot.api_keys import get_api_sports_key, resolve_sports_provider
 from bot.odds import fetch_api_football_1x2_odds
 from bot.providers import sportsdataio
+from bot.providers import theoddsapi
 
 TZ = os.getenv("TIPPMIX_TIMEZONE", "Europe/Budapest")
 
@@ -35,6 +36,21 @@ TOP_LEAGUE_KEYWORDS = [
     "Eredivisie", "Primeira Liga", "Scottish Premiership",
     "FA Cup", "Copa del Rey", "DFB Pokal", "Coppa Italia",
 ]
+
+# The Odds API sport_key mapping (best-effort). Can be overridden by env ODDS_SPORT_KEYS.
+LEAGUE_TO_THEODDS_KEY = {
+    "premier league": "soccer_epl",
+    "la liga": "soccer_spain_la_liga",
+    "serie a": "soccer_italy_serie_a",
+    "bundesliga": "soccer_germany_bundesliga",
+    "ligue 1": "soccer_france_ligue_one",
+    "eredivisie": "soccer_netherlands_eredivisie",
+    "primeira liga": "soccer_portugal_primeira_liga",
+    "scottish premiership": "soccer_scotland_premiership",
+    "champions league": "soccer_uefa_champs_league",
+    "europa league": "soccer_uefa_europa_league",
+    "conference league": "soccer_uefa_europa_conference_league",
+}
 
 YOUTH_PATTERNS = [
     r"\bU\d{2}\b", r"\bU-?\d{2}\b", r"\bYouth\b", r"\bReserve\b", r"\bB Team\b",
@@ -117,6 +133,67 @@ def _rank_bucket(match: Dict[str, Any]) -> int:
     if not _is_youth(match):
         return 1
     return 2
+
+
+def _theodds_sport_keys_for_matches(matches: List[Dict[str, Any]]) -> List[str]:
+    env = (os.getenv("ODDS_SPORT_KEYS") or "").strip()
+    if env:
+        keys = [k.strip() for k in env.split(",") if k.strip()]
+        return keys
+
+    # derive from leagues present in the pool
+    keys: List[str] = []
+    for m in matches:
+        league = (m.get("league_name") or "").lower()
+        for k, sk in LEAGUE_TO_THEODDS_KEY.items():
+            if k in league and sk not in keys:
+                keys.append(sk)
+    return keys
+
+
+def _enrich_odds_from_theoddsapi(matches: List[Dict[str, Any]]) -> None:
+    """Best-effort odds enrichment for SportsDataIO runs using The Odds API.
+
+    Budgeted by ODDS_MAX_REQUESTS_PER_RUN (default 6). Each sport_key query costs 1 request.
+    """
+    api_key = (os.getenv("ODDS_API_KEY") or "").strip()
+    if not api_key:
+        return
+
+    try:
+        max_req = int(os.getenv("ODDS_MAX_REQUESTS_PER_RUN", "6"))
+    except Exception:
+        max_req = 6
+
+    sport_keys = _theodds_sport_keys_for_matches(matches)
+    if not sport_keys:
+        return
+
+    # cap number of sport_key calls
+    sport_keys = sport_keys[: max(0, max_req)]
+
+    # First ensure events are fetched (1 request per sport_key)
+    for sk in sport_keys:
+        try:
+            theoddsapi.fetch_odds_for_sport_key(sk)
+        except Exception:
+            continue
+
+    # Then match and enrich
+    enriched = 0
+    for m in matches:
+        odds = m.get("odds") or {}
+        if odds.get("1") and odds.get("X") and odds.get("2"):
+            continue
+
+        o1, ox, o2 = theoddsapi.get_1x2_for_match(m.get("home_team") or "", m.get("away_team") or "", sport_keys)
+        if o1 and ox and o2:
+            m["odds"] = {"1": float(o1), "X": float(ox), "2": float(o2)}
+            m["odds_source"] = "theoddsapi"
+            enriched += 1
+
+    if enriched:
+        print(f"[matches] theoddsapi enriched odds for {enriched} matches (sport_keys={len(sport_keys)})")
 
 
 def _fetch_fixtures_for_date(date_str: str) -> List[Dict[str, Any]]:
@@ -249,7 +326,15 @@ def fetch_matches_for_today(slot: str = "DAY", date: Optional[str] = None) -> Li
         looked += 1
         if odds and odds.get("1") and odds.get("X") and odds.get("2"):
             m["odds"] = odds
+            m["odds_source"] = "api-sports"
             odds_ok += 1
+
+    # If we are on SportsDataIO (no native odds), try The Odds API as a supplement
+    try:
+        if resolve_sports_provider() == "sportsdataio":
+            _enrich_odds_from_theoddsapi(slot_fixtures)
+    except Exception:
+        pass
 
     print(f"[matches] odds enriched: {odds_ok}/{min(len(slot_fixtures), ODDS_LOOKUP_LIMIT)} (limit={ODDS_LOOKUP_LIMIT})")
 
