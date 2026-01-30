@@ -254,7 +254,25 @@ def _payout_text(odds_val: Optional[float]) -> str:
 
 
 def _enforce_highlights(vip: List[Dict[str, Any]]) -> None:
-    vip.sort(key=lambda x: float(x.get("confidence") or 0.0), reverse=True)
+    """Pick exactly 3 highlighted tips.
+
+    Prefer tips that have odds (more "pro" feel), then higher confidence.
+    """
+
+    def has_odds(x: Dict[str, Any]) -> int:
+        try:
+            return 1 if float(x.get("odds_estimate") or 0) > 0 else 0
+        except Exception:
+            return 0
+
+    vip.sort(
+        key=lambda x: (
+            has_odds(x),
+            float(x.get("confidence") or 0.0),
+        ),
+        reverse=True,
+    )
+
     for t in vip:
         t["is_highlighted"] = False
     for t in vip[:3]:
