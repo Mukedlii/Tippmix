@@ -231,6 +231,8 @@ def _evaluate_bets(bets: List[Dict[str, Any]]) -> Tuple[int, int, int, List[str]
     win = loss = pending = 0
     lines: List[str] = []
 
+    last_call_ts = 0.0
+
     for i, b in enumerate(bets, 1):
         fid = b.get("fixture_id")
         pick = b.get("tip") or b.get("selection") or b.get("pick") or ""
@@ -242,6 +244,16 @@ def _evaluate_bets(bets: List[Dict[str, Any]]) -> Tuple[int, int, int, List[str]
             pending += 1
             lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ❓ hibás fixture_id")
             continue
+
+        # Simple pacing to reduce 429 risk on API-Sports.
+        # (SportsDataIO tends to be less strict, but pacing is harmless.)
+        now = time.time()
+        if now - last_call_ts < 0.6:
+            try:
+                time.sleep(0.6 - (now - last_call_ts))
+            except Exception:
+                pass
+        last_call_ts = time.time()
 
         fx, fx_status = _fetch_fixture(fid_int)
         if not fx:
