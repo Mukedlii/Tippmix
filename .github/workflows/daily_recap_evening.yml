@@ -2,9 +2,15 @@ name: Tippmix Evening Recap
 
 on:
   schedule:
+    # Primary + fallback retry (runner/infra issues happen)
     # 23:00 Europe/Budapest -> 22:00 UTC
     - cron: '0 22 * * *'
+    # Fallback retry: 1 hour later
+    - cron: '0 23 * * *'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   recap-evening:
@@ -32,3 +38,19 @@ jobs:
         env:
           TIPPMIX_SLOT: EVENING
         run: python -m bot.daily_recap_main
+
+      - name: Commit recap marker (prevents duplicate sends on fallback run)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [ -f data/recap_sent.json ]; then
+            git add data/recap_sent.json
+          fi
+
+          if git diff --cached --quiet; then
+            echo "No recap marker changes."
+          else
+            git commit -m "Update recap marker" || true
+            git push
+          fi

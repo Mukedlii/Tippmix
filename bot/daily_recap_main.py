@@ -13,6 +13,44 @@ from bot.storage.sqlite_store import upsert_result
 
 
 # -----------------------------
+# Duplicate-send guard (GitHub Actions fallback retries)
+# -----------------------------
+_MARKER_PATH = os.path.join("data", "recap_sent.json")
+
+
+def _load_marker() -> Dict[str, Any]:
+    try:
+        with open(_MARKER_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _save_marker(marker: Dict[str, Any]) -> None:
+    os.makedirs(os.path.dirname(_MARKER_PATH), exist_ok=True)
+    with open(_MARKER_PATH, "w", encoding="utf-8") as f:
+        json.dump(marker, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+
+
+def _should_skip_due_to_marker(slot: str, date_iso: str) -> bool:
+    # allow manual override
+    if (os.getenv("TIPPMIX_FORCE_RECAP") or "").strip() == "1":
+        return False
+
+    marker = _load_marker()
+    sent = (marker.get(slot) or "").strip()
+    return sent == date_iso
+
+
+def _mark_sent(slot: str, date_iso: str) -> None:
+    marker = _load_marker()
+    marker[slot] = date_iso
+    _save_marker(marker)
+
+
+# -----------------------------
 # Telegram
 # -----------------------------
 def _split_telegram(text: str, max_len: int = 3900) -> List[str]:
@@ -262,8 +300,14 @@ def main() -> None:
     if slot not in {"DAY", "EVENING"}:
         slot = "EVENING"
 
+    date_iso = datetime.date.today().isoformat()
     today = datetime.date.today().strftime("%Y.%m.%d.")
     slot_text = "délelőtt / nappal" if slot == "DAY" else "délután / este"
+
+    # Fallback schedule runs the same recap multiple times; avoid duplicate Telegram sends.
+    if _should_skip_due_to_marker(slot, date_iso):
+        print(f"Recap already sent for {slot} on {date_iso}; skipping.")
+        return
 
     tips = read_tips(slot=slot, base_dir=".")
     vip_bets = tips.get("vip_bets") or []
@@ -312,10 +356,21 @@ def main() -> None:
         + "\n\n".join(pub_lines[:25])
     )
 
+    ok = True
     if vip_chat_id:
-        send_telegram_message(telegram_token, vip_chat_id, vip_msg, f"VIP_RECAP_{slot}")
+        ok_v, err_v = send_telegram_message(telegram_token, vip_chat_id, vip_msg, f"VIP_RECAP_{slot}")
+        if not ok_v:
+            ok = False
+            print(f"VIP recap send failed: {err_v}")
     if public_chat_id:
-        send_telegram_message(telegram_token, public_chat_id, pub_msg, f"PUBLIC_RECAP_{slot}")
+        ok_p, err_p = send_telegram_message(telegram_token, public_chat_id, pub_msg, f"PUBLIC_RECAP_{slot}")
+        if not ok_p:
+            ok = False
+            print(f"Public recap send failed: {err_p}")
+
+    if ok:
+        _mark_sent(slot, date_iso)
+        print(f"Marked recap as sent: slot={slot} date={date_iso}")
 
 
 if __name__ == "__main__":
