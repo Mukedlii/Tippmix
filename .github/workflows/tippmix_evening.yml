@@ -43,6 +43,11 @@ jobs:
 
       SPORTS_API_TIMEZONE: "Europe/Budapest"
 
+      # Quality / reliability controls
+      TIPPMIX_BLOCK_COUNTRIES: ${{ vars.TIPPMIX_BLOCK_COUNTRIES }}
+      TIPPMIX_BLOCK_LEAGUES: ${{ vars.TIPPMIX_BLOCK_LEAGUES }}
+      TIPPMIX_MAX_DAYS_AHEAD: ${{ vars.TIPPMIX_MAX_DAYS_AHEAD }}
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4

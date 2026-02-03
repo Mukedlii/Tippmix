@@ -34,6 +34,10 @@ MAX_DAYS_AHEAD = int(os.getenv("TIPPMIX_MAX_DAYS_AHEAD", "0"))
 # ha nincs beállítva, számoljuk: VIP+FREE+12 (hogy legyen miből válogatni)
 MIN_POOL = int(os.getenv("TIPPMIX_MIN_POOL", str(MIN_VIP + MIN_FREE + 12)))
 
+# Hard quality defaults: by default do not include youth/friendly in the pool.
+ALLOW_YOUTH = (os.getenv("TIPPMIX_ALLOW_YOUTH") or "").strip() == "1"
+ALLOW_FRIENDLY = (os.getenv("TIPPMIX_ALLOW_FRIENDLY") or "").strip() == "1"
+
 TOP_LEAGUE_KEYWORDS = [
     "Premier League", "La Liga", "Bundesliga", "Serie A", "Ligue 1",
     "UEFA Champions League", "Champions League",
@@ -264,25 +268,50 @@ def _fetch_fixtures_for_date(date_str: str) -> List[Dict[str, Any]]:
 
 
 def _fetch_fixtures_expanding(slot: str, base_date: datetime.date) -> List[Dict[str, Any]]:
-    """
-    Bővülő keresés: alapból CSAK az adott nap.
-    Ha valaki mégis engedélyezi (MAX_DAYS_AHEAD>0), akkor ma+1.. napon belül bővít.
+    """Bővülő keresés (garantáltabb napi darabszámhoz):
 
-    Profi fizetős csatornához ajánlott: MAX_DAYS_AHEAD=0.
+    - Alap: MAX_DAYS_AHEAD szerint (env).
+    - Ha a minőségi szűrők/blacklist miatt nem jön ki a MIN_POOL, akkor best-effort módon
+      kiterjesztjük a keresést +1 nappal (hard cap: 2 nap előre), mert a napi 3 FREE + 6 VIP
+      követelmény fontosabb, mint egzotikus ligák bevonása.
     """
     slot = (slot or "DAY").upper()
 
+    def enough(fixtures: List[Dict[str, Any]]) -> bool:
+        slot_fx = _slot_filter(fixtures, slot)
+        # apply quality/blacklist filters for the count check
+        tmp = slot_fx
+        if BLOCK_COUNTRIES or BLOCK_LEAGUES:
+            tmp = [m for m in tmp if not _is_blocked(m)]
+        if not ALLOW_YOUTH:
+            tmp = [m for m in tmp if not _is_youth(m)]
+        if not ALLOW_FRIENDLY:
+            tmp = [m for m in tmp if not _is_friendly(m)]
+        return len(tmp) >= MIN_POOL
+
     all_fx: List[Dict[str, Any]] = []
-    for days_ahead in range(0, MAX_DAYS_AHEAD + 1):
+    max_ahead = max(0, MAX_DAYS_AHEAD)
+
+    for days_ahead in range(0, max_ahead + 1):
         day = (base_date + datetime.timedelta(days=days_ahead)).strftime("%Y-%m-%d")
         chunk = _fetch_fixtures_for_date(day)
         all_fx.extend(chunk)
-
         slot_fx = _slot_filter(all_fx, slot)
         print(f"[matches] fixtures: date={day} added={len(chunk)} | slot={slot} now={len(slot_fx)} total={len(all_fx)}")
-
-        if len(slot_fx) >= MIN_POOL:
+        if enough(all_fx):
             return all_fx
+
+    # best-effort extension if not enough
+    hard_cap = 2
+    if max_ahead < hard_cap:
+        for days_ahead in range(max_ahead + 1, hard_cap + 1):
+            day = (base_date + datetime.timedelta(days=days_ahead)).strftime("%Y-%m-%d")
+            chunk = _fetch_fixtures_for_date(day)
+            all_fx.extend(chunk)
+            slot_fx = _slot_filter(all_fx, slot)
+            print(f"[matches] expand fallback: date={day} added={len(chunk)} | slot={slot} now={len(slot_fx)} total={len(all_fx)}")
+            if enough(all_fx):
+                return all_fx
 
     return all_fx
 
@@ -324,6 +353,21 @@ def fetch_matches_for_today(slot: str = "DAY", date: Optional[str] = None) -> Li
         after = len(slot_fixtures_all)
         if before != after:
             print(f"[matches] blacklist filtered: {before}->{after} (countries={len(BLOCK_COUNTRIES)} leagues={len(BLOCK_LEAGUES)})")
+
+    # Hard quality filters (defaults): drop youth/friendly unless explicitly allowed.
+    if not ALLOW_YOUTH:
+        before = len(slot_fixtures_all)
+        slot_fixtures_all = [m for m in slot_fixtures_all if not _is_youth(m)]
+        after = len(slot_fixtures_all)
+        if before != after:
+            print(f"[matches] youth filtered: {before}->{after}")
+
+    if not ALLOW_FRIENDLY:
+        before = len(slot_fixtures_all)
+        slot_fixtures_all = [m for m in slot_fixtures_all if not _is_friendly(m)]
+        after = len(slot_fixtures_all)
+        if before != after:
+            print(f"[matches] friendly filtered: {before}->{after}")
 
     ranked = sorted(slot_fixtures_all, key=_rank_bucket)
 

@@ -20,6 +20,9 @@ jobs:
       SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
       SPORTSDATAIO_API: ${{ secrets.SPORTSDATAIO_API }}
 
+      TIPPMIX_BLOCK_COUNTRIES: ${{ vars.TIPPMIX_BLOCK_COUNTRIES }}
+      TIPPMIX_BLOCK_LEAGUES: ${{ vars.TIPPMIX_BLOCK_LEAGUES }}
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4

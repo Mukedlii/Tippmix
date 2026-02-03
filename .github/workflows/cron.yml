@@ -43,6 +43,11 @@ jobs:
           TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
           TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
 
+          # Quality / reliability controls
+          TIPPMIX_BLOCK_COUNTRIES: ${{ vars.TIPPMIX_BLOCK_COUNTRIES }}
+          TIPPMIX_BLOCK_LEAGUES: ${{ vars.TIPPMIX_BLOCK_LEAGUES }}
+          TIPPMIX_MAX_DAYS_AHEAD: ${{ vars.TIPPMIX_MAX_DAYS_AHEAD }}
+
       - name: Commit daily tips JSON files
         run: |
           echo "Jelenlegi fájlok:"
