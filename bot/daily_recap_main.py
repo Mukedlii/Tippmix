@@ -136,49 +136,74 @@ def _detect_provider() -> Optional[str]:
 
 
 def _fetch_fixture(fixture_id: int) -> Tuple[Optional[Dict[str, Any]], str]:
-    """Fetch fixture + return a short diagnostic status string."""
+    """Fetch fixture + return a short diagnostic status string.
+
+    Tries the configured provider first. If it returns NO_DATA and the other provider key is also
+    present, we attempt a fallback provider. This fixes cases where tips were generated with one
+    provider but recap runs with the other.
+    """
+
+    def _fetch_sportsdataio(fid: int) -> Tuple[Optional[Dict[str, Any]], str]:
+        fx = sportsdataio.fetch_game_by_id(fid)
+        return (fx, "OK") if fx else (None, "NO_DATA")
+
+    def _fetch_apisports(fid: int) -> Tuple[Optional[Dict[str, Any]], str]:
+        url = "https://v3.football.api-sports.io/fixtures"
+
+        # small retry for transient API failures
+        last_status = "NO_DATA"
+        for attempt in range(2):
+            try:
+                resp = requests.get(url, headers=_api_football_headers(), params={"id": str(fid)}, timeout=25)
+            except Exception:
+                last_status = "REQUEST_ERROR"
+                continue
+
+            if resp.status_code == 200:
+                try:
+                    data = resp.json()
+                except Exception:
+                    return None, "BAD_JSON"
+
+                arr = (data.get("response") or [])
+                if not arr:
+                    return None, "NO_DATA"
+                return arr[0], "OK"
+
+            # rate limit / temporary issues
+            if resp.status_code in (429, 500, 502, 503, 504) and attempt == 0:
+                last_status = f"HTTP_{resp.status_code}"
+                try:
+                    time.sleep(2)
+                except Exception:
+                    pass
+                continue
+
+            return None, f"HTTP_{resp.status_code}"
+
+        return None, last_status
+
     provider = _detect_provider()
     if not provider:
         return None, "NO_PROVIDER_KEY"
 
+    has_api_sports = bool(get_optional_api_sports_key())
+    has_sdio = bool(get_optional_sportsdataio_key())
+
+    # primary
     if provider == "sportsdataio":
-        fx = sportsdataio.fetch_game_by_id(fixture_id)
-        return (fx, "OK") if fx else (None, "NO_DATA")
+        fx, st = _fetch_sportsdataio(fixture_id)
+        if fx or st != "NO_DATA" or not has_api_sports:
+            return fx, st
+        # fallback
+        fx2, st2 = _fetch_apisports(fixture_id)
+        return fx2, ("FALLBACK_API_SPORTS" if fx2 else f"NO_DATA_BOTH({st2})")
 
-    url = "https://v3.football.api-sports.io/fixtures"
-
-    # small retry for transient API failures
-    last_status = "NO_DATA"
-    for attempt in range(2):
-        try:
-            resp = requests.get(url, headers=_api_football_headers(), params={"id": str(fixture_id)}, timeout=25)
-        except Exception:
-            last_status = "REQUEST_ERROR"
-            continue
-
-        if resp.status_code == 200:
-            try:
-                data = resp.json()
-            except Exception:
-                return None, "BAD_JSON"
-
-            arr = (data.get("response") or [])
-            if not arr:
-                return None, "NO_DATA"
-            return arr[0], "OK"
-
-        # rate limit / temporary issues
-        if resp.status_code in (429, 500, 502, 503, 504) and attempt == 0:
-            last_status = f"HTTP_{resp.status_code}"
-            try:
-                time.sleep(2)
-            except Exception:
-                pass
-            continue
-
-        return None, f"HTTP_{resp.status_code}"
-
-    return None, last_status
+    fx, st = _fetch_apisports(fixture_id)
+    if fx or st != "NO_DATA" or not has_sdio:
+        return fx, st
+    fx2, st2 = _fetch_sportsdataio(fixture_id)
+    return fx2, ("FALLBACK_SPORTSDATAIO" if fx2 else f"NO_DATA_BOTH({st2})")
 
 
 def _status_is_finished(short: str) -> bool:
