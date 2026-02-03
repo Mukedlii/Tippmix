@@ -4,7 +4,7 @@
     "match": "CS Constantine vs Mostaganem (Ligue 1 Algeria, 2026-02-03T17:00:00+01:00)",
     "tip": "Hazai győzelem",
     "odds": 1.48,
-    "confidence": 4.180332719680301,
+    "confidence": 4.177222372937332,
     "risk_level": "alacsony",
     "is_highlighted": true,
     "league": "Ligue 1",
@@ -18,8 +18,8 @@
     "away_team": "Mostaganem",
     "odds_1x2": {
       "1": 1.48,
-      "X": 3.25,
-      "2": 8.4
+      "X": 3.35,
+      "2": 7.75
     },
     "odds_pick": 1.48,
     "run_date": "2026-02-03",
@@ -29,9 +29,9 @@
     "fixture_id": 1507528,
     "match": "Gzira United vs Hamrun Spartans (Premier League Malta, 2026-02-03T19:00:00+01:00)",
     "tip": "Vendég győzelem",
-    "odds": 1.5,
-    "confidence": 4.118571428571428,
-    "risk_level": "alacsony",
+    "odds": 1.53,
+    "confidence": 4.063357410751493,
+    "risk_level": "közepes",
     "is_highlighted": true,
     "league": "Premier League",
     "country": "Malta",
@@ -43,37 +43,11 @@
     "home_team": "Gzira United",
     "away_team": "Hamrun Spartans",
     "odds_1x2": {
-      "1": 6.0,
+      "1": 5.8,
       "X": 3.7,
-      "2": 1.5
+      "2": 1.53
     },
-    "odds_pick": 1.5,
-    "run_date": "2026-02-03",
-    "slot": "EVENING"
-  },
-  {
-    "fixture_id": 1418913,
-    "match": "National Bank of Egypt vs Al Ahly (Premier League Egypt, 2026-02-03T19:00:00+01:00)",
-    "tip": "Vendég győzelem",
-    "odds": 1.88,
-    "confidence": 3.3152257543499006,
-    "risk_level": "magas",
-    "is_highlighted": true,
-    "league": "Premier League",
-    "country": "Egypt",
-    "kickoff": "2026-02-03T19:00:00+01:00",
-    "match_key": "fid:1418913",
-    "league_name": "Premier League",
-    "country_name": "Egypt",
-    "kickoff_local": "2026-02-03T19:00:00+01:00",
-    "home_team": "National Bank of Egypt",
-    "away_team": "Al Ahly",
-    "odds_1x2": {
-      "1": 4.3,
-      "X": 3.1,
-      "2": 1.88
-    },
-    "odds_pick": 1.88,
+    "odds_pick": 1.53,
     "run_date": "2026-02-03",
     "slot": "EVENING"
   },
@@ -81,10 +55,10 @@
     "fixture_id": 1513380,
     "match": "MC Oran vs Olympique Akbou (Ligue 1 Algeria, 2026-02-03T17:00:00+01:00)",
     "tip": "Hazai győzelem",
-    "odds": 1.91,
-    "confidence": 3.2009972408356324,
+    "odds": 1.8,
+    "confidence": 3.4272340425531915,
     "risk_level": "magas",
-    "is_highlighted": false,
+    "is_highlighted": true,
     "league": "Ligue 1",
     "country": "Algeria",
     "kickoff": "2026-02-03T17:00:00+01:00",
@@ -95,11 +69,37 @@
     "home_team": "MC Oran",
     "away_team": "Olympique Akbou",
     "odds_1x2": {
-      "1": 1.91,
+      "1": 1.8,
       "X": 3.0,
-      "2": 4.0
+      "2": 4.75
     },
-    "odds_pick": 1.91,
+    "odds_pick": 1.8,
+    "run_date": "2026-02-03",
+    "slot": "EVENING"
+  },
+  {
+    "fixture_id": 1418913,
+    "match": "National Bank of Egypt vs Al Ahly (Premier League Egypt, 2026-02-03T19:00:00+01:00)",
+    "tip": "Vendég győzelem",
+    "odds": 1.88,
+    "confidence": 3.3036790136221468,
+    "risk_level": "magas",
+    "is_highlighted": false,
+    "league": "Premier League",
+    "country": "Egypt",
+    "kickoff": "2026-02-03T19:00:00+01:00",
+    "match_key": "fid:1418913",
+    "league_name": "Premier League",
+    "country_name": "Egypt",
+    "kickoff_local": "2026-02-03T19:00:00+01:00",
+    "home_team": "National Bank of Egypt",
+    "away_team": "Al Ahly",
+    "odds_1x2": {
+      "1": 4.33,
+      "X": 3.05,
+      "2": 1.88
+    },
+    "odds_pick": 1.88,
     "run_date": "2026-02-03",
     "slot": "EVENING"
   },
