@@ -2,11 +2,12 @@
 import os
 import json
 import datetime
+import time
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
-from bot.api_keys import get_optional_api_sports_key, get_optional_sportsdataio_key
+from bot.api_keys import get_optional_api_sports_key, get_optional_sportsdataio_key, resolve_sports_provider
 from bot.tips_logger import read_tips
 from bot.providers import sportsdataio
 from bot.storage.sqlite_store import upsert_result
@@ -118,39 +119,66 @@ def _api_football_headers() -> Dict[str, str]:
 
 
 def _detect_provider() -> Optional[str]:
-    if get_optional_api_sports_key():
-        return "api-sports"
-    if get_optional_sportsdataio_key():
-        return "sportsdataio"
-    return None
+    """Best-effort provider detection.
+
+    IMPORTANT: Recap should not silently run without any provider key; otherwise every match becomes
+    '❓ nincs adat (API)' which is misleading.
+    """
+    try:
+        return resolve_sports_provider()
+    except Exception:
+        # fall back to old optional-key probing
+        if get_optional_api_sports_key():
+            return "api-sports"
+        if get_optional_sportsdataio_key():
+            return "sportsdataio"
+        return None
 
 
-def _fetch_fixture(fixture_id: int) -> Optional[Dict[str, Any]]:
+def _fetch_fixture(fixture_id: int) -> Tuple[Optional[Dict[str, Any]], str]:
+    """Fetch fixture + return a short diagnostic status string."""
     provider = _detect_provider()
     if not provider:
-        return None
+        return None, "NO_PROVIDER_KEY"
 
     if provider == "sportsdataio":
-        return sportsdataio.fetch_game_by_id(fixture_id)
+        fx = sportsdataio.fetch_game_by_id(fixture_id)
+        return (fx, "OK") if fx else (None, "NO_DATA")
 
     url = "https://v3.football.api-sports.io/fixtures"
-    try:
-        resp = requests.get(url, headers=_api_football_headers(), params={"id": str(fixture_id)}, timeout=25)
-    except Exception:
-        return None
 
-    if resp.status_code != 200:
-        return None
+    # small retry for transient API failures
+    last_status = "NO_DATA"
+    for attempt in range(2):
+        try:
+            resp = requests.get(url, headers=_api_football_headers(), params={"id": str(fixture_id)}, timeout=25)
+        except Exception:
+            last_status = "REQUEST_ERROR"
+            continue
 
-    try:
-        data = resp.json()
-    except Exception:
-        return None
+        if resp.status_code == 200:
+            try:
+                data = resp.json()
+            except Exception:
+                return None, "BAD_JSON"
 
-    arr = (data.get("response") or [])
-    if not arr:
-        return None
-    return arr[0]
+            arr = (data.get("response") or [])
+            if not arr:
+                return None, "NO_DATA"
+            return arr[0], "OK"
+
+        # rate limit / temporary issues
+        if resp.status_code in (429, 500, 502, 503, 504) and attempt == 0:
+            last_status = f"HTTP_{resp.status_code}"
+            try:
+                time.sleep(2)
+            except Exception:
+                pass
+            continue
+
+        return None, f"HTTP_{resp.status_code}"
+
+    return None, last_status
 
 
 def _status_is_finished(short: str) -> bool:
@@ -215,15 +243,19 @@ def _evaluate_bets(bets: List[Dict[str, Any]]) -> Tuple[int, int, int, List[str]
             lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ❓ hibás fixture_id")
             continue
 
-        fx = _fetch_fixture(fid_int)
+        fx, fx_status = _fetch_fixture(fid_int)
         if not fx:
             pending += 1
-            # store snapshot as missing
+            # store snapshot as missing (keep diagnostic)
             try:
-                upsert_result(fid_int, final_score=None, result_1x2=None, status="NO_DATA", raw={})
+                upsert_result(fid_int, final_score=None, result_1x2=None, status=fx_status or "NO_DATA", raw={})
             except Exception:
                 pass
-            lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ❓ nincs adat (API)")
+
+            if fx_status == "NO_PROVIDER_KEY":
+                lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ❓ nincs API kulcs beállítva (SPORTS_API_KEY / SPORTSDATAIO_API)")
+            else:
+                lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ❓ nincs adat (API, {fx_status})")
             continue
 
         provider = _detect_provider()
