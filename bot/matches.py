@@ -12,6 +12,12 @@ from bot.providers import theoddsapi
 
 TZ = os.getenv("TIPPMIX_TIMEZONE", "Europe/Budapest")
 
+# Optional blacklist to avoid leagues/countries with poor results coverage in providers.
+# Comma-separated; case-insensitive substring match.
+BLOCK_COUNTRIES = [x.strip().lower() for x in (os.getenv("TIPPMIX_BLOCK_COUNTRIES") or "").split(",") if x.strip()]
+BLOCK_LEAGUES = [x.strip().lower() for x in (os.getenv("TIPPMIX_BLOCK_LEAGUES") or "").split(",") if x.strip()]
+
+
 MAX_FIXTURES = int(os.getenv("TIPPMIX_MAX_FIXTURES", "200"))
 ODDS_LOOKUP_LIMIT = int(os.getenv("TIPPMIX_ODDS_LOOKUP_LIMIT", "120"))
 
@@ -115,6 +121,22 @@ def _is_top_match(match: Dict[str, Any]) -> bool:
     league = str(match.get("league_name") or "")
     for k in TOP_LEAGUE_KEYWORDS:
         if k.lower() in league.lower():
+            return True
+    return False
+
+
+def _is_blocked(match: Dict[str, Any]) -> bool:
+    if not BLOCK_COUNTRIES and not BLOCK_LEAGUES:
+        return False
+
+    country = (match.get("country_name") or match.get("country") or "").lower()
+    league = (match.get("league_name") or match.get("league") or "").lower()
+
+    for bc in BLOCK_COUNTRIES:
+        if bc and bc in country:
+            return True
+    for bl in BLOCK_LEAGUES:
+        if bl and bl in league:
             return True
     return False
 
@@ -294,6 +316,14 @@ def fetch_matches_for_today(slot: str = "DAY", date: Optional[str] = None) -> Li
     if not slot_fixtures_all:
         print(f"[matches] slot üres ({slot}), visszaadom a pool összes meccsét.")
         slot_fixtures_all = fixtures
+
+    # Optional blacklist (avoid poor-coverage competitions)
+    if BLOCK_COUNTRIES or BLOCK_LEAGUES:
+        before = len(slot_fixtures_all)
+        slot_fixtures_all = [m for m in slot_fixtures_all if not _is_blocked(m)]
+        after = len(slot_fixtures_all)
+        if before != after:
+            print(f"[matches] blacklist filtered: {before}->{after} (countries={len(BLOCK_COUNTRIES)} leagues={len(BLOCK_LEAGUES)})")
 
     ranked = sorted(slot_fixtures_all, key=_rank_bucket)
 
