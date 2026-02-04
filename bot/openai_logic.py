@@ -19,14 +19,16 @@ MAX_FREE = int(os.getenv("TIPPMIX_MAX_FREE", str(MIN_FREE)))
 STAKE_HUF = int(os.getenv("TIPPMIX_STAKE_HUF", "1000"))
 
 # "Perfect 6-fold" profile (tunable via env)
-VIP_ODDS_MIN = float(os.getenv("TIPPMIX_VIP_ODDS_MIN", "1.30"))
-VIP_ODDS_MAX = float(os.getenv("TIPPMIX_VIP_ODDS_MAX", "2.05"))
-VIP_HIGH_ODDS_THRESHOLD = float(os.getenv("TIPPMIX_VIP_HIGH_ODDS_THRESHOLD", "1.90"))
-VIP_MAX_HIGH_ODDS = int(os.getenv("TIPPMIX_VIP_MAX_HIGH_ODDS", "1"))
+# Defaults tuned for a 6-fold total odds target ~10–15 (geo mean ~1.47–1.57)
+VIP_ODDS_MIN = float(os.getenv("TIPPMIX_VIP_ODDS_MIN", "1.35"))
+VIP_ODDS_MAX = float(os.getenv("TIPPMIX_VIP_ODDS_MAX", "1.85"))
+VIP_HIGH_ODDS_THRESHOLD = float(os.getenv("TIPPMIX_VIP_HIGH_ODDS_THRESHOLD", "1.75"))
+VIP_MAX_HIGH_ODDS = int(os.getenv("TIPPMIX_VIP_MAX_HIGH_ODDS", "2"))
 VIP_REQUIRE_ODDS = (os.getenv("TIPPMIX_VIP_REQUIRE_ODDS") or "1").strip() == "1"
 
-FREE_ODDS_MIN = float(os.getenv("TIPPMIX_FREE_ODDS_MIN", "1.35"))
-FREE_ODDS_MAX = float(os.getenv("TIPPMIX_FREE_ODDS_MAX", "2.20"))
+# Defaults tuned for a 4-fold free combo total odds ~6–10 (geo mean ~1.57–1.78)
+FREE_ODDS_MIN = float(os.getenv("TIPPMIX_FREE_ODDS_MIN", "1.40"))
+FREE_ODDS_MAX = float(os.getenv("TIPPMIX_FREE_ODDS_MAX", "2.10"))
 FREE_REQUIRE_ODDS = (os.getenv("TIPPMIX_FREE_REQUIRE_ODDS") or "0").strip() == "1"
 
 ALLOWED = {"Hazai győzelem", "Döntetlen", "Vendég győzelem"}
@@ -186,9 +188,9 @@ def _call_llm(dossiers: List[Dict[str, Any]]) -> Dict[str, Any]:
         "Kérlek ne add ugyanazt a meccset többször.\n"
         "A tippek legyenek vegyesek (ne csak hazai), ha a dosszié alapján indokolt.\n\n"
         f"Odds-szabály (stabilabb 6-os kombi):\n"
-        f"- VIP odds tartomány: {VIP_ODDS_MIN:.2f}–{VIP_ODDS_MAX:.2f}\n"
+        f"- VIP odds tartomány: {VIP_ODDS_MIN:.2f}–{VIP_ODDS_MAX:.2f} (cél: 6-os kombi ~10–15 össz-odds)\n"
         f"- VIP max {VIP_MAX_HIGH_ODDS} tipp lehet {VIP_HIGH_ODDS_THRESHOLD:.2f} felett\n"
-        f"- FREE odds tartomány: {FREE_ODDS_MIN:.2f}–{FREE_ODDS_MAX:.2f}\n\n"
+        f"- FREE odds tartomány: {FREE_ODDS_MIN:.2f}–{FREE_ODDS_MAX:.2f} (cél: 4-es kombi ~6–10 össz-odds)\n\n"
         "Meccs dossziék:\n"
         + json.dumps(dossiers, ensure_ascii=False, indent=2)
     )
