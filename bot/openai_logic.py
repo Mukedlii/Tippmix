@@ -614,6 +614,22 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     today = datetime.date.today().strftime("%Y.%m.%d.")
     slot = (os.getenv("TIPPMIX_SLOT", "DAY") or "DAY").upper()
     slot_text = "délelőtt / nappal" if slot == "DAY" else "délután / este"
+    slot_text_en = "Day" if slot == "DAY" else "Evening"
+
+    def sel_en(sel: str) -> str:
+        return {
+            "Hazai győzelem": "Home win",
+            "Döntetlen": "Draw",
+            "Vendég győzelem": "Away win",
+        }.get(sel, sel)
+
+    def risk_en(r: str) -> str:
+        r = (r or "").lower()
+        if "alacsony" in r:
+            return "Low"
+        if "magas" in r:
+            return "High"
+        return "Medium"
 
     vip_lines = [
         "🔥 SZELVÉNYKIRÁLY VIP – KIRÁLYI KOMBI 🔥",
@@ -627,9 +643,8 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     vip_lines_en = [
         "🔥 BETSLIPKING VIP – MAIN COMBO 🔥",
         f"Date: {today}.",
-        f"Time window: {slot_text}",
+        f"Time window: {slot_text_en}",
         f"Tips: {len(vip)}",
-        f"Stake example: {STAKE_HUF} HUF / pick",
         "────────────────────",
     ]
 
@@ -652,9 +667,9 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         # EN (simple template)
         vip_lines_en.append(
             f"{i}. {('💎 HIGHLIGHT – ' if t.get('is_highlighted') else '')}{label}\n"
-            f"Pick: {t['selection']}\n"
+            f"Pick: {sel_en(t['selection'])}\n"
             f"Odds (1X2): {odds_txt}\n"
-            f"Risk: {t['risk_level']}\n"
+            f"Risk: {risk_en(t['risk_level'])}\n"
             f"Confidence: {t['confidence']:.1f}/5"
         )
 
@@ -679,9 +694,9 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             )
             vip_lines_en.append(
                 f"B{j}. {label}\n"
-                f"Pick: {t['selection']}\n"
+                f"Pick: {sel_en(t['selection'])}\n"
                 f"Odds (1X2): {odds_txt}\n"
-                f"Risk: {t['risk_level']}\n"
+                f"Risk: {risk_en(t['risk_level'])}\n"
                 f"Confidence: {t['confidence']:.1f}/5"
             )
 
@@ -694,10 +709,9 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     ]
 
     free_lines_en = [
-        "👑 BETSLIPKING FREE – DAILY PICKS",
+        "👑 BETSLIPKING – DAILY PICKS",
         f"Date: {today}.",
-        f"Time window: {slot_text}",
-        f"Stake example: {STAKE_HUF} HUF / pick",
+        f"Time window: {slot_text_en}",
         "────────────────────",
     ]
 
@@ -718,9 +732,9 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
 
         free_lines_en.append(
             f"{i}. {label}\n"
-            f"Pick: {t['selection']}\n"
+            f"Pick: {sel_en(t['selection'])}\n"
             f"Odds (1X2): {odds_txt}\n"
-            f"Risk: {t['risk_level']}\n"
+            f"Risk: {risk_en(t['risk_level'])}\n"
             f"Confidence: {t['confidence']:.1f}/5"
         )
 
