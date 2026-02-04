@@ -31,6 +31,13 @@ FREE_ODDS_MIN = float(os.getenv("TIPPMIX_FREE_ODDS_MIN", "1.40"))
 FREE_ODDS_MAX = float(os.getenv("TIPPMIX_FREE_ODDS_MAX", "2.10"))
 FREE_REQUIRE_ODDS = (os.getenv("TIPPMIX_FREE_REQUIRE_ODDS") or "0").strip() == "1"
 
+# VIP bonus combo (printed in VIP message, not counted in the 6 mandatory VIP tips)
+VIP_BONUS_COUNT = int(os.getenv("TIPPMIX_VIP_BONUS_COUNT", "4"))
+VIP_BONUS_ODDS_MIN = float(os.getenv("TIPPMIX_VIP_BONUS_ODDS_MIN", "1.70"))
+VIP_BONUS_ODDS_MAX = float(os.getenv("TIPPMIX_VIP_BONUS_ODDS_MAX", "2.60"))
+VIP_BONUS_HIGH_ODDS_THRESHOLD = float(os.getenv("TIPPMIX_VIP_BONUS_HIGH_ODDS_THRESHOLD", "2.30"))
+VIP_BONUS_MAX_HIGH_ODDS = int(os.getenv("TIPPMIX_VIP_BONUS_MAX_HIGH_ODDS", "2"))
+
 ALLOWED = {"Hazai győzelem", "Döntetlen", "Vendég győzelem"}
 
 SYSTEM_PROMPT = """
@@ -393,22 +400,96 @@ def _best_sel_within(m: Dict[str, Any], tier: str) -> Optional[str]:
     return sel if _odds_ok(_odds_for_selection(m, sel), tier=tier) else None
 
 
+def _odds_val(t: Dict[str, Any]) -> float:
+    try:
+        return float(t.get("odds_estimate") or 0)
+    except Exception:
+        return 0.0
+
+
 def _enforce_vip_high_odds_cap(vip: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     # Drop tips above VIP_ODDS_MAX already handled by _odds_ok; now cap "high odds" count.
-    def odds_val(t: Dict[str, Any]) -> float:
-        try:
-            return float(t.get("odds_estimate") or 0)
-        except Exception:
-            return 0.0
-
-    highs = [t for t in vip if odds_val(t) > VIP_HIGH_ODDS_THRESHOLD]
+    highs = [t for t in vip if _odds_val(t) > VIP_HIGH_ODDS_THRESHOLD]
     if len(highs) <= VIP_MAX_HIGH_ODDS:
         return vip
 
     # remove the highest odds first
-    highs_sorted = sorted(highs, key=odds_val, reverse=True)
+    highs_sorted = sorted(highs, key=_odds_val, reverse=True)
     to_remove = set(x["fixture_id"] for x in highs_sorted[VIP_MAX_HIGH_ODDS:])
     return [t for t in vip if t["fixture_id"] not in to_remove]
+
+
+def _pick_bonus(matches_norm: List[Dict[str, Any]], used: set) -> List[Dict[str, Any]]:
+    """Build an extra VIP bonus list (count=VIP_BONUS_COUNT) from remaining matches.
+
+    Best-effort: prefers implied-probability highest selection that falls within bonus odds window.
+    """
+
+    if VIP_BONUS_COUNT <= 0:
+        return []
+
+    def odds_ok_bonus(odds_val: Optional[float]) -> bool:
+        if odds_val is None:
+            return False
+        return VIP_BONUS_ODDS_MIN <= float(odds_val) <= VIP_BONUS_ODDS_MAX
+
+    out: List[Dict[str, Any]] = []
+
+    # build candidate tips
+    candidates: List[Dict[str, Any]] = []
+    for m in matches_norm:
+        fid = m["fixture_id"]
+        if fid in used:
+            continue
+
+        imp = _implied_probs(m.get("odds_1"), m.get("odds_x"), m.get("odds_2"))
+        if not imp:
+            continue
+
+        options = [
+            ("Hazai győzelem", imp["p1"], _odds_for_selection(m, "Hazai győzelem")),
+            ("Döntetlen", imp["px"], _odds_for_selection(m, "Döntetlen")),
+            ("Vendég győzelem", imp["p2"], _odds_for_selection(m, "Vendég győzelem")),
+        ]
+        options = [o for o in options if odds_ok_bonus(o[2])]
+        if not options:
+            continue
+        options.sort(key=lambda x: x[1], reverse=True)
+        sel, p, o = options[0]
+
+        risk, conf = _baseline_risk_conf(m, sel)
+        candidates.append(
+            {
+                "fixture_id": fid,
+                "selection": sel,
+                "is_highlighted": False,
+                "confidence": conf,
+                "risk_level": risk,
+                "reason": "Bónusz kombi: odds-ablak + implied valószínűség alapján.",
+                "odds_estimate": o,
+                "_p": p,
+            }
+        )
+
+    # sort by implied probability and confidence
+    candidates.sort(key=lambda x: (float(x.get("_p") or 0.0), float(x.get("confidence") or 0.0)), reverse=True)
+
+    # enforce high-odds cap for bonus
+    high_count = 0
+    for c in candidates:
+        if len(out) >= VIP_BONUS_COUNT:
+            break
+        o = _odds_val(c)
+        if o > VIP_BONUS_HIGH_ODDS_THRESHOLD:
+            if high_count >= VIP_BONUS_MAX_HIGH_ODDS:
+                continue
+            high_count += 1
+
+        used.add(c["fixture_id"])
+        c.pop("_p", None)
+        out.append(c)
+
+    return out
 
 
 def _fill_minimum(matches_norm: List[Dict[str, Any]], vip: List[Dict[str, Any]], free: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
@@ -526,6 +607,10 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     # Final VIP cap enforcement (safety)
     vip = _enforce_vip_high_odds_cap(vip)
 
+    # Build VIP bonus list from remaining matches (does not affect mandatory counts)
+    used_bonus = set(t["fixture_id"] for t in vip + free)
+    vip_bonus = _pick_bonus(matches_norm, used_bonus)
+
     today = datetime.date.today().strftime("%Y.%m.%d.")
     slot = (os.getenv("TIPPMIX_SLOT", "DAY") or "DAY").upper()
     slot_text = "délelőtt / nappal" if slot == "DAY" else "délután / este"
@@ -554,6 +639,22 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             f"💡 Bizalom: {_stars(t['confidence'])}\n"
             f"🧠 Miért? {t['reason']}"
         )
+
+    if vip_bonus:
+        vip_lines.append("────────────────────")
+        vip_lines.append(f"🎁 VIP BONUS – {len(vip_bonus)} tipp (külön kombi)")
+        for j, t in enumerate(vip_bonus, 1):
+            m = id_to_match.get(t["fixture_id"])
+            label = _build_match_label(m)
+            odds_val = t.get("odds_estimate")
+            odds_txt = f"{odds_val:.2f}" if odds_val else "n/a"
+            vip_lines.append(
+                f"B{j}. {label}\n"
+                f"🎯 Tipp: {t['selection']}\n"
+                f"📊 Odds (1X2): {odds_txt}\n"
+                f"⚠️ Kockázat: {_risk_to_emoji(t['risk_level'])}\n"
+                f"💡 Bizalom: {_stars(t['confidence'])}"
+            )
 
     free_lines = [
         "👑 SZELVÉNYKIRÁLY FREE – NAPI TIPPEK",
@@ -616,4 +717,21 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         "telegram_vip_text": "\n\n".join(vip_lines),
         "public_bets": public_bets,
         "vip_bets": vip_bets,
+        # Note: bonus is informational only (not stored/recapped by default)
+        "vip_bonus_bets": [
+            {
+                "fixture_id": t["fixture_id"],
+                "match": _build_match_label(id_to_match[t["fixture_id"]]),
+                "tip": t["selection"],
+                "odds": t.get("odds_estimate"),
+                "confidence": t.get("confidence"),
+                "risk_level": t.get("risk_level"),
+                "is_highlighted": False,
+                "league": id_to_match[t["fixture_id"]].get("league"),
+                "country": id_to_match[t["fixture_id"]].get("country"),
+                "kickoff": id_to_match[t["fixture_id"]].get("kickoff"),
+                "is_bonus": True,
+            }
+            for t in (vip_bonus or [])
+        ],
     }
