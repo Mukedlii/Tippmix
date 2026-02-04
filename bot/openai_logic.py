@@ -17,6 +17,8 @@ MAX_VIP = int(os.getenv("TIPPMIX_MAX_VIP", str(MIN_VIP)))
 MAX_FREE = int(os.getenv("TIPPMIX_MAX_FREE", str(MIN_FREE)))
 
 STAKE_HUF = int(os.getenv("TIPPMIX_STAKE_HUF", "1000"))
+# Display-only for EN channel
+STAKE_USD = float(os.getenv("TIPPMIX_STAKE_USD", "5"))
 
 # "Perfect 6-fold" profile (tunable via env)
 # Defaults tuned for a 6-fold total odds target ~10–15 (geo mean ~1.47–1.57)
@@ -645,6 +647,7 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         f"Date: {today}.",
         f"Time window: {slot_text_en}",
         f"Tips: {len(vip)}",
+        f"Stake example: ${STAKE_USD:g} / pick",
         "────────────────────",
     ]
 
@@ -712,6 +715,7 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         "👑 BETSLIPKING – DAILY PICKS",
         f"Date: {today}.",
         f"Time window: {slot_text_en}",
+        f"Stake example: ${STAKE_USD:g} / pick",
         "────────────────────",
     ]
 
