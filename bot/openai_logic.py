@@ -624,6 +624,15 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         "────────────────────",
     ]
 
+    vip_lines_en = [
+        "🔥 BETSLIPKING VIP – MAIN COMBO 🔥",
+        f"Date: {today}.",
+        f"Time window: {slot_text}",
+        f"Tips: {len(vip)}",
+        f"Stake example: {STAKE_HUF} HUF / pick",
+        "────────────────────",
+    ]
+
     for i, t in enumerate(vip, 1):
         m = id_to_match.get(t["fixture_id"])
         label = _build_match_label(m)
@@ -640,9 +649,22 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             f"🧠 Miért? {t['reason']}"
         )
 
+        # EN (simple template)
+        vip_lines_en.append(
+            f"{i}. {('💎 HIGHLIGHT – ' if t.get('is_highlighted') else '')}{label}\n"
+            f"Pick: {t['selection']}\n"
+            f"Odds (1X2): {odds_txt}\n"
+            f"Risk: {t['risk_level']}\n"
+            f"Confidence: {t['confidence']:.1f}/5"
+        )
+
     if vip_bonus:
         vip_lines.append("────────────────────")
         vip_lines.append(f"🎁 VIP BONUS – {len(vip_bonus)} tipp (külön kombi)")
+
+        vip_lines_en.append("────────────────────")
+        vip_lines_en.append(f"🎁 VIP BONUS – {len(vip_bonus)} picks (separate combo)")
+
         for j, t in enumerate(vip_bonus, 1):
             m = id_to_match.get(t["fixture_id"])
             label = _build_match_label(m)
@@ -655,12 +677,27 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
                 f"⚠️ Kockázat: {_risk_to_emoji(t['risk_level'])}\n"
                 f"💡 Bizalom: {_stars(t['confidence'])}"
             )
+            vip_lines_en.append(
+                f"B{j}. {label}\n"
+                f"Pick: {t['selection']}\n"
+                f"Odds (1X2): {odds_txt}\n"
+                f"Risk: {t['risk_level']}\n"
+                f"Confidence: {t['confidence']:.1f}/5"
+            )
 
     free_lines = [
         "👑 SZELVÉNYKIRÁLY FREE – NAPI TIPPEK",
         f"Dátum: {today}.",
         f"Idősáv: {slot_text}",
         f"💵 Tét példa: {STAKE_HUF} Ft / tipp",
+        "────────────────────",
+    ]
+
+    free_lines_en = [
+        "👑 BETSLIPKING FREE – DAILY PICKS",
+        f"Date: {today}.",
+        f"Time window: {slot_text}",
+        f"Stake example: {STAKE_HUF} HUF / pick",
         "────────────────────",
     ]
 
@@ -677,6 +714,14 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             f"⚠️ Kockázat: {_risk_to_emoji(t['risk_level'])}\n"
             f"💡 Bizalom: {_stars(t['confidence'])}\n"
             f"🧠 Miért? {t['reason']}"
+        )
+
+        free_lines_en.append(
+            f"{i}. {label}\n"
+            f"Pick: {t['selection']}\n"
+            f"Odds (1X2): {odds_txt}\n"
+            f"Risk: {t['risk_level']}\n"
+            f"Confidence: {t['confidence']:.1f}/5"
         )
 
     # 1/B: kibővített mezők a JSON exporthoz
@@ -715,6 +760,8 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     return {
         "telegram_public_text": "\n\n".join(free_lines),
         "telegram_vip_text": "\n\n".join(vip_lines),
+        "telegram_public_text_en": "\n\n".join(free_lines_en),
+        "telegram_vip_text_en": "\n\n".join(vip_lines_en),
         "public_bets": public_bets,
         "vip_bets": vip_bets,
         # Note: bonus is informational only (not stored/recapped by default)

@@ -549,11 +549,13 @@ def main() -> None:
     telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
     public_chat_id = os.getenv("TELEGRAM_PUBLIC_CHAT_ID")
     vip_chat_id = os.getenv("TELEGRAM_VIP_CHAT_ID")
+    en_chat_id = os.getenv("TELEGRAM_EN_CHAT_ID")
 
     print("\n=== TELEGRAM BEÁLLÍTÁSOK ===")
     print("TELEGRAM_BOT_TOKEN be van állítva:", bool(telegram_token))
     print("PUBLIC_CHAT_ID (használt) =", repr(public_chat_id))
     print("VIP_CHAT_ID    =", repr(vip_chat_id))
+    print("EN_CHAT_ID     =", repr(en_chat_id))
 
     if not telegram_token:
         print("NINCS TELEGRAM_BOT_TOKEN, kilépek.")
@@ -563,6 +565,8 @@ def main() -> None:
         print("[WARN] TELEGRAM_PUBLIC_CHAT_ID nincs beállítva! FREE üzenet nem fog kimenni.")
     if not vip_chat_id:
         print("[WARN] TELEGRAM_VIP_CHAT_ID nincs beállítva! VIP üzenet nem fog kimenni.")
+    if not en_chat_id:
+        print("[INFO] TELEGRAM_EN_CHAT_ID nincs beállítva! EN üzenet nem fog kimenni.")
 
     try:
         matches = _fetch_matches(slot=slot, date_obj=today)
@@ -618,6 +622,9 @@ def main() -> None:
 
     public_text = tips_data.get("telegram_public_text") or "⚠️ Hiba a FREE tippek generálásánál."
     vip_text = tips_data.get("telegram_vip_text") or "⚠️ Hiba a VIP tippek generálásánál."
+
+    public_text_en = tips_data.get("telegram_public_text_en")
+    vip_text_en = tips_data.get("telegram_vip_text_en")
 
     public_bets = tips_data.get("public_bets", []) or []
     vip_bets = tips_data.get("vip_bets", []) or []
@@ -701,6 +708,15 @@ def main() -> None:
         send_telegram_message(telegram_token, public_chat_id, public_text, f"PUBLIC_{slot}", meta=base_meta)
     if vip_chat_id:
         send_telegram_message(telegram_token, vip_chat_id, vip_text, f"VIP_{slot}", meta=base_meta)
+
+    # EN broadcast (optional)
+    if en_chat_id and (public_text_en or vip_text_en):
+        meta_en = dict(base_meta)
+        meta_en["lang"] = "en"
+        if public_text_en:
+            send_telegram_message(telegram_token, en_chat_id, public_text_en, f"EN_PUBLIC_{slot}", meta=meta_en)
+        if vip_text_en:
+            send_telegram_message(telegram_token, en_chat_id, vip_text_en, f"EN_VIP_{slot}", meta=meta_en)
 
 
 if __name__ == "__main__":
