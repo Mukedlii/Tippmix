@@ -710,10 +710,12 @@ def main() -> None:
         send_telegram_message(telegram_token, vip_chat_id, vip_text, f"VIP_{slot}", meta=base_meta)
 
     # EN broadcast (optional)
-    if en_chat_id and (public_text_en or vip_text_en):
+    # Default: VIP-only for the EN channel/group.
+    en_include_free = (os.getenv("TELEGRAM_EN_INCLUDE_FREE") or "").strip() == "1"
+    if en_chat_id and (vip_text_en or (en_include_free and public_text_en)):
         meta_en = dict(base_meta)
         meta_en["lang"] = "en"
-        if public_text_en:
+        if en_include_free and public_text_en:
             send_telegram_message(telegram_token, en_chat_id, public_text_en, f"EN_PUBLIC_{slot}", meta=meta_en)
         if vip_text_en:
             send_telegram_message(telegram_token, en_chat_id, vip_text_en, f"EN_VIP_{slot}", meta=meta_en)
