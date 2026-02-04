@@ -18,10 +18,23 @@ MAX_FREE = int(os.getenv("TIPPMIX_MAX_FREE", str(MIN_FREE)))
 
 STAKE_HUF = int(os.getenv("TIPPMIX_STAKE_HUF", "1000"))
 
+# "Perfect 6-fold" profile (tunable via env)
+VIP_ODDS_MIN = float(os.getenv("TIPPMIX_VIP_ODDS_MIN", "1.30"))
+VIP_ODDS_MAX = float(os.getenv("TIPPMIX_VIP_ODDS_MAX", "2.05"))
+VIP_HIGH_ODDS_THRESHOLD = float(os.getenv("TIPPMIX_VIP_HIGH_ODDS_THRESHOLD", "1.90"))
+VIP_MAX_HIGH_ODDS = int(os.getenv("TIPPMIX_VIP_MAX_HIGH_ODDS", "1"))
+VIP_REQUIRE_ODDS = (os.getenv("TIPPMIX_VIP_REQUIRE_ODDS") or "1").strip() == "1"
+
+FREE_ODDS_MIN = float(os.getenv("TIPPMIX_FREE_ODDS_MIN", "1.35"))
+FREE_ODDS_MAX = float(os.getenv("TIPPMIX_FREE_ODDS_MAX", "2.20"))
+FREE_REQUIRE_ODDS = (os.getenv("TIPPMIX_FREE_REQUIRE_ODDS") or "0").strip() == "1"
+
 ALLOWED = {"Hazai győzelem", "Döntetlen", "Vendég győzelem"}
 
 SYSTEM_PROMPT = """
 Te egy profi futball-elemző vagy. 1X2 piacon adsz tippeket.
+
+Cél: "stabil" 6-os VIP kombi (magasabb találati arány), ezért kerüld a coinflip (2.30+) tippeket.
 
 Elemzés:
 - Hazai pálya, erőviszonyok, liga-szint (komoly vs egzotikus), tabella/forma/sérülés (ha van).
@@ -48,6 +61,11 @@ Szabályok:
 - Ne legyen túl sok döntetlen (VIP max 1, FREE max 1).
 - Friendlies csak akkor maradhat, ha (odds <= 1.60) ÉS (confidence >= 4.2).
 - Egzotikus ligák: ha odds>2.20 és confidence<4.0, inkább cseréld/eldobod.
+
+- VIP 6-os kombi stabilitás:
+  - VIP-ben preferáld az odds {VIP_ODDS_MIN:.2f}–{VIP_ODDS_MAX:.2f} tartományt.
+  - VIP-ben max {VIP_MAX_HIGH_ODDS} tipp lehet {VIP_HIGH_ODDS_THRESHOLD:.2f} felett.
+
 - Ne legyen duplikált fixture.
 - VIP: legalább 6 tipp, pontosan 3 kiemelt.
 - FREE: legalább 3 tipp.
@@ -167,6 +185,10 @@ def _call_llm(dossiers: List[Dict[str, Any]]) -> Dict[str, Any]:
         f"Kötelező: VIP>={MIN_VIP}, FREE>={MIN_FREE}, VIP-ben pontosan 3 kiemelt.\n"
         "Kérlek ne add ugyanazt a meccset többször.\n"
         "A tippek legyenek vegyesek (ne csak hazai), ha a dosszié alapján indokolt.\n\n"
+        f"Odds-szabály (stabilabb 6-os kombi):\n"
+        f"- VIP odds tartomány: {VIP_ODDS_MIN:.2f}–{VIP_ODDS_MAX:.2f}\n"
+        f"- VIP max {VIP_MAX_HIGH_ODDS} tipp lehet {VIP_HIGH_ODDS_THRESHOLD:.2f} felett\n"
+        f"- FREE odds tartomány: {FREE_ODDS_MIN:.2f}–{FREE_ODDS_MAX:.2f}\n\n"
         "Meccs dossziék:\n"
         + json.dumps(dossiers, ensure_ascii=False, indent=2)
     )
@@ -279,7 +301,16 @@ def _enforce_highlights(vip: List[Dict[str, Any]]) -> None:
         t["is_highlighted"] = True
 
 
-def _clean_list(raw: List[Dict[str, Any]], id_to_match: Dict[int, Dict[str, Any]], used: set) -> List[Dict[str, Any]]:
+def _odds_ok(odds_val: Optional[float], tier: str) -> bool:
+    if odds_val is None:
+        return not (VIP_REQUIRE_ODDS if tier == "VIP" else FREE_REQUIRE_ODDS)
+    if tier == "VIP":
+        return VIP_ODDS_MIN <= float(odds_val) <= VIP_ODDS_MAX
+    return FREE_ODDS_MIN <= float(odds_val) <= FREE_ODDS_MAX
+
+
+def _clean_list(raw: List[Dict[str, Any]], id_to_match: Dict[int, Dict[str, Any]], used: set, tier: str) -> List[Dict[str, Any]]:
+    tier = (tier or "").upper()
     out: List[Dict[str, Any]] = []
     for it in raw or []:
         try:
@@ -296,6 +327,10 @@ def _clean_list(raw: List[Dict[str, Any]], id_to_match: Dict[int, Dict[str, Any]
             continue
 
         m = id_to_match[fid]
+        odds_val = _odds_for_selection(m, sel)
+        if not _odds_ok(odds_val, tier=tier):
+            continue
+
         base_risk, base_conf = _baseline_risk_conf(m, sel)
 
         conf = _safe_float(it.get("confidence"))
@@ -318,7 +353,7 @@ def _clean_list(raw: List[Dict[str, Any]], id_to_match: Dict[int, Dict[str, Any]
                 "confidence": conf,
                 "risk_level": risk,
                 "reason": reason,
-                "odds_estimate": _odds_for_selection(m, sel),
+                "odds_estimate": odds_val,
             }
         )
     return out
@@ -338,6 +373,42 @@ def _cap_draws(tips: List[Dict[str, Any]], max_draws: int) -> List[Dict[str, Any
     return out
 
 
+def _best_sel_within(m: Dict[str, Any], tier: str) -> Optional[str]:
+    imp = _implied_probs(m.get("odds_1"), m.get("odds_x"), m.get("odds_2"))
+    # score selections by implied probability
+    if imp:
+        candidates = [
+            ("Hazai győzelem", imp["p1"], _odds_for_selection(m, "Hazai győzelem")),
+            ("Döntetlen", imp["px"], _odds_for_selection(m, "Döntetlen")),
+            ("Vendég győzelem", imp["p2"], _odds_for_selection(m, "Vendég győzelem")),
+        ]
+        candidates = [c for c in candidates if _odds_ok(c[2], tier=tier)]
+        candidates.sort(key=lambda x: x[1], reverse=True)
+        return candidates[0][0] if candidates else None
+
+    # fallback: use baseline pick if odds ok
+    sel = _baseline_pick(m)
+    return sel if _odds_ok(_odds_for_selection(m, sel), tier=tier) else None
+
+
+def _enforce_vip_high_odds_cap(vip: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    # Drop tips above VIP_ODDS_MAX already handled by _odds_ok; now cap "high odds" count.
+    def odds_val(t: Dict[str, Any]) -> float:
+        try:
+            return float(t.get("odds_estimate") or 0)
+        except Exception:
+            return 0.0
+
+    highs = [t for t in vip if odds_val(t) > VIP_HIGH_ODDS_THRESHOLD]
+    if len(highs) <= VIP_MAX_HIGH_ODDS:
+        return vip
+
+    # remove the highest odds first
+    highs_sorted = sorted(highs, key=odds_val, reverse=True)
+    to_remove = set(x["fixture_id"] for x in highs_sorted[VIP_MAX_HIGH_ODDS:])
+    return [t for t in vip if t["fixture_id"] not in to_remove]
+
+
 def _fill_minimum(matches_norm: List[Dict[str, Any]], vip: List[Dict[str, Any]], free: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     used = {t["fixture_id"] for t in vip + free}
 
@@ -346,12 +417,18 @@ def _fill_minimum(matches_norm: List[Dict[str, Any]], vip: List[Dict[str, Any]],
 
     pool = sorted(matches_norm, key=has_full_odds, reverse=True)
 
-    def add_one(target: List[Dict[str, Any]]) -> bool:
+    def add_one(target: List[Dict[str, Any]], tier: str) -> bool:
         for m in pool:
             fid = m["fixture_id"]
             if fid in used:
                 continue
-            sel = _baseline_pick(m)
+            sel = _best_sel_within(m, tier=tier)
+            if not sel:
+                continue
+            odds_val = _odds_for_selection(m, sel)
+            if not _odds_ok(odds_val, tier=tier):
+                continue
+
             risk, conf = _baseline_risk_conf(m, sel)
             target.append(
                 {
@@ -361,34 +438,40 @@ def _fill_minimum(matches_norm: List[Dict[str, Any]], vip: List[Dict[str, Any]],
                     "confidence": conf,
                     "risk_level": risk,
                     "reason": "Feltöltés: kevés AI tipp, a legjobb elérhető meccsekből.",
-                    "odds_estimate": _odds_for_selection(m, sel),
+                    "odds_estimate": odds_val,
                 }
             )
             used.add(fid)
             return True
         return False
 
+    # First, enforce VIP high-odds cap on the (possibly LLM-generated) list, then refill.
+    vip = _enforce_vip_high_odds_cap(vip)
+
     while len(vip) < MIN_VIP:
-        if not add_one(vip):
+        if not add_one(vip, tier="VIP"):
             break
 
     while len(free) < MIN_FREE:
-        if not add_one(free):
+        if not add_one(free, tier="FREE"):
             break
 
     # Döntetlen cap + utána újra feltöltés, hogy a minimumok biztosan meglegyenek
     vip = _cap_draws(vip, MAX_DRAWS_VIP)
     free = _cap_draws(free, MAX_DRAWS_FREE)
 
+    # Re-apply VIP high-odds cap after draw trimming, then refill again.
+    vip = _enforce_vip_high_odds_cap(vip)
+
     used2 = {t["fixture_id"] for t in vip + free}
     used.clear()
     used.update(used2)
 
     while len(vip) < MIN_VIP:
-        if not add_one(vip):
+        if not add_one(vip, tier="VIP"):
             break
     while len(free) < MIN_FREE:
-        if not add_one(free):
+        if not add_one(free, tier="FREE"):
             break
 
     # NEM vágjuk kicsire agresszíven, de ha valaki beállította a MAX-ot, akkor érvényes.
@@ -433,10 +516,13 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             print("OpenAI hiba (validator):", repr(e))
 
     used: set = set()
-    vip = _clean_list(vip_raw, id_to_match, used)
-    free = _clean_list(free_raw, id_to_match, used)
+    vip = _clean_list(vip_raw, id_to_match, used, tier="VIP")
+    free = _clean_list(free_raw, id_to_match, used, tier="FREE")
 
     vip, free = _fill_minimum(matches_norm, vip, free)
+
+    # Final VIP cap enforcement (safety)
+    vip = _enforce_vip_high_odds_cap(vip)
 
     today = datetime.date.today().strftime("%Y.%m.%d.")
     slot = (os.getenv("TIPPMIX_SLOT", "DAY") or "DAY").upper()
