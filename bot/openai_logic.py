@@ -663,13 +663,16 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         "────────────────────",
     ]
 
+    sep_en = "💎⚽️💎"
+
     vip_lines_en = [
-        "🔥 BETSLIPKING VIP – MAIN COMBO 🔥",
-        f"Date: {today}.",
-        f"Time window: {slot_text_en}",
-        f"Tips: {len(vip)}",
-        f"Stake example: ${STAKE_USD:g} / pick",
-        "────────────────────",
+        "🔥 BETSLIPKING VIP – MAIN COMBO ⚽️💰",
+        f"📅 Date: {today}.",
+        f"🕒 Session: {slot_text_en}",
+        f"🎯 Picks: {len(vip)}",
+        f"💵 Stake: ${STAKE_USD:g} / pick",
+        sep_en,
+        "✅ MAIN PICKS",
     ]
 
     for i, t in enumerate(vip, 1):
@@ -701,8 +704,8 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         vip_lines.append("────────────────────")
         vip_lines.append(f"🎁 VIP BONUS – {len(vip_bonus)} tipp (külön kombi)")
 
-        vip_lines_en.append("────────────────────")
-        vip_lines_en.append(f"🎁 VIP BONUS – {len(vip_bonus)} picks (separate combo)")
+        vip_lines_en.append(sep_en)
+        vip_lines_en.append(f"🎁 BONUS PICKS ({len(vip_bonus)})")
 
         for j, t in enumerate(vip_bonus, 1):
             m = id_to_match.get(t["fixture_id"])
@@ -733,11 +736,11 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     ]
 
     free_lines_en = [
-        "👑 BETSLIPKING – DAILY PICKS",
-        f"Date: {today}.",
-        f"Time window: {slot_text_en}",
-        f"Stake example: ${STAKE_USD:g} / pick",
-        "────────────────────",
+        "👑 BETSLIPKING – DAILY PICKS ⚽️",
+        f"📅 Date: {today}.",
+        f"🕒 Session: {slot_text_en}",
+        f"💵 Stake: ${STAKE_USD:g} / pick",
+        sep_en,
     ]
 
     for i, t in enumerate(free, 1):
