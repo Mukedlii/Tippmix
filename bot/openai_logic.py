@@ -28,6 +28,12 @@ VIP_HIGH_ODDS_THRESHOLD = float(os.getenv("TIPPMIX_VIP_HIGH_ODDS_THRESHOLD", "1.
 VIP_MAX_HIGH_ODDS = int(os.getenv("TIPPMIX_VIP_MAX_HIGH_ODDS", "2"))
 VIP_REQUIRE_ODDS = (os.getenv("TIPPMIX_VIP_REQUIRE_ODDS") or "1").strip() == "1"
 
+# If strict odds constraints produce too few VIP/FREE tips, allow an automatic relaxation pass.
+RELAX_IF_SHORT = (os.getenv("TIPPMIX_RELAX_IF_SHORT") or "1").strip() == "1"
+VIP_ODDS_MAX_RELAX = float(os.getenv("TIPPMIX_VIP_ODDS_MAX_RELAX", "2.20"))
+FREE_ODDS_MAX_RELAX = float(os.getenv("TIPPMIX_FREE_ODDS_MAX_RELAX", "2.40"))
+
+
 # Defaults tuned for a 4-fold free combo total odds ~6–10 (geo mean ~1.57–1.78)
 FREE_ODDS_MIN = float(os.getenv("TIPPMIX_FREE_ODDS_MIN", "1.40"))
 FREE_ODDS_MAX = float(os.getenv("TIPPMIX_FREE_ODDS_MAX", "2.10"))
@@ -312,12 +318,18 @@ def _enforce_highlights(vip: List[Dict[str, Any]]) -> None:
         t["is_highlighted"] = True
 
 
-def _odds_ok(odds_val: Optional[float], tier: str) -> bool:
+def _odds_ok(odds_val: Optional[float], tier: str, relax: bool = False) -> bool:
     if odds_val is None:
-        return not (VIP_REQUIRE_ODDS if tier == "VIP" else FREE_REQUIRE_ODDS)
+        if tier == "VIP":
+            return (not VIP_REQUIRE_ODDS) or relax
+        return (not FREE_REQUIRE_ODDS) or relax
+
     if tier == "VIP":
-        return VIP_ODDS_MIN <= float(odds_val) <= VIP_ODDS_MAX
-    return FREE_ODDS_MIN <= float(odds_val) <= FREE_ODDS_MAX
+        mx = VIP_ODDS_MAX_RELAX if relax else VIP_ODDS_MAX
+        return VIP_ODDS_MIN <= float(odds_val) <= mx
+
+    mx = FREE_ODDS_MAX_RELAX if relax else FREE_ODDS_MAX
+    return FREE_ODDS_MIN <= float(odds_val) <= mx
 
 
 def _clean_list(raw: List[Dict[str, Any]], id_to_match: Dict[int, Dict[str, Any]], used: set, tier: str) -> List[Dict[str, Any]]:
@@ -339,7 +351,7 @@ def _clean_list(raw: List[Dict[str, Any]], id_to_match: Dict[int, Dict[str, Any]
 
         m = id_to_match[fid]
         odds_val = _odds_for_selection(m, sel)
-        if not _odds_ok(odds_val, tier=tier):
+        if not _odds_ok(odds_val, tier=tier, relax=False):
             continue
 
         base_risk, base_conf = _baseline_risk_conf(m, sel)
@@ -384,7 +396,7 @@ def _cap_draws(tips: List[Dict[str, Any]], max_draws: int) -> List[Dict[str, Any
     return out
 
 
-def _best_sel_within(m: Dict[str, Any], tier: str) -> Optional[str]:
+def _best_sel_within(m: Dict[str, Any], tier: str, relax: bool = False) -> Optional[str]:
     imp = _implied_probs(m.get("odds_1"), m.get("odds_x"), m.get("odds_2"))
     # score selections by implied probability
     if imp:
@@ -393,13 +405,13 @@ def _best_sel_within(m: Dict[str, Any], tier: str) -> Optional[str]:
             ("Döntetlen", imp["px"], _odds_for_selection(m, "Döntetlen")),
             ("Vendég győzelem", imp["p2"], _odds_for_selection(m, "Vendég győzelem")),
         ]
-        candidates = [c for c in candidates if _odds_ok(c[2], tier=tier)]
+        candidates = [c for c in candidates if _odds_ok(c[2], tier=tier, relax=relax)]
         candidates.sort(key=lambda x: x[1], reverse=True)
         return candidates[0][0] if candidates else None
 
     # fallback: use baseline pick if odds ok
     sel = _baseline_pick(m)
-    return sel if _odds_ok(_odds_for_selection(m, sel), tier=tier) else None
+    return sel if _odds_ok(_odds_for_selection(m, sel), tier=tier, relax=relax) else None
 
 
 def _odds_val(t: Dict[str, Any]) -> float:
@@ -502,16 +514,16 @@ def _fill_minimum(matches_norm: List[Dict[str, Any]], vip: List[Dict[str, Any]],
 
     pool = sorted(matches_norm, key=has_full_odds, reverse=True)
 
-    def add_one(target: List[Dict[str, Any]], tier: str) -> bool:
+    def add_one(target: List[Dict[str, Any]], tier: str, relax: bool = False) -> bool:
         for m in pool:
             fid = m["fixture_id"]
             if fid in used:
                 continue
-            sel = _best_sel_within(m, tier=tier)
+            sel = _best_sel_within(m, tier=tier, relax=relax)
             if not sel:
                 continue
             odds_val = _odds_for_selection(m, sel)
-            if not _odds_ok(odds_val, tier=tier):
+            if not _odds_ok(odds_val, tier=tier, relax=relax):
                 continue
 
             risk, conf = _baseline_risk_conf(m, sel)
@@ -534,12 +546,21 @@ def _fill_minimum(matches_norm: List[Dict[str, Any]], vip: List[Dict[str, Any]],
     vip = _enforce_vip_high_odds_cap(vip)
 
     while len(vip) < MIN_VIP:
-        if not add_one(vip, tier="VIP"):
+        if not add_one(vip, tier="VIP", relax=False):
             break
 
     while len(free) < MIN_FREE:
-        if not add_one(free, tier="FREE"):
+        if not add_one(free, tier="FREE", relax=False):
             break
+
+    # If we are short, do a best-effort relaxation pass (keeps daily minimum counts).
+    if RELAX_IF_SHORT:
+        while len(vip) < MIN_VIP:
+            if not add_one(vip, tier="VIP", relax=True):
+                break
+        while len(free) < MIN_FREE:
+            if not add_one(free, tier="FREE", relax=True):
+                break
 
     # Döntetlen cap + utána újra feltöltés, hogy a minimumok biztosan meglegyenek
     vip = _cap_draws(vip, MAX_DRAWS_VIP)
