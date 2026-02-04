@@ -28,7 +28,21 @@ MIN_FREE = int(os.getenv("TIPPMIX_MIN_FREE", "3"))
 # mennyire terjesszük ki a keresést "ma + hány napra előre", ha kevés a meccs
 # Profi ajánlás fizetős csatornához: maradjunk az adott napnál (0), és csak akkor engedjünk egzotikus ligákat,
 # ha nem jön ki a minimum pool.
-MAX_DAYS_AHEAD = int(os.getenv("TIPPMIX_MAX_DAYS_AHEAD", "0"))
+def _get_int_env(name: str, default: int) -> int:
+    """Parse int env safely (treat empty/invalid as default)."""
+    raw = os.getenv(name)
+    if raw is None:
+        return int(default)
+    raw = str(raw).strip()
+    if raw == "":
+        return int(default)
+    try:
+        return int(raw)
+    except Exception:
+        return int(default)
+
+
+MAX_DAYS_AHEAD = _get_int_env("TIPPMIX_MAX_DAYS_AHEAD", 0)
 
 # mekkora legyen minimum a pool (slot után számolva)
 # ha nincs beállítva, számoljuk: VIP+FREE+12 (hogy legyen miből válogatni)
