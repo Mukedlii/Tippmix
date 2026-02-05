@@ -17,7 +17,7 @@ VIP_MAIN1_COUNT = int(os.getenv("TIPPMIX_VIP_MAIN1_COUNT", "6"))
 VIP_MAIN2_COUNT = int(os.getenv("TIPPMIX_VIP_MAIN2_COUNT", "6"))
 FREE_SAFE_COUNT = int(os.getenv("TIPPMIX_FREE_SAFE_COUNT", "3"))
 FREE_RISKY_COUNT = int(os.getenv("TIPPMIX_FREE_RISKY_COUNT", "3"))
-IMPORTANT_MIN = int(os.getenv("TIPPMIX_IMPORTANT_MIN", "3"))
+IMPORTANT_MIN = int(os.getenv("TIPPMIX_IMPORTANT_MIN", "6"))
 
 # Ha nem akarsz plafont, állítsd env-ben nagyobbra.
 MAX_VIP = int(os.getenv("TIPPMIX_MAX_VIP", str(MIN_VIP)))

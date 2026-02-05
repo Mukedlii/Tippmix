@@ -33,8 +33,15 @@ jobs:
       TIPPMIX_SLOT: ALL
 
       # Minimum counts
-      TIPPMIX_MIN_VIP: "3"
+      TIPPMIX_MIN_VIP: "6"
       TIPPMIX_MIN_FREE: "3"
+
+      # Always show at least 6 important matches in VIP
+      TIPPMIX_IMPORTANT_MIN: "6"
+      TIPPMIX_VIP_MAIN1_COUNT: "6"
+      TIPPMIX_VIP_MAIN2_COUNT: "6"
+      TIPPMIX_FREE_SAFE_COUNT: "3"
+      TIPPMIX_FREE_RISKY_COUNT: "3"
 
       # Allow MORE than minimum (send many picks)
       TIPPMIX_MAX_VIP: "18"

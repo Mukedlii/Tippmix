@@ -506,11 +506,10 @@ def fetch_matches_for_today(slot: str = "DAY", date: Optional[str] = None) -> Li
                 looked += 1
                 continue
 
-    # If we are on SportsDataIO (no native odds), try The Odds API as a supplement
-    # Also useful as a fallback when other providers have missing odds.
+    # The Odds API supplement (optional): useful when the primary provider has missing odds.
+    # This especially helps free API-Sports plans where /odds access may be restricted.
     try:
-        if provider == "sportsdataio":
-            _enrich_odds_from_theoddsapi(slot_fixtures)
+        _enrich_odds_from_theoddsapi(slot_fixtures)
     except Exception:
         pass
 
