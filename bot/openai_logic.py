@@ -821,26 +821,47 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             label = _build_match_label(m)
             _append_tip_block(vip_lines, vip_lines_en, j, t, label)
 
-    free_safe = free[: max(0, FREE_SAFE_COUNT)]
-    free_risky = free[max(0, FREE_SAFE_COUNT) : max(0, FREE_SAFE_COUNT + FREE_RISKY_COUNT)]
+    def _is_safe_free(t: Dict[str, Any]) -> bool:
+        # Truthful SAFE: avoid high-risk labels and keep within the safe odds window
+        try:
+            odds_val = float(t.get("odds_estimate") or 0)
+        except Exception:
+            odds_val = 0.0
+        risk = (t.get("risk_level") or "").lower()
+        if "magas" in risk:
+            return False
+        if odds_val and odds_val > float(os.getenv("TIPPMIX_FREE_SAFE_ODDS_MAX", str(FREE_ODDS_MAX))):
+            return False
+        if odds_val and odds_val < float(os.getenv("TIPPMIX_FREE_SAFE_ODDS_MIN", str(FREE_ODDS_MIN))):
+            return False
+        return True
+
+    safe_pool = [t for t in free if _is_safe_free(t)]
+    risky_pool = [t for t in free if t not in safe_pool]
+
+    free_safe = safe_pool[: max(0, FREE_SAFE_COUNT)]
+    free_risky = risky_pool[: max(0, FREE_RISKY_COUNT)]
 
     free_lines = [
         "👑⚽️ SZELVÉNYKIRÁLY FREE – NAPI TIPPEK ⚽️👑",
         f"📅 Dátum: {today}.",
-        f"🕒 Idősáv: {slot_text}",
-        f"💵 Tét példa: {STAKE_HUF} Ft / tipp",
-        "━━━━━━━━━━━━━━━━━━━━",
-        f"✅ <b>BIZTOSABB</b> (FREE {len(free_safe)} tipp)",
+        "🙂 SAFE csak akkor, ha tényleg SAFE (nem piros).",
+        f"✅ <b>BIZTOSABB</b> ({len(free_safe)} tipp)",
     ]
 
     free_lines_en = [
         "👑⚽️ BETSLIPKING – FREE PICKS ⚽️👑",
         f"📅 Date: {today}.",
-        f"🕒 Session: {slot_text_en}",
-        f"💵 Stake: ${STAKE_USD:g} / pick",
-        "━━━━━━━━━━━━━━━━━━━━",
+        "🙂 SAFE only when it’s truly safe (no red/high-risk).",
         f"✅ SAFER ({len(free_safe)} picks)",
     ]
+
+    if not free_safe:
+        free_lines.append("⚠️ Ma nincs elég igazán SAFE meccs ebben az odds-ablakban.")
+        free_lines.append("➡️ Nézd meg a VIP listát (PRO/Standard), vagy játssz csak a MERÉSZ részből, ha vállalod.")
+
+        free_lines_en.append("⚠️ Not enough truly SAFE matches in the safe odds window today.")
+        free_lines_en.append("➡️ Check VIP (PRO/Standard), or play BOLD only if you accept higher risk.")
 
     for i, t in enumerate(free_safe, 1):
         m = id_to_match.get(t["fixture_id"])
