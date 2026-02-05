@@ -683,16 +683,37 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             return "High"
         return "Medium"
 
+    def _is_safe_vip(t: Dict[str, Any]) -> bool:
+        try:
+            odds_val = float(t.get("odds_estimate") or 0)
+        except Exception:
+            odds_val = 0.0
+        risk = (t.get("risk_level") or "").lower()
+        if "magas" in risk:
+            return False
+        # Keep SAFE within the VIP odds window
+        if odds_val and odds_val > VIP_ODDS_MAX:
+            return False
+        if odds_val and odds_val < VIP_ODDS_MIN:
+            return False
+        return True
+
+    safe_vip = [t for t in vip if _is_safe_vip(t)]
+    unsafe_vip = [t for t in vip if t not in safe_vip]
+
     # ---- structure: IMPORTANT + 2 combos + bold risky ----
-    important = vip[: max(0, IMPORTANT_MIN)]
-    rest = vip[max(0, IMPORTANT_MIN):]
+    important = safe_vip[: max(0, IMPORTANT_MIN)]
+    rest = safe_vip[max(0, IMPORTANT_MIN):]
 
     main1 = rest[: max(0, VIP_MAIN1_COUNT)]
     rest2 = rest[max(0, VIP_MAIN1_COUNT):]
     main2 = rest2[: max(0, VIP_MAIN2_COUNT)]
 
-    # risky comes from bonus list (already built) + any remaining vip tips
+    # anything safe that doesn't fit into the two combos
     vip_extra = rest2[max(0, VIP_MAIN2_COUNT):]
+
+    # unsafe (red/high odds/high risk) gets pushed to the bold section
+    vip_unsafe_extra = unsafe_vip
 
     vip_lines = [
         "👑⚽️ SZELVÉNYKIRÁLY VIP – NAPI AJÁNLÓ ⚽️👑",
@@ -735,22 +756,35 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         odds_txt = f"{odds_val:.2f}" if odds_val else "n/a"
         prefix = "⭐ KIEMELT – " if t.get("is_highlighted") else ""
 
-        lines_hu.append(
+        reason = (t.get("reason") or "").strip()
+        if (t.get("shelf") or "").upper() == "BOLD":
+            reason = ""
+
+        block = (
             f"{idx}. {_shelf_hu(t)}  {prefix}{label}\n"
             f"🎯 Tipp: {t['selection']}\n"
             f"📊 Odds: {odds_txt}\n"
             f"⚠️ Kockázat: {_risk_to_emoji(t['risk_level'])}\n"
-            f"💡 Bizalom: {_stars(t['confidence'])}\n"
-            f"🧠 Miért? {t['reason']}"
+            f"💡 Bizalom: {_stars(t['confidence'])}"
         )
+        if reason:
+            block += f"\n🧠 Miért? {reason}"
+        lines_hu.append(block)
 
-        lines_en.append(
+        reason_en = (t.get("reason") or "").strip()
+        if (t.get("shelf") or "").upper() == "BOLD":
+            reason_en = ""
+
+        block_en = (
             f"{idx}. {_shelf_en(t)}  {('⭐ HIGHLIGHT – ' if t.get('is_highlighted') else '')}{label}\n"
             f"Pick: {sel_en(t['selection'])}\n"
             f"Odds: {odds_txt}\n"
             f"Risk: {risk_en(t['risk_level'])}\n"
             f"Confidence: {t['confidence']:.1f}/5"
         )
+        if reason_en:
+            block_en += f"\nWhy? {reason_en}"
+        lines_en.append(block_en)
 
     # IMPORTANT
     for i, t in enumerate(important, 1):
@@ -805,7 +839,7 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         _append_tip_block(vip_lines, vip_lines_en, j, t, label)
 
     # BOLD / RISKY section (user can play it optionally)
-    risky = (vip_bonus or []) + (vip_extra or [])
+    risky = (vip_bonus or []) + (vip_unsafe_extra or [])
     if risky:
         vip_lines.append(f"\n😈 <b>MERÉSZ RÉSZ</b> (opcionális) – {len(risky)} tipp")
         vip_lines.append("🙂 Játsszd, ha akarod (nagyobb kockázat / nagyobb odds).")
