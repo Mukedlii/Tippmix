@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 import requests
 
 from bot.api_keys import get_api_sports_key, resolve_sports_provider
-from bot.providers import sportsdataio
+from bot.providers import sportsdataio, sportmonks
 
 
 def _normalize_fixture_id(fixture_id_value: Any, match_text: Optional[str] = None) -> Optional[int]:
@@ -51,6 +51,11 @@ def _get_fixture_result(fixture_id: int) -> Dict[str, Any]:
         game = sportsdataio.fetch_game_by_id(fixture_id)
         return game or {}
 
+    if provider == "sportmonks":
+        # include scores so we can settle 1X2
+        fx = sportmonks.get_fixture_by_id(fixture_id, include_scores=True)
+        return fx or {}
+
     url = "https://v3.football.api-sports.io/fixtures"
     headers = {"x-apisports-key": get_api_sports_key()}
     params = {"id": fixture_id}
@@ -81,6 +86,37 @@ def _settle_tip_1x2(tip: str, fixture: Dict[str, Any]) -> str:
         away_goals = fixture.get("AwayTeamScore")
         if status not in ("FINAL", "FINAL/OT", "FINAL/SO", "FT"):
             return "pending"
+    elif resolve_sports_provider() == "sportmonks":
+        # state_id=5 => FT (SportMonks states)
+        state_id = fixture.get("state_id")
+        try:
+            state_id = int(state_id)
+        except Exception:
+            state_id = None
+        if state_id != 5:
+            return "pending"
+
+        # Scores include: pick CURRENT for home/away goals
+        scores = fixture.get("scores") or []
+        hg = ag = None
+        for sc in scores:
+            if (sc.get("description") or "").upper() != "CURRENT":
+                continue
+            score = sc.get("score") or {}
+            part = (score.get("participant") or "").lower()
+            goals = score.get("goals")
+            try:
+                goals = int(goals)
+            except Exception:
+                continue
+            if part == "home":
+                hg = goals
+            elif part == "away":
+                ag = goals
+        home_goals, away_goals = hg, ag
+        status = "FT" if state_id == 5 else ""
+        if home_goals is None or away_goals is None:
+            return "unknown"
     else:
         fx = fixture.get("fixture") or {}
         status = ((fx.get("status") or {}).get("short") or "").upper()

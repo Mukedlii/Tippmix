@@ -8,6 +8,7 @@ import requests
 from bot.api_keys import get_api_sports_key, resolve_sports_provider
 from bot.odds import fetch_api_football_1x2_odds
 from bot.providers import sportsdataio
+from bot.providers import sportmonks
 from bot.providers import theoddsapi
 
 TZ = os.getenv("TIPPMIX_TIMEZONE", "Europe/Budapest")
@@ -265,6 +266,54 @@ def _fetch_fixtures_for_date(date_str: str) -> List[Dict[str, Any]]:
                 out.append(item)
         return out
 
+    if provider == "sportmonks":
+        # SportMonks: fixtures by date range (same day)
+        fx = sportmonks.fixtures_between(date_str, date_str)
+        out: List[Dict[str, Any]] = []
+        for raw in fx[:MAX_FIXTURES]:
+            try:
+                fid = int(raw.get("id"))
+            except Exception:
+                continue
+
+            parts = raw.get("participants") or []
+            home = away = None
+            for p in parts:
+                meta = p.get("meta") or {}
+                loc = (meta.get("location") or "").lower()
+                if loc == "home":
+                    home = p.get("name")
+                elif loc == "away":
+                    away = p.get("name")
+            if (not home or not away) and len(parts) >= 2:
+                home = home or parts[0].get("name")
+                away = away or parts[1].get("name")
+
+            league = raw.get("league") or {}
+            league_name = league.get("name") or ""
+            country_name = league.get("country") or ""
+
+            kickoff = raw.get("starting_at") or ""
+
+            if not home or not away:
+                continue
+
+            out.append(
+                {
+                    "sport": "football",
+                    "fixture_id": fid,
+                    "league_name": league_name,
+                    "country_name": country_name,
+                    "kickoff_local": str(kickoff),
+                    "home_team": home,
+                    "away_team": away,
+                    "odds": {},
+                    "standings": {},
+                    "injuries": [],
+                }
+            )
+        return out
+
     data = _api_get("fixtures", params={"date": date_str, "timezone": TZ})
     resp = data.get("response") or []
 
@@ -421,23 +470,46 @@ def fetch_matches_for_today(slot: str = "DAY", date: Optional[str] = None) -> Li
         f"friendly={sum(1 for m in slot_fixtures if _rank_bucket(m)==3)}"
     )
 
-    # Odds enrichment (API-Sports only)
+    # Odds enrichment
     odds_ok = 0
     looked = 0
-    for m in slot_fixtures:
-        if looked >= ODDS_LOOKUP_LIMIT:
-            break
-        fid = int(m["fixture_id"])
-        odds = fetch_api_football_1x2_odds(fid)
-        looked += 1
-        if odds and odds.get("1") and odds.get("X") and odds.get("2"):
-            m["odds"] = odds
-            m["odds_source"] = "api-sports"
-            odds_ok += 1
+
+    provider = resolve_sports_provider()
+
+    if provider == "api-sports":
+        for m in slot_fixtures:
+            if looked >= ODDS_LOOKUP_LIMIT:
+                break
+            fid = int(m["fixture_id"])
+            odds = fetch_api_football_1x2_odds(fid)
+            looked += 1
+            if odds and odds.get("1") and odds.get("X") and odds.get("2"):
+                m["odds"] = odds
+                m["odds_source"] = "api-sports"
+                odds_ok += 1
+
+    elif provider == "sportmonks":
+        # best-effort: pull prematch odds per fixture (can be heavy; keep within ODDS_LOOKUP_LIMIT)
+        for m in slot_fixtures:
+            if looked >= ODDS_LOOKUP_LIMIT:
+                break
+            fid = int(m["fixture_id"])
+            try:
+                items = sportmonks.prematch_odds_fixture(fid)
+                o1, ox, o2 = sportmonks.extract_1x2(items, m.get("home_team") or "", m.get("away_team") or "")
+                looked += 1
+                if o1 and ox and o2:
+                    m["odds"] = {"1": float(o1), "X": float(ox), "2": float(o2)}
+                    m["odds_source"] = "sportmonks"
+                    odds_ok += 1
+            except Exception:
+                looked += 1
+                continue
 
     # If we are on SportsDataIO (no native odds), try The Odds API as a supplement
+    # Also useful as a fallback when other providers have missing odds.
     try:
-        if resolve_sports_provider() == "sportsdataio":
+        if provider == "sportsdataio":
             _enrich_odds_from_theoddsapi(slot_fixtures)
     except Exception:
         pass

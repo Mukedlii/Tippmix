@@ -37,6 +37,17 @@ def _norm(s: str) -> str:
     return "".join(ch.lower() for ch in (s or "") if ch.isalnum() or ch.isspace()).strip()
 
 
+def get_fixture_by_id(fixture_id: int, include_scores: bool = False) -> Optional[Dict[str, Any]]:
+    url = f"{BASE}/fixtures/{int(fixture_id)}"
+    inc = ["participants", "league"]
+    if include_scores:
+        inc.append("scores")
+    data = _get(url, {"include": ";".join(inc), "per_page": 1})
+    # response shape: {data:{...}}
+    fx = data.get("data")
+    return fx if isinstance(fx, dict) else None
+
+
 def fixtures_between(date_from: str, date_to: str) -> List[Dict[str, Any]]:
     """
     GET /fixtures/between/{from}/{to} + pagination

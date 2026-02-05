@@ -7,9 +7,14 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
-from bot.api_keys import get_optional_api_sports_key, get_optional_sportsdataio_key, resolve_sports_provider
+from bot.api_keys import (
+    get_optional_api_sports_key,
+    get_optional_sportsdataio_key,
+    get_optional_sportmonks_token,
+    resolve_sports_provider,
+)
 from bot.tips_logger import read_tips
-from bot.providers import sportsdataio
+from bot.providers import sportsdataio, sportmonks
 from bot.storage.sqlite_store import upsert_result
 
 
@@ -130,6 +135,8 @@ def _detect_provider() -> Optional[str]:
         # fall back to old optional-key probing
         if get_optional_api_sports_key():
             return "api-sports"
+        if get_optional_sportmonks_token():
+            return "sportmonks"
         if get_optional_sportsdataio_key():
             return "sportsdataio"
         return None
@@ -146,6 +153,13 @@ def _fetch_fixture(fixture_id: int) -> Tuple[Optional[Dict[str, Any]], str]:
     def _fetch_sportsdataio(fid: int) -> Tuple[Optional[Dict[str, Any]], str]:
         fx = sportsdataio.fetch_game_by_id(fid)
         return (fx, "OK") if fx else (None, "NO_DATA")
+
+    def _fetch_sportmonks(fid: int) -> Tuple[Optional[Dict[str, Any]], str]:
+        try:
+            fx = sportmonks.get_fixture_by_id(fid, include_scores=True)
+            return (fx, "OK") if fx else (None, "NO_DATA")
+        except Exception:
+            return None, "REQUEST_ERROR"
 
     def _fetch_apisports(fid: int) -> Tuple[Optional[Dict[str, Any]], str]:
         url = "https://v3.football.api-sports.io/fixtures"
@@ -189,21 +203,49 @@ def _fetch_fixture(fixture_id: int) -> Tuple[Optional[Dict[str, Any]], str]:
 
     has_api_sports = bool(get_optional_api_sports_key())
     has_sdio = bool(get_optional_sportsdataio_key())
+    has_sm = bool(get_optional_sportmonks_token())
 
-    # primary
-    if provider == "sportsdataio":
-        fx, st = _fetch_sportsdataio(fixture_id)
-        if fx or st != "NO_DATA" or not has_api_sports:
+    # primary + fallback chain
+    if provider == "sportmonks":
+        fx, st = _fetch_sportmonks(fixture_id)
+        if fx or st != "NO_DATA":
             return fx, st
         # fallback
-        fx2, st2 = _fetch_apisports(fixture_id)
-        return fx2, ("FALLBACK_API_SPORTS" if fx2 else f"NO_DATA_BOTH({st2})")
+        if has_api_sports:
+            fx2, st2 = _fetch_apisports(fixture_id)
+            if fx2:
+                return fx2, "FALLBACK_API_SPORTS"
+        if has_sdio:
+            fx3, st3 = _fetch_sportsdataio(fixture_id)
+            if fx3:
+                return fx3, "FALLBACK_SPORTSDATAIO"
+        return None, "NO_DATA_BOTH"
 
+    if provider == "sportsdataio":
+        fx, st = _fetch_sportsdataio(fixture_id)
+        if fx or st != "NO_DATA":
+            return fx, st
+        if has_api_sports:
+            fx2, st2 = _fetch_apisports(fixture_id)
+            return fx2, ("FALLBACK_API_SPORTS" if fx2 else f"NO_DATA_BOTH({st2})")
+        if has_sm:
+            fx3, st3 = _fetch_sportmonks(fixture_id)
+            return fx3, ("FALLBACK_SPORTMONKS" if fx3 else f"NO_DATA_BOTH({st3})")
+        return None, "NO_DATA"
+
+    # default: api-sports primary
     fx, st = _fetch_apisports(fixture_id)
-    if fx or st != "NO_DATA" or not has_sdio:
+    if fx or st != "NO_DATA":
         return fx, st
-    fx2, st2 = _fetch_sportsdataio(fixture_id)
-    return fx2, ("FALLBACK_SPORTSDATAIO" if fx2 else f"NO_DATA_BOTH({st2})")
+    if has_sm:
+        fx2, st2 = _fetch_sportmonks(fixture_id)
+        if fx2:
+            return fx2, "FALLBACK_SPORTMONKS"
+    if has_sdio:
+        fx3, st3 = _fetch_sportsdataio(fixture_id)
+        if fx3:
+            return fx3, "FALLBACK_SPORTSDATAIO"
+    return None, "NO_DATA"
 
 
 def _status_is_finished(short: str) -> bool:

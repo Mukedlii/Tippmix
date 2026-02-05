@@ -23,17 +23,33 @@ def get_optional_sportsdataio_key() -> str:
     return (os.getenv("SPORTSDATAIO_API") or "").strip()
 
 
+def get_optional_sportmonks_token() -> str:
+    return (os.getenv("SPORTMONKS_API_TOKEN") or "").strip()
+
+
+def get_optional_football_data_token() -> str:
+    return (os.getenv("FOOTBALL_DATA_TOKEN") or "").strip()
+
+
 def resolve_sports_provider() -> str:
     provider = (os.getenv("SPORTS_DATA_PROVIDER") or "").strip().lower()
     if provider in ("api-sports", "api_sports", "apisports", "api-football", "apifootball"):
         return "api-sports"
     if provider in ("sportsdataio", "sports-data-io", "sportsdata"):
         return "sportsdataio"
+    if provider in ("sportmonks", "sport-monks"):
+        return "sportmonks"
+
+    # auto-pick preference order: api-sports -> sportmonks -> sportsdataio
+    # (api-sports has broad coverage + odds; sportmonks is also good; sportsdataio varies)
     if get_optional_api_sports_key():
         return "api-sports"
+    if get_optional_sportmonks_token():
+        return "sportmonks"
     if get_optional_sportsdataio_key():
         return "sportsdataio"
-    raise RuntimeError("SPORTS_API_KEY vagy SPORTSDATAIO_API nincs beállítva (GitHub Secrets).")
+
+    raise RuntimeError("SPORTS_API_KEY / SPORTMONKS_API_TOKEN / SPORTSDATAIO_API nincs beállítva (GitHub Secrets).")
 
 
 def get_sports_api_key() -> str:
