@@ -486,7 +486,7 @@ def _pick_bonus(matches_norm: List[Dict[str, Any]], used: set) -> List[Dict[str,
                 "is_highlighted": False,
                 "confidence": conf,
                 "risk_level": risk,
-                "reason": "Bónusz kombi: odds-ablak + implied valószínűség alapján.",
+                "reason": "Merész odds (opcionális).",
                 "odds_estimate": o,
                 "_p": p,
             }
@@ -675,9 +675,6 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     vip_lines = [
         "👑⚽️ SZELVÉNYKIRÁLY VIP – NAPI AJÁNLÓ ⚽️👑",
         f"📅 Dátum: {today}.",
-        f"🕒 Idősáv: {slot_text}",
-        f"💵 Tét példa: {STAKE_HUF} Ft / tipp",
-        "━━━━━━━━━━━━━━━━━━━━",
         f"✅ <b>FONTOS MECCSEK</b> (min. {IMPORTANT_MIN})",
     ]
 
@@ -686,9 +683,6 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     vip_lines_en = [
         "👑⚽️ BETSLIPKING VIP – DAILY PICKS ⚽️👑",
         f"📅 Date: {today}.",
-        f"🕒 Session: {slot_text_en}",
-        f"💵 Stake: ${STAKE_USD:g} / pick",
-        "━━━━━━━━━━━━━━━━━━━━",
         f"✅ IMPORTANT MATCHES (min {IMPORTANT_MIN})",
     ]
 
@@ -720,11 +714,30 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         label = _build_match_label(m)
         _append_tip_block(vip_lines, vip_lines_en, i, t, label)
 
+    def _combo_totals(tips: List[Dict[str, Any]]) -> Tuple[Optional[float], Optional[int], Optional[int]]:
+        odds_vals: List[float] = []
+        for t in tips:
+            try:
+                o = float(t.get("odds_estimate") or 0)
+            except Exception:
+                o = 0
+            if o > 1.01:
+                odds_vals.append(o)
+        if len(odds_vals) != len(tips) or not odds_vals:
+            return None, None, None
+        total_odds = 1.0
+        for o in odds_vals:
+            total_odds *= float(o)
+        payout = int(round(STAKE_HUF * total_odds))
+        profit = payout - int(STAKE_HUF)
+        return total_odds, payout, profit
+
     # COMBO #1
-    vip_lines.append("━━━━━━━━━━━━━━━━━━━━")
-    vip_lines.append(f"🎫 <b>KOMBI #1</b> ({len(main1)} meccs)")
-    vip_lines_en.append("━━━━━━━━━━━━━━━━━━━━")
-    vip_lines_en.append(f"🎫 COMBO #1 ({len(main1)} picks)")
+    o, pay, prof = _combo_totals(main1)
+    vip_lines.append(f"\n🎫 <b>KOMBI #1</b> ({len(main1)} meccs)")
+    if o:
+        vip_lines.append(f"💰 {STAKE_HUF} Ft kombi esetén: odds≈{o:.2f} | kifizetés≈{pay} Ft | profit≈{prof} Ft")
+    vip_lines_en.append(f"\n🎫 COMBO #1 ({len(main1)} picks)")
 
     for j, t in enumerate(main1, 1):
         m = id_to_match.get(t["fixture_id"])
@@ -732,10 +745,11 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         _append_tip_block(vip_lines, vip_lines_en, j, t, label)
 
     # COMBO #2
-    vip_lines.append("━━━━━━━━━━━━━━━━━━━━")
-    vip_lines.append(f"🎫 <b>KOMBI #2</b> ({len(main2)} meccs)")
-    vip_lines_en.append("━━━━━━━━━━━━━━━━━━━━")
-    vip_lines_en.append(f"🎫 COMBO #2 ({len(main2)} picks)")
+    o2, pay2, prof2 = _combo_totals(main2)
+    vip_lines.append(f"\n🎫 <b>KOMBI #2</b> ({len(main2)} meccs)")
+    if o2:
+        vip_lines.append(f"💰 {STAKE_HUF} Ft kombi esetén: odds≈{o2:.2f} | kifizetés≈{pay2} Ft | profit≈{prof2} Ft")
+    vip_lines_en.append(f"\n🎫 COMBO #2 ({len(main2)} picks)")
 
     for j, t in enumerate(main2, 1):
         m = id_to_match.get(t["fixture_id"])
@@ -745,12 +759,10 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     # BOLD / RISKY section (user can play it optionally)
     risky = (vip_bonus or []) + (vip_extra or [])
     if risky:
-        vip_lines.append("━━━━━━━━━━━━━━━━━━━━")
-        vip_lines.append(f"😈 <b>MERÉSZ RÉSZ</b> (opcionális) – {len(risky)} tipp")
-        vip_lines.append("🙂 Játsszd, ha akarod – ez a magasabb rizikó / nagyobb odds vonal.")
+        vip_lines.append(f"\n😈 <b>MERÉSZ RÉSZ</b> (opcionális) – {len(risky)} tipp")
+        vip_lines.append("🙂 Játsszd, ha akarod (nagyobb kockázat / nagyobb odds).")
 
-        vip_lines_en.append("━━━━━━━━━━━━━━━━━━━━")
-        vip_lines_en.append(f"😈 BOLD PICKS (optional) – {len(risky)}")
+        vip_lines_en.append(f"\n😈 BOLD PICKS (optional) – {len(risky)}")
         vip_lines_en.append("🙂 Play only if you want higher risk / higher odds.")
 
         for j, t in enumerate(risky, 1):
