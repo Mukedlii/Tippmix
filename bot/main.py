@@ -701,11 +701,66 @@ def main() -> None:
             lines_hu.append(f"{i}. 🏆 {label}\n🎯 Tipp: {tip} | 📊 Odds: {odds} | 💡 Bizalom: {conf}/5")
             lines_en.append(f"{i}. 🏆 {label}\nPick: {tip} | Odds: {odds} | Confidence: {conf}/5")
 
-        # persist state
+        # persist alert dedup state
         try:
             os.makedirs(os.path.dirname(state_path), exist_ok=True)
             with open(state_path, "w", encoding="utf-8") as f:
                 json.dump({"sent": sorted(sent)[-2000:]}, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+
+        # schedule a recap in N hours
+        try:
+            delay_h = float(os.getenv("TIPPMIX_ALERT_RECAP_DELAY_HOURS") or "3")
+        except Exception:
+            delay_h = 3.0
+        due = (datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc) + datetime.timedelta(hours=delay_h)).isoformat()
+
+        pending_path = os.path.join("data", "pending_alert_recaps.json")
+        try:
+            pend = json.load(open(pending_path, "r", encoding="utf-8")) if os.path.exists(pending_path) else {"items": []}
+        except Exception:
+            pend = {"items": []}
+        if not isinstance(pend, dict):
+            pend = {"items": []}
+        items = pend.get("items") or []
+        if not isinstance(items, list):
+            items = []
+
+        items.append({
+            "created_ts_utc": datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat(),
+            "due_ts_utc": due,
+            "bets": new_alerts,
+        })
+        pend["items"] = items[-50:]
+        try:
+            os.makedirs(os.path.dirname(pending_path), exist_ok=True)
+            with open(pending_path, "w", encoding="utf-8") as f:
+                json.dump(pend, f, ensure_ascii=False, indent=2)
+                f.write("\n")
+        except Exception:
+            pass
+
+        # save to SQLite as a run
+        try:
+            from bot.storage.sqlite_store import insert_run, insert_bets, insert_fixtures
+            provider = None
+            try:
+                provider = resolve_sports_provider()
+            except Exception:
+                provider = None
+            run_id = insert_run(
+                run_date=run_date_str,
+                slot="ALERT",
+                provider=provider,
+                matches_total=len(matches),
+                matches_slot=len(slot_matches),
+                vip_count=len(new_alerts),
+                public_count=0,
+                meta={**base_meta, "alert_only": True, "due_ts_utc": due},
+            )
+            insert_fixtures(run_id, slot_matches)
+            insert_bets(run_id, "VIP", new_alerts)
         except Exception:
             pass
 
