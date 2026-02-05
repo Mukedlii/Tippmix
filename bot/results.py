@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 import requests
 
 from bot.api_keys import get_api_sports_key, resolve_sports_provider
-from bot.providers import sportsdataio, sportmonks
+from bot.providers import sportsdataio, sportmonks, allsportsapi
 
 
 def _normalize_fixture_id(fixture_id_value: Any, match_text: Optional[str] = None) -> Optional[int]:
@@ -54,6 +54,10 @@ def _get_fixture_result(fixture_id: int) -> Dict[str, Any]:
     if provider == "sportmonks":
         # include scores so we can settle 1X2
         fx = sportmonks.get_fixture_by_id(fixture_id, include_scores=True)
+        return fx or {}
+
+    if provider == "allsportsapi":
+        fx = allsportsapi.fixture_by_id(fixture_id)
         return fx or {}
 
     url = "https://v3.football.api-sports.io/fixtures"
@@ -117,6 +121,29 @@ def _settle_tip_1x2(tip: str, fixture: Dict[str, Any]) -> str:
         status = "FT" if state_id == 5 else ""
         if home_goals is None or away_goals is None:
             return "unknown"
+
+    elif resolve_sports_provider() == "allsportsapi":
+        st = (fixture.get("event_status") or "").strip()
+        # examples: "Finished" or numeric live minute (e.g. "74")
+        finished = st.lower() in ("finished", "ft")
+        if not finished:
+            # if final score not present, treat as pending
+            if not fixture.get("event_final_result"):
+                return "pending"
+
+        score = str(fixture.get("event_final_result") or "").strip()
+        home_goals = away_goals = None
+        if "-" in score:
+            try:
+                a, b = [x.strip() for x in score.split("-", 1)]
+                home_goals = int(a)
+                away_goals = int(b)
+            except Exception:
+                home_goals = away_goals = None
+        status = "FT" if finished else st
+        if home_goals is None or away_goals is None:
+            return "unknown"
+
     else:
         fx = fixture.get("fixture") or {}
         status = ((fx.get("status") or {}).get("short") or "").upper()

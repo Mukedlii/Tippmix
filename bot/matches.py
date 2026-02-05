@@ -10,6 +10,7 @@ from bot.odds import fetch_api_football_1x2_odds
 from bot.providers import sportsdataio
 from bot.providers import sportmonks
 from bot.providers import theoddsapi
+from bot.providers import allsportsapi
 
 TZ = os.getenv("TIPPMIX_TIMEZONE", "Europe/Budapest")
 
@@ -307,6 +308,39 @@ def _fetch_fixtures_for_date(date_str: str) -> List[Dict[str, Any]]:
                     "kickoff_local": str(kickoff),
                     "home_team": home,
                     "away_team": away,
+                    "odds": {},
+                    "standings": {},
+                    "injuries": [],
+                }
+            )
+        return out
+
+    if provider == "allsportsapi":
+        fx = allsportsapi.fixtures_between(date_str, date_str)
+        out: List[Dict[str, Any]] = []
+        for raw in fx[:MAX_FIXTURES]:
+            try:
+                fid = int(raw.get("event_key"))
+            except Exception:
+                continue
+            home = raw.get("event_home_team")
+            away = raw.get("event_away_team")
+            league_name = raw.get("league_name") or ""
+            country_name = raw.get("country_name") or ""
+            ko = (raw.get("event_date") or "") + "T" + (raw.get("event_time") or "")
+
+            if not home or not away:
+                continue
+
+            out.append(
+                {
+                    "sport": "football",
+                    "fixture_id": fid,
+                    "league_name": str(league_name),
+                    "country_name": str(country_name),
+                    "kickoff_local": str(ko),
+                    "home_team": str(home),
+                    "away_team": str(away),
                     "odds": {},
                     "standings": {},
                     "injuries": [],
