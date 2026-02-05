@@ -103,19 +103,37 @@ def _extract_hour(iso: str) -> Optional[int]:
 
 
 def _slot_filter(matches: List[Dict[str, Any]], slot: str) -> List[Dict[str, Any]]:
+    """Filter fixtures into DAY/EVENING slots.
+
+    Defaults are configurable because many high-quality leagues play later.
+    Env:
+      - TIPPMIX_DAY_START_HOUR (default 9)
+      - TIPPMIX_DAY_END_HOUR_EXCL (default 19)  # end is exclusive
+      - TIPPMIX_EVENING_START_HOUR (default 19)
+      - TIPPMIX_EVENING_END_HOUR_INCL (default 23)
+    """
+
     slot = (slot or "DAY").upper()
+
+    day_start = int(os.getenv("TIPPMIX_DAY_START_HOUR", "9"))
+    day_end_excl = int(os.getenv("TIPPMIX_DAY_END_HOUR_EXCL", "19"))
+    eve_start = int(os.getenv("TIPPMIX_EVENING_START_HOUR", str(day_end_excl)))
+    eve_end_incl = int(os.getenv("TIPPMIX_EVENING_END_HOUR_INCL", "23"))
+
     out: List[Dict[str, Any]] = []
     for m in matches:
         h = _extract_hour(str(m.get("kickoff_local") or ""))
         if h is None:
             out.append(m)
             continue
+
         if slot == "DAY":
-            if 9 <= h < 16:
+            if day_start <= h < day_end_excl:
                 out.append(m)
         else:
-            if 16 <= h <= 23:
+            if eve_start <= h <= eve_end_incl:
                 out.append(m)
+
     return out
 
 
