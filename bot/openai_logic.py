@@ -707,8 +707,9 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     safe_vip = [t for t in vip if _is_safe_vip(t, VIP_ODDS_MAX)]
     unsafe_vip = [t for t in vip if t not in safe_vip]
 
-    # If SAFE pool is short for 2 combos, allow a small, explicit fallback.
-    need_safe = max(0, IMPORTANT_MIN) + max(0, VIP_MAIN1_COUNT) + max(0, VIP_MAIN2_COUNT)
+    # For combos, IMPORTANT is a subset (top picks). We only need enough SAFE picks for 2 combos.
+    need_safe = max(0, VIP_MAIN1_COUNT) + max(0, VIP_MAIN2_COUNT)
+    need_safe = max(need_safe, max(0, IMPORTANT_MIN))
     used_fallback = False
     if len(safe_vip) < need_safe and VIP_SAFE_MAX_FALLBACK > VIP_ODDS_MAX:
         safe2 = [t for t in vip if _is_safe_vip(t, VIP_SAFE_MAX_FALLBACK)]
@@ -717,16 +718,55 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             unsafe_vip = [t for t in vip if t not in safe_vip]
             used_fallback = True
 
+    # If still short, build SAFE fillers from the full match pool (odds-required).
+    if len(safe_vip) < need_safe:
+        used_ids = {int(t.get("fixture_id")) for t in (vip + free) if t.get("fixture_id") is not None}
+        max_odds = VIP_SAFE_MAX_FALLBACK if used_fallback else VIP_ODDS_MAX
+
+        # Prefer matches that have full 1X2 odds.
+        pool = sorted(matches_norm, key=lambda m: 1 if (m.get("odds_1") and m.get("odds_x") and m.get("odds_2")) else 0, reverse=True)
+
+        for m in pool:
+            if len(safe_vip) >= need_safe:
+                break
+            fid = int(m["fixture_id"])
+            if fid in used_ids:
+                continue
+
+            sel = _best_sel_within(m, tier="VIP", relax=True)
+            if not sel:
+                continue
+            odds_val = _odds_for_selection(m, sel)
+            if odds_val is None:
+                continue
+            if not (VIP_ODDS_MIN <= float(odds_val) <= float(max_odds)):
+                continue
+
+            risk, conf = _baseline_risk_conf(m, sel)
+            if (risk or "").lower() == "magas":
+                continue
+
+            safe_vip.append(
+                {
+                    "fixture_id": fid,
+                    "selection": sel,
+                    "is_highlighted": False,
+                    "confidence": conf,
+                    "risk_level": risk,
+                    "reason": "Stabil odds + implied valószínűség alapján.",
+                    "odds_estimate": odds_val,
+                    "shelf": _shelf_for_match(m, odds_val, tier="VIP"),
+                }
+            )
+            used_ids.add(fid)
+
     # ---- structure: IMPORTANT + 2 combos + bold risky ----
     important = safe_vip[: max(0, IMPORTANT_MIN)]
-    rest = safe_vip[max(0, IMPORTANT_MIN):]
 
-    main1 = rest[: max(0, VIP_MAIN1_COUNT)]
-    rest2 = rest[max(0, VIP_MAIN1_COUNT):]
-    main2 = rest2[: max(0, VIP_MAIN2_COUNT)]
+    main1 = safe_vip[: max(0, VIP_MAIN1_COUNT)]
+    main2 = safe_vip[max(0, VIP_MAIN1_COUNT) : max(0, VIP_MAIN1_COUNT + VIP_MAIN2_COUNT)]
 
-    # anything safe that doesn't fit into the two combos
-    vip_extra = rest2[max(0, VIP_MAIN2_COUNT):]
+    vip_extra = safe_vip[max(0, VIP_MAIN1_COUNT + VIP_MAIN2_COUNT) :]
 
     # unsafe (red/high odds/high risk) gets pushed to the bold section
     vip_unsafe_extra = unsafe_vip
