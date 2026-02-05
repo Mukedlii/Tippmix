@@ -10,15 +10,12 @@ Fontos:
 - A sport API kulcsok a providerhez kötődnek:
   - API-FOOTBALL (API-Sports): `SPORTS_API_KEY`
   - SportsDataIO (soccer): `SPORTSDATAIO_API`
-<<<<<<< HEAD
   - (opcionális, később bővíthető): SportMonks: `SPORTMONKS_API_TOKEN`
-=======
->>>>>>> 847479774d73fbff76e3da3a5c46b02fc1ed2a02
+
 - A provider automatikusan választ:
   - ha van `SPORTS_API_KEY` → API-FOOTBALL
   - ha van `SPORTSDATAIO_API` → SportsDataIO
   - felülírható `SPORTS_DATA_PROVIDER=api-sports|sportsdataio` env-vel
-<<<<<<< HEAD
 
 ## Adatbázis (SQLite)
 Alapból a futások és tippek mentésre kerülnek SQLite-ba:
@@ -31,5 +28,3 @@ Ha SportsDataIO-t használsz, de szeretnél oddsokat (1X2), beköthető a The Od
 - Régió: `ODDS_REGIONS` (pl. `eu`)
 - Limit / futás: `ODDS_MAX_REQUESTS_PER_RUN` (free csomaghoz ajánlott 4–8)
 - (opcionális) sport kulcsok: `ODDS_SPORT_KEYS` (comma-separated)
-=======
->>>>>>> 847479774d73fbff76e3da3a5c46b02fc1ed2a02
