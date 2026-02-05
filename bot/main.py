@@ -721,15 +721,19 @@ def main() -> None:
     except Exception as e:
         print("[DB] SQLite save failed:", repr(e))
 
-    if public_chat_id:
+    send_public = (os.getenv("TIPPMIX_SEND_PUBLIC") or "1").strip() != "0"
+    send_vip = (os.getenv("TIPPMIX_SEND_VIP") or "1").strip() != "0"
+    send_en = (os.getenv("TIPPMIX_SEND_EN") or "1").strip() != "0"
+
+    if send_public and public_chat_id:
         send_telegram_message(telegram_token, public_chat_id, public_text, f"PUBLIC_{slot}", meta=base_meta)
-    if vip_chat_id:
+    if send_vip and vip_chat_id:
         send_telegram_message(telegram_token, vip_chat_id, vip_text, f"VIP_{slot}", meta=base_meta)
 
     # EN broadcast (optional)
     # Default: VIP-only for the EN channel/group.
     en_include_free = (os.getenv("TELEGRAM_EN_INCLUDE_FREE") or "").strip() == "1"
-    if en_chat_id and (vip_text_en or (en_include_free and public_text_en)):
+    if send_en and en_chat_id and (vip_text_en or (en_include_free and public_text_en)):
         meta_en = dict(base_meta)
         meta_en["lang"] = "en"
         if en_include_free and public_text_en:
