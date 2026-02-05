@@ -179,13 +179,30 @@ def _extract_kickoff_hour(match: Dict[str, Any]) -> Optional[int]:
 
 
 def _filter_matches_for_slot(matches: List[Dict[str, Any]], slot: str) -> List[Dict[str, Any]]:
-    """
-    Biztonsági slot-szűrés, DE:
-    - ha túl kevés meccs maradna, visszaadjuk az eredeti listát (hogy mindig legyen pool)
-    """
-    slot = (slot or "DAY").upper()
-    filtered: List[Dict[str, Any]] = []
+    """Safety slot filter.
 
+    Supports: DAY / EVENING / ALL.
+    Uses the same configurable hours as bot.matches.
+
+    Env:
+      - TIPPMIX_DAY_START_HOUR (default 9)
+      - TIPPMIX_DAY_END_HOUR_EXCL (default 19)
+      - TIPPMIX_EVENING_START_HOUR (default 19)
+      - TIPPMIX_EVENING_END_HOUR_INCL (default 23)
+
+    If filtering yields fewer matches than (min_vip+min_free), returns the original list.
+    """
+
+    slot = (slot or "DAY").upper()
+    if slot in ("ALL", "FULL", "WHOLE"):
+        return matches
+
+    day_start = int(os.getenv("TIPPMIX_DAY_START_HOUR", "9"))
+    day_end_excl = int(os.getenv("TIPPMIX_DAY_END_HOUR_EXCL", "19"))
+    eve_start = int(os.getenv("TIPPMIX_EVENING_START_HOUR", str(day_end_excl)))
+    eve_end_incl = int(os.getenv("TIPPMIX_EVENING_END_HOUR_INCL", "23"))
+
+    filtered: List[Dict[str, Any]] = []
     for m in matches:
         h = _extract_kickoff_hour(m)
         if h is None:
@@ -193,10 +210,10 @@ def _filter_matches_for_slot(matches: List[Dict[str, Any]], slot: str) -> List[D
             continue
 
         if slot == "DAY":
-            if 9 <= h < 16:
+            if day_start <= h < day_end_excl:
                 filtered.append(m)
         else:
-            if 16 <= h <= 23:
+            if eve_start <= h <= eve_end_incl:
                 filtered.append(m)
 
     min_vip = int(os.getenv("TIPPMIX_MIN_VIP", "6"))
@@ -204,10 +221,10 @@ def _filter_matches_for_slot(matches: List[Dict[str, Any]], slot: str) -> List[D
     min_need = min_vip + min_free
 
     if len(filtered) < min_need:
-        print(f"[DEBUG] Slot szűrés után kevés meccs maradt ({len(filtered)} < {min_need}). Visszaadom az összes meccset.")
+        print(f"[DEBUG] Slot filter left too few matches ({len(filtered)} < {min_need}). Returning ALL.")
         return matches
 
-    print(f"[DEBUG] Szűrt meccsszám slot={slot}: {len(filtered)} (eredeti: {len(matches)})")
+    print(f"[DEBUG] Slot filtered matches slot={slot}: {len(filtered)} (orig: {len(matches)})")
     return filtered
 
 

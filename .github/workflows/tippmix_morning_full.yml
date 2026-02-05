@@ -1,0 +1,100 @@
+name: Tippmix Morning Full-Day Picks
+
+on:
+  schedule:
+    # 08:00 Europe/Budapest (winter) ~= 07:00 UTC
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  morning:
+    runs-on: ubuntu-latest
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
+      TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
+      TELEGRAM_EN_CHAT_ID: ${{ secrets.TELEGRAM_EN_CHAT_ID }}
+
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      # Provider keys (use whichever you have)
+      SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
+      SPORTMONKS_API_TOKEN: ${{ secrets.SPORTMONKS_API_TOKEN }}
+      SPORTSDATAIO_API: ${{ secrets.SPORTSDATAIO_API }}
+      ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+
+      # Provider selection (recommend setting in repo vars)
+      SPORTS_DATA_PROVIDER: ${{ vars.SPORTS_DATA_PROVIDER }}
+
+      # Full-day scan (no slot cut)
+      TIPPMIX_SLOT: ALL
+
+      # Minimum counts
+      TIPPMIX_MIN_VIP: "3"
+      TIPPMIX_MIN_FREE: "3"
+
+      # Allow MORE than minimum (send many picks)
+      TIPPMIX_MAX_VIP: "18"
+      TIPPMIX_MAX_FREE: "12"
+
+      # Safe picks odds window
+      TIPPMIX_VIP_ODDS_MIN: "1.35"
+      TIPPMIX_VIP_ODDS_MAX: "1.85"
+      TIPPMIX_VIP_REQUIRE_ODDS: "1"
+
+      TIPPMIX_FREE_ODDS_MIN: "1.35"
+      TIPPMIX_FREE_ODDS_MAX: "1.85"
+      TIPPMIX_FREE_REQUIRE_ODDS: "1"
+
+      # Risky bonus combo (bigger odds)
+      TIPPMIX_VIP_BONUS_COUNT: "6"
+      TIPPMIX_VIP_BONUS_ODDS_MIN: "1.85"
+      TIPPMIX_VIP_BONUS_ODDS_MAX: "2.80"
+
+      # Day slot hours (used only if slot != ALL)
+      TIPPMIX_DAY_START_HOUR: "8"
+      TIPPMIX_DAY_END_HOUR_EXCL: "19"
+
+      # Quality / coverage
+      TIPPMIX_BLOCK_COUNTRIES: ${{ vars.TIPPMIX_BLOCK_COUNTRIES }}
+      TIPPMIX_BLOCK_LEAGUES: ${{ vars.TIPPMIX_BLOCK_LEAGUES }}
+      TIPPMIX_ALLOW_YOUTH: "0"
+      TIPPMIX_ALLOW_FRIENDLY: "0"
+
+      TIPPMIX_MAX_DAYS_AHEAD: "0"
+      TIPPMIX_MIN_POOL: "60"
+      TIPPMIX_ODDS_LOOKUP_LIMIT: "120"
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run bot (morning full-day)
+        run: python -m bot.main
+
+      - name: Commit morning bets JSON to repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add public_bets_day.json vip_bets_day.json public_bets_day_meta.json vip_bets_day_meta.json || true
+
+          if git diff --cached --quiet; then
+            echo "Nothing to commit."
+          else
+            git commit -m "Morning full-day bets $(date -u +'%Y-%m-%d')" || true
+            git push
+          fi

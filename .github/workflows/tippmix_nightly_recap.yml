@@ -1,0 +1,68 @@
+name: Tippmix Nightly Recap
+
+on:
+  schedule:
+    # 03:00 Europe/Budapest (winter) ~= 02:00 UTC
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  recap:
+    runs-on: ubuntu-latest
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
+      TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
+      TELEGRAM_EN_CHAT_ID: ${{ secrets.TELEGRAM_EN_CHAT_ID }}
+
+      SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
+      SPORTMONKS_API_TOKEN: ${{ secrets.SPORTMONKS_API_TOKEN }}
+      SPORTSDATAIO_API: ${{ secrets.SPORTSDATAIO_API }}
+
+      SPORTS_DATA_PROVIDER: ${{ vars.SPORTS_DATA_PROVIDER }}
+
+      TIPPMIX_BLOCK_COUNTRIES: ${{ vars.TIPPMIX_BLOCK_COUNTRIES }}
+      TIPPMIX_BLOCK_LEAGUES: ${{ vars.TIPPMIX_BLOCK_LEAGUES }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run recap (DAY)
+        env:
+          TIPPMIX_SLOT: DAY
+          TIPPMIX_FORCE_RECAP: "1"
+        run: python -m bot.daily_recap_main
+
+      - name: Run recap (EVENING)
+        env:
+          TIPPMIX_SLOT: EVENING
+          TIPPMIX_FORCE_RECAP: "1"
+        run: python -m bot.daily_recap_main
+
+      - name: Commit recap marker
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add data/recap_sent.json || true
+
+          if git diff --cached --quiet; then
+            echo "No marker changes."
+          else
+            git commit -m "Update recap marker" || true
+            git push
+          fi
