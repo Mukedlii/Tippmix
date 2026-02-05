@@ -685,17 +685,22 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         return "Medium"
 
     def _is_safe_vip(t: Dict[str, Any], max_odds: float) -> bool:
+        # SAFE must have odds (so combos and payout are meaningful)
         try:
-            odds_val = float(t.get("odds_estimate") or 0)
+            odds_val = float(t.get("odds_estimate"))
         except Exception:
-            odds_val = 0.0
+            return False
+        if odds_val <= 1.01:
+            return False
+
         risk = (t.get("risk_level") or "").lower()
         if "magas" in risk:
             return False
+
         # Keep SAFE within the VIP odds window
-        if odds_val and odds_val > float(max_odds):
+        if odds_val > float(max_odds):
             return False
-        if odds_val and odds_val < VIP_ODDS_MIN:
+        if odds_val < VIP_ODDS_MIN:
             return False
         return True
 
@@ -875,17 +880,23 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             _append_tip_block(vip_lines, vip_lines_en, j, t, label)
 
     def _is_safe_free(t: Dict[str, Any]) -> bool:
-        # Truthful SAFE: avoid high-risk labels and keep within the safe odds window
+        # Truthful SAFE must have odds + avoid high-risk labels
         try:
-            odds_val = float(t.get("odds_estimate") or 0)
+            odds_val = float(t.get("odds_estimate"))
         except Exception:
-            odds_val = 0.0
+            return False
+        if odds_val <= 1.01:
+            return False
+
         risk = (t.get("risk_level") or "").lower()
         if "magas" in risk:
             return False
-        if odds_val and odds_val > float(os.getenv("TIPPMIX_FREE_SAFE_ODDS_MAX", str(FREE_ODDS_MAX))):
+
+        mn = float(os.getenv("TIPPMIX_FREE_SAFE_ODDS_MIN", str(FREE_ODDS_MIN)))
+        mx = float(os.getenv("TIPPMIX_FREE_SAFE_ODDS_MAX", str(FREE_ODDS_MAX)))
+        if odds_val > mx:
             return False
-        if odds_val and odds_val < float(os.getenv("TIPPMIX_FREE_SAFE_ODDS_MIN", str(FREE_ODDS_MIN))):
+        if odds_val < mn:
             return False
         return True
 

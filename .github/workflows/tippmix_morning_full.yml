@@ -25,6 +25,9 @@ jobs:
       SPORTMONKS_API_TOKEN: ${{ secrets.SPORTMONKS_API_TOKEN }}
       SPORTSDATAIO_API: ${{ secrets.SPORTSDATAIO_API }}
       ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+      ODDS_MAX_REQUESTS_PER_RUN: "12"
+      # Broad soccer coverage for odds supplementation (1 request per sport_key)
+      ODDS_SPORT_KEYS: "soccer_epl,soccer_spain_la_liga,soccer_italy_serie_a,soccer_germany_bundesliga,soccer_france_ligue_one,soccer_uefa_champs_league,soccer_uefa_europa_league,soccer_uefa_europa_conference_league,soccer_italy_coppa_italia,soccer_spain_copa_del_rey,soccer_netherlands_eredivisie,soccer_portugal_primeira_liga"
 
       # Provider selection (recommend setting in repo vars)
       SPORTS_DATA_PROVIDER: ${{ vars.SPORTS_DATA_PROVIDER }}
