@@ -12,6 +12,13 @@ client = OpenAI()
 MIN_VIP = int(os.getenv("TIPPMIX_MIN_VIP", "6"))
 MIN_FREE = int(os.getenv("TIPPMIX_MIN_FREE", "3"))
 
+# Presentation / structuring
+VIP_MAIN1_COUNT = int(os.getenv("TIPPMIX_VIP_MAIN1_COUNT", "6"))
+VIP_MAIN2_COUNT = int(os.getenv("TIPPMIX_VIP_MAIN2_COUNT", "6"))
+FREE_SAFE_COUNT = int(os.getenv("TIPPMIX_FREE_SAFE_COUNT", "3"))
+FREE_RISKY_COUNT = int(os.getenv("TIPPMIX_FREE_RISKY_COUNT", "3"))
+IMPORTANT_MIN = int(os.getenv("TIPPMIX_IMPORTANT_MIN", "3"))
+
 # Ha nem akarsz plafont, állítsd env-ben nagyobbra.
 MAX_VIP = int(os.getenv("TIPPMIX_MAX_VIP", str(MIN_VIP)))
 MAX_FREE = int(os.getenv("TIPPMIX_MAX_FREE", str(MIN_FREE)))
@@ -654,117 +661,142 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             return "High"
         return "Medium"
 
+    # ---- structure: IMPORTANT + 2 combos + bold risky ----
+    important = vip[: max(0, IMPORTANT_MIN)]
+    rest = vip[max(0, IMPORTANT_MIN):]
+
+    main1 = rest[: max(0, VIP_MAIN1_COUNT)]
+    rest2 = rest[max(0, VIP_MAIN1_COUNT):]
+    main2 = rest2[: max(0, VIP_MAIN2_COUNT)]
+
+    # risky comes from bonus list (already built) + any remaining vip tips
+    vip_extra = rest2[max(0, VIP_MAIN2_COUNT):]
+
     vip_lines = [
-        "🔥 SZELVÉNYKIRÁLY VIP – KIRÁLYI KOMBI 🔥",
-        f"Dátum: {today}.",
-        f"Idősáv: {slot_text}",
-        f"Tippek száma: {len(vip)}",
+        "👑⚽️ SZELVÉNYKIRÁLY VIP – NAPI AJÁNLÓ ⚽️👑",
+        f"📅 Dátum: {today}.",
+        f"🕒 Idősáv: {slot_text}",
         f"💵 Tét példa: {STAKE_HUF} Ft / tipp",
-        "────────────────────",
+        "━━━━━━━━━━━━━━━━━━━━",
+        f"✅ <b>FONTOS MECCSEK</b> (min. {IMPORTANT_MIN})",
     ]
 
     sep_en = "💎⚽️💎"
 
     vip_lines_en = [
-        "🔥 BETSLIPKING VIP – MAIN COMBO ⚽️💰",
+        "👑⚽️ BETSLIPKING VIP – DAILY PICKS ⚽️👑",
         f"📅 Date: {today}.",
         f"🕒 Session: {slot_text_en}",
-        f"🎯 Picks: {len(vip)}",
         f"💵 Stake: ${STAKE_USD:g} / pick",
-        sep_en,
-        "✅ MAIN PICKS",
+        "━━━━━━━━━━━━━━━━━━━━",
+        f"✅ IMPORTANT MATCHES (min {IMPORTANT_MIN})",
     ]
 
-    for i, t in enumerate(vip, 1):
-        m = id_to_match.get(t["fixture_id"])
-        label = _build_match_label(m)
+    def _append_tip_block(lines_hu: List[str], lines_en: List[str], idx: int, t: Dict[str, Any], label: str):
         odds_val = t.get("odds_estimate")
         odds_txt = f"{odds_val:.2f}" if odds_val else "n/a"
-        prefix = "💎 KIEMELT – " if t.get("is_highlighted") else ""
-        vip_lines.append(
-            f"{i}. {prefix}{label}\n"
+        prefix = "⭐ KIEMELT – " if t.get("is_highlighted") else ""
+
+        lines_hu.append(
+            f"{idx}. {prefix}{label}\n"
             f"🎯 Tipp: {t['selection']}\n"
             f"📊 Odds (1X2): {odds_txt}\n"
-            f"💰 Várható kifizetés: {_payout_text(odds_val)}\n"
             f"⚠️ Kockázat: {_risk_to_emoji(t['risk_level'])}\n"
             f"💡 Bizalom: {_stars(t['confidence'])}\n"
             f"🧠 Miért? {t['reason']}"
         )
 
-        # EN (simple template)
-        vip_lines_en.append(
-            f"{i}. {('💎 HIGHLIGHT – ' if t.get('is_highlighted') else '')}{label}\n"
+        lines_en.append(
+            f"{idx}. {('⭐ HIGHLIGHT – ' if t.get('is_highlighted') else '')}{label}\n"
             f"Pick: {sel_en(t['selection'])}\n"
             f"Odds (1X2): {odds_txt}\n"
             f"Risk: {risk_en(t['risk_level'])}\n"
             f"Confidence: {t['confidence']:.1f}/5"
         )
 
-    if vip_bonus:
-        vip_lines.append("────────────────────")
-        vip_lines.append(f"🎁 VIP BONUS – {len(vip_bonus)} tipp (külön kombi)")
+    # IMPORTANT
+    for i, t in enumerate(important, 1):
+        m = id_to_match.get(t["fixture_id"])
+        label = _build_match_label(m)
+        _append_tip_block(vip_lines, vip_lines_en, i, t, label)
 
-        vip_lines_en.append(sep_en)
-        vip_lines_en.append(f"🎁 BONUS PICKS ({len(vip_bonus)})")
+    # COMBO #1
+    vip_lines.append("━━━━━━━━━━━━━━━━━━━━")
+    vip_lines.append(f"🎫 <b>KOMBI #1</b> ({len(main1)} meccs)")
+    vip_lines_en.append("━━━━━━━━━━━━━━━━━━━━")
+    vip_lines_en.append(f"🎫 COMBO #1 ({len(main1)} picks)")
 
-        for j, t in enumerate(vip_bonus, 1):
+    for j, t in enumerate(main1, 1):
+        m = id_to_match.get(t["fixture_id"])
+        label = _build_match_label(m)
+        _append_tip_block(vip_lines, vip_lines_en, j, t, label)
+
+    # COMBO #2
+    vip_lines.append("━━━━━━━━━━━━━━━━━━━━")
+    vip_lines.append(f"🎫 <b>KOMBI #2</b> ({len(main2)} meccs)")
+    vip_lines_en.append("━━━━━━━━━━━━━━━━━━━━")
+    vip_lines_en.append(f"🎫 COMBO #2 ({len(main2)} picks)")
+
+    for j, t in enumerate(main2, 1):
+        m = id_to_match.get(t["fixture_id"])
+        label = _build_match_label(m)
+        _append_tip_block(vip_lines, vip_lines_en, j, t, label)
+
+    # BOLD / RISKY section (user can play it optionally)
+    risky = (vip_bonus or []) + (vip_extra or [])
+    if risky:
+        vip_lines.append("━━━━━━━━━━━━━━━━━━━━")
+        vip_lines.append(f"😈 <b>MERÉSZ RÉSZ</b> (opcionális) – {len(risky)} tipp")
+        vip_lines.append("🙂 Játsszd, ha akarod – ez a magasabb rizikó / nagyobb odds vonal.")
+
+        vip_lines_en.append("━━━━━━━━━━━━━━━━━━━━")
+        vip_lines_en.append(f"😈 BOLD PICKS (optional) – {len(risky)}")
+        vip_lines_en.append("🙂 Play only if you want higher risk / higher odds.")
+
+        for j, t in enumerate(risky, 1):
             m = id_to_match.get(t["fixture_id"])
             label = _build_match_label(m)
-            odds_val = t.get("odds_estimate")
-            odds_txt = f"{odds_val:.2f}" if odds_val else "n/a"
-            vip_lines.append(
-                f"B{j}. {label}\n"
-                f"🎯 Tipp: {t['selection']}\n"
-                f"📊 Odds (1X2): {odds_txt}\n"
-                f"⚠️ Kockázat: {_risk_to_emoji(t['risk_level'])}\n"
-                f"💡 Bizalom: {_stars(t['confidence'])}"
-            )
-            vip_lines_en.append(
-                f"B{j}. {label}\n"
-                f"Pick: {sel_en(t['selection'])}\n"
-                f"Odds (1X2): {odds_txt}\n"
-                f"Risk: {risk_en(t['risk_level'])}\n"
-                f"Confidence: {t['confidence']:.1f}/5"
-            )
+            _append_tip_block(vip_lines, vip_lines_en, j, t, label)
+
+    free_safe = free[: max(0, FREE_SAFE_COUNT)]
+    free_risky = free[max(0, FREE_SAFE_COUNT) : max(0, FREE_SAFE_COUNT + FREE_RISKY_COUNT)]
 
     free_lines = [
-        "👑 SZELVÉNYKIRÁLY FREE – NAPI TIPPEK",
-        f"Dátum: {today}.",
-        f"Idősáv: {slot_text}",
+        "👑⚽️ SZELVÉNYKIRÁLY FREE – NAPI TIPPEK ⚽️👑",
+        f"📅 Dátum: {today}.",
+        f"🕒 Idősáv: {slot_text}",
         f"💵 Tét példa: {STAKE_HUF} Ft / tipp",
-        "────────────────────",
+        "━━━━━━━━━━━━━━━━━━━━",
+        f"✅ <b>BIZTOSABB</b> (FREE {len(free_safe)} tipp)",
     ]
 
     free_lines_en = [
-        "👑 BETSLIPKING – DAILY PICKS ⚽️",
+        "👑⚽️ BETSLIPKING – FREE PICKS ⚽️👑",
         f"📅 Date: {today}.",
         f"🕒 Session: {slot_text_en}",
         f"💵 Stake: ${STAKE_USD:g} / pick",
-        sep_en,
+        "━━━━━━━━━━━━━━━━━━━━",
+        f"✅ SAFER ({len(free_safe)} picks)",
     ]
 
-    for i, t in enumerate(free, 1):
+    for i, t in enumerate(free_safe, 1):
         m = id_to_match.get(t["fixture_id"])
         label = _build_match_label(m)
-        odds_val = t.get("odds_estimate")
-        odds_txt = f"{odds_val:.2f}" if odds_val else "n/a"
-        free_lines.append(
-            f"{i}. {label}\n"
-            f"🎯 Tipp: {t['selection']}\n"
-            f"📊 Odds (1X2): {odds_txt}\n"
-            f"💰 Várható kifizetés: {_payout_text(odds_val)}\n"
-            f"⚠️ Kockázat: {_risk_to_emoji(t['risk_level'])}\n"
-            f"💡 Bizalom: {_stars(t['confidence'])}\n"
-            f"🧠 Miért? {t['reason']}"
-        )
+        _append_tip_block(free_lines, free_lines_en, i, t, label)
 
-        free_lines_en.append(
-            f"{i}. {label}\n"
-            f"Pick: {sel_en(t['selection'])}\n"
-            f"Odds (1X2): {odds_txt}\n"
-            f"Risk: {risk_en(t['risk_level'])}\n"
-            f"Confidence: {t['confidence']:.1f}/5"
-        )
+    if free_risky:
+        free_lines.append("━━━━━━━━━━━━━━━━━━━━")
+        free_lines.append(f"😈 <b>MERÉSZEBB</b> (FREE {len(free_risky)} tipp)")
+        free_lines.append("🙂 Opcionális – csak ha szeretsz nagyobb oddsot/kockázatot.")
+
+        free_lines_en.append("━━━━━━━━━━━━━━━━━━━━")
+        free_lines_en.append(f"😈 RISKIER ({len(free_risky)} picks)")
+        free_lines_en.append("🙂 Optional – higher odds / higher risk.")
+
+        for j, t in enumerate(free_risky, 1):
+            m = id_to_match.get(t["fixture_id"])
+            label = _build_match_label(m)
+            _append_tip_block(free_lines, free_lines_en, j, t, label)
 
     # 1/B: kibővített mezők a JSON exporthoz
     vip_bets = [
