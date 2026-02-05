@@ -115,11 +115,28 @@ def match_event_to_fixture(
     home_team: str,
     away_team: str,
 ) -> bool:
+    """Best-effort team name match.
+
+    The Odds API names can differ slightly from provider names (FC, accents, etc).
+    We prefer strict equality, then a conservative substring fallback.
+    """
+
     eh = _norm(event.get("home_team") or "")
     ea = _norm(event.get("away_team") or "")
     h = _norm(home_team)
     a = _norm(away_team)
-    return bool(h and a and eh == h and ea == a)
+
+    if not (h and a and eh and ea):
+        return False
+
+    if eh == h and ea == a:
+        return True
+
+    # fallback: substring both ways (conservative)
+    if (h in eh or eh in h) and (a in ea or ea in a):
+        return True
+
+    return False
 
 
 def get_1x2_for_match(

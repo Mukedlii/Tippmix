@@ -82,7 +82,7 @@ YOUTH_PATTERNS = [
     r"\bPrimavera\b", r"\bU23\b", r"\bU21\b", r"\bU20\b", r"\bU19\b",
 ]
 
-FRIENDLY_PATTERNS = [r"friendly", r"barátságos"]
+FRIENDLY_PATTERNS = [r"friendly", r"friendlies", r"barátságos"]
 
 
 def _api_get(path: str, params: Dict[str, Any], timeout: int = 25) -> Dict[str, Any]:
