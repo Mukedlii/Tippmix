@@ -604,6 +604,119 @@ def main() -> None:
 
     tips_data = generate_tips(slot_matches)
 
+    # ALERT mode: send only very strong PRO picks (VIP + EN only).
+    alert_only = (os.getenv("TIPPMIX_ALERT_ONLY") or "0").strip() == "1"
+    if alert_only:
+        def _is_alert_pick(b: Dict[str, Any]) -> bool:
+            try:
+                conf = float(b.get("confidence") or 0)
+            except Exception:
+                conf = 0
+            try:
+                odds = float(b.get("odds_pick") or b.get("odds") or 0)
+            except Exception:
+                odds = 0
+            risk = (b.get("risk_level") or "").lower()
+            shelf = (b.get("shelf") or b.get("pick_shelf") or "").upper()
+
+            try:
+                conf_thr = float(os.getenv("TIPPMIX_ALERT_CONF_MIN") or "4.2")
+            except Exception:
+                conf_thr = 4.2
+            try:
+                o_min = float(os.getenv("TIPPMIX_ALERT_ODDS_MIN") or "1.35")
+            except Exception:
+                o_min = 1.35
+            try:
+                o_max = float(os.getenv("TIPPMIX_ALERT_ODDS_MAX") or "1.90")
+            except Exception:
+                o_max = 1.90
+
+            if shelf != "PRO":
+                return False
+            if "alacsony" not in risk:
+                return False
+            if conf < conf_thr:
+                return False
+            if odds <= 1.01:
+                return False
+            if odds < o_min or odds > o_max:
+                return False
+            return True
+
+        vip_bets = tips_data.get("vip_bets") or []
+        vip_alerts = [b for b in vip_bets if _is_alert_pick(b)]
+
+        # Dedup across runs
+        import hashlib
+
+        state_path = os.path.join("data", "alert_state.json")
+        try:
+            st = json.load(open(state_path, "r", encoding="utf-8")) if os.path.exists(state_path) else {}
+        except Exception:
+            st = {}
+        sent = set(st.get("sent") or [])
+
+        def _key(b: Dict[str, Any]) -> str:
+            raw = f"{b.get('fixture_id')}|{b.get('tip')}|{b.get('odds_pick')}"
+            return hashlib.sha1(raw.encode("utf-8", errors="ignore")).hexdigest()
+
+        new_alerts = []
+        for b in vip_alerts:
+            k = _key(b)
+            if k in sent:
+                continue
+            new_alerts.append(b)
+            sent.add(k)
+
+        try:
+            mx = int(os.getenv("TIPPMIX_ALERT_MAX_PER_RUN") or "6")
+        except Exception:
+            mx = 6
+        new_alerts = new_alerts[: max(0, mx)]
+
+        if not new_alerts:
+            print("[ALERT] No new PRO picks; skipping send.")
+            return
+
+        # Build a short VIP-only alert message
+        lines_hu = [
+            "🚨🏆 VIP PRO RIASZTAS – KIMAGASLO LEHETOSEG",
+            f"📅 {today.strftime('%Y.%m.%d.')}",
+            f"🔔 Uj PRO tippek: {len(new_alerts)}",
+            "",
+        ]
+        lines_en = [
+            "🚨🏆 VIP PRO ALERT – TOP OPPORTUNITY",
+            f"📅 {today.strftime('%Y.%m.%d.')}",
+            f"🔔 New PRO picks: {len(new_alerts)}",
+            "",
+        ]
+
+        for i, b in enumerate(new_alerts, 1):
+            label = b.get("match") or f"fixture_id={b.get('fixture_id')}"
+            tip = b.get("tip")
+            odds = b.get("odds_pick")
+            conf = b.get("confidence")
+            lines_hu.append(f"{i}. 🏆 {label}\n🎯 Tipp: {tip} | 📊 Odds: {odds} | 💡 Bizalom: {conf}/5")
+            lines_en.append(f"{i}. 🏆 {label}\nPick: {tip} | Odds: {odds} | Confidence: {conf}/5")
+
+        # persist state
+        try:
+            os.makedirs(os.path.dirname(state_path), exist_ok=True)
+            with open(state_path, "w", encoding="utf-8") as f:
+                json.dump({"sent": sorted(sent)[-2000:]}, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+
+        # force send only VIP + EN
+        if vip_chat_id:
+            send_telegram_message(telegram_token, vip_chat_id, "\n\n".join(lines_hu), f"VIP_ALERT_{slot}", meta=base_meta)
+        if en_chat_id:
+            send_telegram_message(telegram_token, en_chat_id, "\n\n".join(lines_en), f"EN_VIP_ALERT_{slot}", meta={**base_meta, "lang": "en"})
+
+        return
+
     suffix = "day" if slot == "DAY" else "evening"
     consensus_passes: List[Dict[str, Any]] = []
     enable_grok = (os.getenv("ENABLE_GROK_REVIEW", "0").strip() == "1")
