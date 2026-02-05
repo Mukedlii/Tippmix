@@ -129,6 +129,7 @@ def _normalize_match(m: Dict[str, Any]) -> Dict[str, Any]:
         "kickoff": m.get("kickoff_local") or "",
         "home_team": m.get("home_team") or "",
         "away_team": m.get("away_team") or "",
+        "bucket": m.get("bucket"),
         "odds_1": _safe_float(odds.get("1")),
         "odds_x": _safe_float(odds.get("X")),
         "odds_2": _safe_float(odds.get("2")),
@@ -339,6 +340,24 @@ def _odds_ok(odds_val: Optional[float], tier: str, relax: bool = False) -> bool:
     return FREE_ODDS_MIN <= float(odds_val) <= mx
 
 
+def _shelf_for_match(m: Dict[str, Any], odds_val: Optional[float], tier: str) -> str:
+    """Assign a presentation shelf label.
+
+    - PRO: top bucket (0) and odds present
+    - STANDARD: everything else in the safe windows
+    - BOLD: handled separately (bonus/risky sections)
+    """
+
+    try:
+        bucket = int(m.get("bucket")) if m.get("bucket") is not None else None
+    except Exception:
+        bucket = None
+
+    if bucket == 0 and odds_val is not None:
+        return "PRO"
+    return "STANDARD"
+
+
 def _clean_list(raw: List[Dict[str, Any]], id_to_match: Dict[int, Dict[str, Any]], used: set, tier: str) -> List[Dict[str, Any]]:
     tier = (tier or "").upper()
     out: List[Dict[str, Any]] = []
@@ -375,6 +394,8 @@ def _clean_list(raw: List[Dict[str, Any]], id_to_match: Dict[int, Dict[str, Any]
         reason = (it.get("reason") or "").strip()[:220] or "Összkép alapján."
         used.add(fid)
 
+        shelf = _shelf_for_match(m, odds_val, tier=tier)
+
         out.append(
             {
                 "fixture_id": fid,
@@ -384,6 +405,7 @@ def _clean_list(raw: List[Dict[str, Any]], id_to_match: Dict[int, Dict[str, Any]
                 "risk_level": risk,
                 "reason": reason,
                 "odds_estimate": odds_val,
+                "shelf": shelf,
             }
         )
     return out
@@ -675,6 +697,7 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     vip_lines = [
         "👑⚽️ SZELVÉNYKIRÁLY VIP – NAPI AJÁNLÓ ⚽️👑",
         f"📅 Dátum: {today}.",
+        "🙂 3 polc: 🏆PRO / 🧩STANDARD / 😈MERESZ",
         f"✅ <b>FONTOS MECCSEK</b> (min. {IMPORTANT_MIN})",
     ]
 
@@ -683,8 +706,29 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     vip_lines_en = [
         "👑⚽️ BETSLIPKING VIP – DAILY PICKS ⚽️👑",
         f"📅 Date: {today}.",
+        "🙂 3 shelves: 🏆PRO / 🧩STANDARD / 😈BOLD",
         f"✅ IMPORTANT MATCHES (min {IMPORTANT_MIN})",
     ]
+
+    def _shelf_hu(t: Dict[str, Any]) -> str:
+        s = (t.get("shelf") or "").upper()
+        if s == "PRO":
+            return "🏆 PRO"
+        if s == "STANDARD":
+            return "🧩 STANDARD"
+        if s == "BOLD":
+            return "😈 MERESZ"
+        return "🧩 STANDARD"
+
+    def _shelf_en(t: Dict[str, Any]) -> str:
+        s = (t.get("shelf") or "").upper()
+        if s == "PRO":
+            return "🏆 PRO"
+        if s == "STANDARD":
+            return "🧩 STANDARD"
+        if s == "BOLD":
+            return "😈 BOLD"
+        return "🧩 STANDARD"
 
     def _append_tip_block(lines_hu: List[str], lines_en: List[str], idx: int, t: Dict[str, Any], label: str):
         odds_val = t.get("odds_estimate")
@@ -692,18 +736,18 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         prefix = "⭐ KIEMELT – " if t.get("is_highlighted") else ""
 
         lines_hu.append(
-            f"{idx}. {prefix}{label}\n"
+            f"{idx}. {_shelf_hu(t)}  {prefix}{label}\n"
             f"🎯 Tipp: {t['selection']}\n"
-            f"📊 Odds (1X2): {odds_txt}\n"
+            f"📊 Odds: {odds_txt}\n"
             f"⚠️ Kockázat: {_risk_to_emoji(t['risk_level'])}\n"
             f"💡 Bizalom: {_stars(t['confidence'])}\n"
             f"🧠 Miért? {t['reason']}"
         )
 
         lines_en.append(
-            f"{idx}. {('⭐ HIGHLIGHT – ' if t.get('is_highlighted') else '')}{label}\n"
+            f"{idx}. {_shelf_en(t)}  {('⭐ HIGHLIGHT – ' if t.get('is_highlighted') else '')}{label}\n"
             f"Pick: {sel_en(t['selection'])}\n"
-            f"Odds (1X2): {odds_txt}\n"
+            f"Odds: {odds_txt}\n"
             f"Risk: {risk_en(t['risk_level'])}\n"
             f"Confidence: {t['confidence']:.1f}/5"
         )
@@ -736,8 +780,10 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     o, pay, prof = _combo_totals(main1)
     vip_lines.append(f"\n🎫 <b>KOMBI #1</b> ({len(main1)} meccs)")
     if o:
-        vip_lines.append(f"💰 {STAKE_HUF} Ft kombi esetén: odds≈{o:.2f} | kifizetés≈{pay} Ft | profit≈{prof} Ft")
+        vip_lines.append(f"💰 Ha {STAKE_HUF} Ft a tét: odds≈{o:.2f} | kifizetés≈{pay} Ft | profit≈{prof} Ft")
     vip_lines_en.append(f"\n🎫 COMBO #1 ({len(main1)} picks)")
+    if o:
+        vip_lines_en.append(f"💰 If stake is {STAKE_HUF} HUF: total odds≈{o:.2f} | payout≈{pay} | profit≈{prof}")
 
     for j, t in enumerate(main1, 1):
         m = id_to_match.get(t["fixture_id"])
@@ -748,8 +794,10 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     o2, pay2, prof2 = _combo_totals(main2)
     vip_lines.append(f"\n🎫 <b>KOMBI #2</b> ({len(main2)} meccs)")
     if o2:
-        vip_lines.append(f"💰 {STAKE_HUF} Ft kombi esetén: odds≈{o2:.2f} | kifizetés≈{pay2} Ft | profit≈{prof2} Ft")
+        vip_lines.append(f"💰 Ha {STAKE_HUF} Ft a tét: odds≈{o2:.2f} | kifizetés≈{pay2} Ft | profit≈{prof2} Ft")
     vip_lines_en.append(f"\n🎫 COMBO #2 ({len(main2)} picks)")
+    if o2:
+        vip_lines_en.append(f"💰 If stake is {STAKE_HUF} HUF: total odds≈{o2:.2f} | payout≈{pay2} | profit≈{prof2}")
 
     for j, t in enumerate(main2, 1):
         m = id_to_match.get(t["fixture_id"])
@@ -764,6 +812,9 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
 
         vip_lines_en.append(f"\n😈 BOLD PICKS (optional) – {len(risky)}")
         vip_lines_en.append("🙂 Play only if you want higher risk / higher odds.")
+
+        for t in risky:
+            t["shelf"] = "BOLD"
 
         for j, t in enumerate(risky, 1):
             m = id_to_match.get(t["fixture_id"])
