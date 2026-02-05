@@ -49,7 +49,7 @@ jobs:
 
       # Safe picks odds window
       TIPPMIX_VIP_ODDS_MIN: "1.35"
-      TIPPMIX_VIP_ODDS_MAX: "1.85"
+      TIPPMIX_VIP_ODDS_MAX: "1.90"
       TIPPMIX_VIP_REQUIRE_ODDS: "1"
       TIPPMIX_RELAX_IF_SHORT: "0"
 

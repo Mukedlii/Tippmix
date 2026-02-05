@@ -31,6 +31,7 @@ STAKE_USD = float(os.getenv("TIPPMIX_STAKE_USD", "5"))
 # Defaults tuned for a 6-fold total odds target ~10–15 (geo mean ~1.47–1.57)
 VIP_ODDS_MIN = float(os.getenv("TIPPMIX_VIP_ODDS_MIN", "1.35"))
 VIP_ODDS_MAX = float(os.getenv("TIPPMIX_VIP_ODDS_MAX", "1.85"))
+VIP_SAFE_MAX_FALLBACK = float(os.getenv("TIPPMIX_VIP_SAFE_MAX_FALLBACK", "1.95"))
 VIP_HIGH_ODDS_THRESHOLD = float(os.getenv("TIPPMIX_VIP_HIGH_ODDS_THRESHOLD", "1.75"))
 VIP_MAX_HIGH_ODDS = int(os.getenv("TIPPMIX_VIP_MAX_HIGH_ODDS", "2"))
 VIP_REQUIRE_ODDS = (os.getenv("TIPPMIX_VIP_REQUIRE_ODDS") or "1").strip() == "1"
@@ -683,7 +684,7 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             return "High"
         return "Medium"
 
-    def _is_safe_vip(t: Dict[str, Any]) -> bool:
+    def _is_safe_vip(t: Dict[str, Any], max_odds: float) -> bool:
         try:
             odds_val = float(t.get("odds_estimate") or 0)
         except Exception:
@@ -692,14 +693,24 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         if "magas" in risk:
             return False
         # Keep SAFE within the VIP odds window
-        if odds_val and odds_val > VIP_ODDS_MAX:
+        if odds_val and odds_val > float(max_odds):
             return False
         if odds_val and odds_val < VIP_ODDS_MIN:
             return False
         return True
 
-    safe_vip = [t for t in vip if _is_safe_vip(t)]
+    safe_vip = [t for t in vip if _is_safe_vip(t, VIP_ODDS_MAX)]
     unsafe_vip = [t for t in vip if t not in safe_vip]
+
+    # If SAFE pool is short for 2 combos, allow a small, explicit fallback.
+    need_safe = max(0, IMPORTANT_MIN) + max(0, VIP_MAIN1_COUNT) + max(0, VIP_MAIN2_COUNT)
+    used_fallback = False
+    if len(safe_vip) < need_safe and VIP_SAFE_MAX_FALLBACK > VIP_ODDS_MAX:
+        safe2 = [t for t in vip if _is_safe_vip(t, VIP_SAFE_MAX_FALLBACK)]
+        if len(safe2) > len(safe_vip):
+            safe_vip = safe2
+            unsafe_vip = [t for t in vip if t not in safe_vip]
+            used_fallback = True
 
     # ---- structure: IMPORTANT + 2 combos + bold risky ----
     important = safe_vip[: max(0, IMPORTANT_MIN)]
@@ -719,8 +730,11 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         "👑⚽️ SZELVÉNYKIRÁLY VIP – NAPI AJÁNLÓ ⚽️👑",
         f"📅 Dátum: {today}.",
         "🙂 3 polc: 🏆PRO / 🧩STANDARD / 😈MERESZ",
-        f"✅ <b>FONTOS MECCSEK</b> (min. {IMPORTANT_MIN})",
     ]
+    if used_fallback:
+        vip_lines.append(f"⚠️ Ma kevés volt a SAFE meccs {VIP_ODDS_MAX:.2f} odds-ig, ezért kitágítottam {VIP_SAFE_MAX_FALLBACK:.2f}-ig a KOMBI-hoz.")
+
+    vip_lines.append(f"✅ <b>FONTOS MECCSEK</b> (min. {IMPORTANT_MIN})")
 
     sep_en = "💎⚽️💎"
 
@@ -728,8 +742,11 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         "👑⚽️ BETSLIPKING VIP – DAILY PICKS ⚽️👑",
         f"📅 Date: {today}.",
         "🙂 3 shelves: 🏆PRO / 🧩STANDARD / 😈BOLD",
-        f"✅ IMPORTANT MATCHES (min {IMPORTANT_MIN})",
     ]
+    if used_fallback:
+        vip_lines_en.append(f"⚠️ SAFE pool was short up to {VIP_ODDS_MAX:.2f}, so I widened to {VIP_SAFE_MAX_FALLBACK:.2f} for combos.")
+
+    vip_lines_en.append(f"✅ IMPORTANT MATCHES (min {IMPORTANT_MIN})")
 
     def _shelf_hu(t: Dict[str, Any]) -> str:
         s = (t.get("shelf") or "").upper()
@@ -757,6 +774,8 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         prefix = "⭐ KIEMELT – " if t.get("is_highlighted") else ""
 
         reason = (t.get("reason") or "").strip()
+        if reason.startswith("Feltöltés:"):
+            reason = "Stabil odds + összkép alapján."
         if (t.get("shelf") or "").upper() == "BOLD":
             reason = ""
 
