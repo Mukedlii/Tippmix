@@ -5,6 +5,43 @@ import datetime
 import random
 from typing import Any, Dict, List, Optional, Tuple
 
+
+def _promo_footer(today_iso: str, lang: str) -> str:
+    """7-day free promo footer.
+
+    Env:
+      - TIPPMIX_PROMO_ENABLED=1/0
+      - TIPPMIX_PROMO_START=YYYY-MM-DD (default: today)
+      - TIPPMIX_PROMO_DAYS=7
+      - TIPPMIX_PRICE_USD=10
+    """
+
+    if (os.getenv("TIPPMIX_PROMO_ENABLED") or "1").strip() != "1":
+        return ""
+
+    start = (os.getenv("TIPPMIX_PROMO_START") or today_iso).strip() or today_iso
+    try:
+        days = int(os.getenv("TIPPMIX_PROMO_DAYS") or "7")
+    except Exception:
+        days = 7
+    try:
+        price = int(float(os.getenv("TIPPMIX_PRICE_USD") or "10"))
+    except Exception:
+        price = 10
+
+    try:
+        dt0 = datetime.date.fromisoformat(start)
+        end = (dt0 + datetime.timedelta(days=max(1, days))).strftime("%Y.%m.%d.")
+    except Exception:
+        end = ""
+
+    if (lang or "hu").lower().startswith("en"):
+        end_txt = f" (until {end})" if end else ""
+        return f"\n\n🎁 7-day FREE beta{end_txt} → then ${price}/month."
+
+    end_txt = f" (eddig: {end})" if end else ""
+    return f"\n\n🎁 7 nap INGYEN beta{end_txt} → utána ${price}/hó."
+
 from openai import OpenAI
 
 client = OpenAI()
@@ -1019,11 +1056,14 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         for t in free
     ]
 
+    promo_hu = _promo_footer(today_iso=datetime.date.today().isoformat(), lang="hu")
+    promo_en = _promo_footer(today_iso=datetime.date.today().isoformat(), lang="en")
+
     return {
-        "telegram_public_text": "\n\n".join(free_lines),
-        "telegram_vip_text": "\n\n".join(vip_lines),
-        "telegram_public_text_en": "\n\n".join(free_lines_en),
-        "telegram_vip_text_en": "\n\n".join(vip_lines_en),
+        "telegram_public_text": "\n\n".join(free_lines) + promo_hu,
+        "telegram_vip_text": "\n\n".join(vip_lines) + promo_hu,
+        "telegram_public_text_en": "\n\n".join(free_lines_en) + promo_en,
+        "telegram_vip_text_en": "\n\n".join(vip_lines_en) + promo_en,
         "public_bets": public_bets,
         "vip_bets": vip_bets,
         # Note: bonus is informational only (not stored/recapped by default)
