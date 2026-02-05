@@ -332,7 +332,10 @@ def _evaluate_bets(bets: List[Dict[str, Any]]) -> Tuple[int, int, int, List[str]
                 pass
 
             if fx_status == "NO_PROVIDER_KEY":
-                lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ❓ nincs API kulcs beállítva (SPORTS_API_KEY / SPORTSDATAIO_API)")
+                lines.append(
+                    f"{i}. {match_label}\nTipp: {pick}\nEredmény: ❓ nincs API kulcs beállítva "
+                    "(SPORTS_API_KEY / SPORTMONKS_API_TOKEN / ALLSPORTSAPI_KEY / SPORTSDATAIO_API)"
+                )
             else:
                 lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ❓ nincs adat (API, {fx_status})")
             continue

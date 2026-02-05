@@ -662,7 +662,14 @@ def _fill_minimum(matches_norm: List[Dict[str, Any]], vip: List[Dict[str, Any]],
 
 def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     if not matches:
-        msg = "⚠️ Ma nem jött vissza meccs az API-ból. Nézd meg a SPORTS_API_KEY / SPORTSDATAIO_API kulcsot és a limitet."
+        provider = (os.getenv("SPORTS_DATA_PROVIDER") or "auto").strip()
+        msg = (
+            "⚠️ Ma nem jött vissza meccs az API-ból. "
+            f"Provider: {provider}. "
+            "Ellenőrizd a providerhez tartozó kulcsot + limitet: "
+            "SPORTS_API_KEY (api-sports) / SPORTMONKS_API_TOKEN / ALLSPORTSAPI_KEY / SPORTSDATAIO_API. "
+            "Ha rossz provider van beállítva: állítsd a GitHub Actions Variable-ben: SPORTS_DATA_PROVIDER=allsportsapi (vagy api-sports)."
+        )
         return {"telegram_public_text": msg, "telegram_vip_text": msg, "public_bets": [], "vip_bets": []}
 
     matches_norm = [_normalize_match(m) for m in matches]
