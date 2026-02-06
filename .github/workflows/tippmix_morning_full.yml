@@ -59,12 +59,13 @@ jobs:
       # Safe picks odds window
       TIPPMIX_VIP_ODDS_MIN: "1.35"
       TIPPMIX_VIP_ODDS_MAX: "1.90"
-      TIPPMIX_VIP_REQUIRE_ODDS: "1"
+      # With AllSportsAPI you may have no odds; default to not requiring odds (override via repo vars if you want)
+      TIPPMIX_VIP_REQUIRE_ODDS: ${{ vars.TIPPMIX_VIP_REQUIRE_ODDS || '0' }}
       TIPPMIX_RELAX_IF_SHORT: "0"
 
       TIPPMIX_FREE_ODDS_MIN: "1.35"
       TIPPMIX_FREE_ODDS_MAX: "1.85"
-      TIPPMIX_FREE_REQUIRE_ODDS: "1"
+      TIPPMIX_FREE_REQUIRE_ODDS: ${{ vars.TIPPMIX_FREE_REQUIRE_ODDS || '0' }}
 
       # Risky bonus combo (bigger odds)
       TIPPMIX_VIP_BONUS_COUNT: "6"

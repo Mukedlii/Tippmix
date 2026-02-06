@@ -45,7 +45,8 @@ jobs:
       # SAFE odds window for FREE
       TIPPMIX_FREE_ODDS_MIN: "1.35"
       TIPPMIX_FREE_ODDS_MAX: "1.85"
-      TIPPMIX_FREE_REQUIRE_ODDS: "1"
+      # With AllSportsAPI you may have no odds; default to not requiring odds (override via repo vars if you want)
+      TIPPMIX_FREE_REQUIRE_ODDS: ${{ vars.TIPPMIX_FREE_REQUIRE_ODDS || '0' }}
 
       # Keep VIP generation defaults but do not send
       TIPPMIX_MIN_VIP: "6"

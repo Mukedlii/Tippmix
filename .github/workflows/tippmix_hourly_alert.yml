@@ -35,6 +35,10 @@ jobs:
 
       TIPPMIX_SLOT: ALL
 
+      # With AllSportsAPI you may have no odds; default to not requiring odds
+      TIPPMIX_VIP_REQUIRE_ODDS: ${{ vars.TIPPMIX_VIP_REQUIRE_ODDS || '0' }}
+      TIPPMIX_FREE_REQUIRE_ODDS: ${{ vars.TIPPMIX_FREE_REQUIRE_ODDS || '0' }}
+
       # alert mode
       TIPPMIX_ALERT_ONLY: "1"
       TIPPMIX_ALERT_CONF_MIN: "4.2"
