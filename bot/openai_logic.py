@@ -729,24 +729,26 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         return "Medium"
 
     def _is_safe_vip(t: Dict[str, Any], max_odds: float) -> bool:
-        # SAFE must have odds (so combos and payout are meaningful)
-        try:
-            odds_val = float(t.get("odds_estimate"))
-        except Exception:
-            return False
-        if odds_val <= 1.01:
-            return False
+        """Define the pool used for combos.
 
+        If odds are available, enforce VIP odds window.
+        If odds are missing (common on AllSportsAPI/free tiers), still allow SAFE by risk+confidence,
+        but payout won't be computed.
+        """
         risk = (t.get("risk_level") or "").lower()
         if "magas" in risk:
             return False
 
-        # Keep SAFE within the VIP odds window
-        if odds_val > float(max_odds):
-            return False
-        if odds_val < VIP_ODDS_MIN:
-            return False
-        return True
+        # If we have odds, validate window.
+        odds_val = _safe_float(t.get("odds_estimate"))
+        if odds_val and odds_val > 1.01:
+            if odds_val > float(max_odds) or odds_val < VIP_ODDS_MIN:
+                return False
+            return True
+
+        # No odds: allow only confident + low/medium risk tips into combos.
+        conf = _safe_float(t.get("confidence")) or 0
+        return conf >= 4.0
 
     safe_vip = [t for t in vip if _is_safe_vip(t, VIP_ODDS_MAX)]
     unsafe_vip = [t for t in vip if t not in safe_vip]
@@ -923,6 +925,8 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     vip_lines.append(f"\n🎫 <b>KOMBI #1</b> ({len(main1)} meccs)")
     if o:
         vip_lines.append(f"💰 Ha {STAKE_HUF} Ft a tét: odds≈{o:.2f} | kifizetés≈{pay} Ft | profit≈{prof} Ft")
+    elif main1:
+        vip_lines.append(f"💰 Ha {STAKE_HUF} Ft a tét: kifizetés nem számolható (nincs odds minden meccshez).")
     vip_lines_en.append(f"\n🎫 COMBO #1 ({len(main1)} picks)")
     if o:
         vip_lines_en.append(f"💰 If stake is {STAKE_HUF} HUF: total odds≈{o:.2f} | payout≈{pay} | profit≈{prof}")
@@ -937,6 +941,8 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     vip_lines.append(f"\n🎫 <b>KOMBI #2</b> ({len(main2)} meccs)")
     if o2:
         vip_lines.append(f"💰 Ha {STAKE_HUF} Ft a tét: odds≈{o2:.2f} | kifizetés≈{pay2} Ft | profit≈{prof2} Ft")
+    elif main2:
+        vip_lines.append(f"💰 Ha {STAKE_HUF} Ft a tét: kifizetés nem számolható (nincs odds minden meccshez).")
     vip_lines_en.append(f"\n🎫 COMBO #2 ({len(main2)} picks)")
     if o2:
         vip_lines_en.append(f"💰 If stake is {STAKE_HUF} HUF: total odds≈{o2:.2f} | payout≈{pay2} | profit≈{prof2}")
@@ -964,25 +970,22 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             _append_tip_block(vip_lines, vip_lines_en, j, t, label)
 
     def _is_safe_free(t: Dict[str, Any]) -> bool:
-        # Truthful SAFE must have odds + avoid high-risk labels
-        try:
-            odds_val = float(t.get("odds_estimate"))
-        except Exception:
-            return False
-        if odds_val <= 1.01:
-            return False
-
+        # If odds are available, enforce the FREE safe odds window.
+        # If odds are missing, allow SAFE only when confidence is decent and risk is not high.
         risk = (t.get("risk_level") or "").lower()
         if "magas" in risk:
             return False
 
-        mn = float(os.getenv("TIPPMIX_FREE_SAFE_ODDS_MIN", str(FREE_ODDS_MIN)))
-        mx = float(os.getenv("TIPPMIX_FREE_SAFE_ODDS_MAX", str(FREE_ODDS_MAX)))
-        if odds_val > mx:
-            return False
-        if odds_val < mn:
-            return False
-        return True
+        odds_val = _safe_float(t.get("odds_estimate"))
+        if odds_val and odds_val > 1.01:
+            mn = float(os.getenv("TIPPMIX_FREE_SAFE_ODDS_MIN", str(FREE_ODDS_MIN)))
+            mx = float(os.getenv("TIPPMIX_FREE_SAFE_ODDS_MAX", str(FREE_ODDS_MAX)))
+            if odds_val > mx or odds_val < mn:
+                return False
+            return True
+
+        conf = _safe_float(t.get("confidence")) or 0
+        return conf >= 3.8
 
     safe_pool = [t for t in free if _is_safe_free(t)]
     risky_pool = [t for t in free if t not in safe_pool]
