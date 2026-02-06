@@ -89,8 +89,6 @@ jobs:
       TIPPMIX_MIN_POOL: ${{ vars.TIPPMIX_MIN_POOL || '21' }}
       TIPPMIX_ALLOW_FRIENDLY: "0"
 
-      TIPPMIX_MAX_DAYS_AHEAD: "0"
-      TIPPMIX_MIN_POOL: "60"
       TIPPMIX_ODDS_LOOKUP_LIMIT: "120"
 
     steps:
