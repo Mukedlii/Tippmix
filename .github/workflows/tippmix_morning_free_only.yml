@@ -65,7 +65,8 @@ jobs:
       TIPPMIX_ODDS_LOOKUP_LIMIT: "120"
 
       # The Odds API tuning
-      ODDS_MAX_REQUESTS_PER_RUN: "12"
+      # Free tiers are sensitive: keep odds requests bounded (override via repo vars)
+      ODDS_MAX_REQUESTS_PER_RUN: ${{ vars.ODDS_MAX_REQUESTS_PER_RUN || '3' }}
       ODDS_SPORT_KEYS: "soccer_epl,soccer_spain_la_liga,soccer_italy_serie_a,soccer_germany_bundesliga,soccer_france_ligue_one,soccer_uefa_champs_league,soccer_uefa_europa_league,soccer_uefa_europa_conference_league,soccer_italy_coppa_italia,soccer_spain_copa_del_rey,soccer_netherlands_eredivisie,soccer_portugal_primeira_liga"
 
     steps:

@@ -769,8 +769,11 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         used_ids = {int(t.get("fixture_id")) for t in (vip + free) if t.get("fixture_id") is not None}
         max_odds = VIP_SAFE_MAX_FALLBACK if used_fallback else VIP_ODDS_MAX
 
-        # Prefer matches that have full 1X2 odds.
-        pool = sorted(matches_norm, key=lambda m: 1 if (m.get("odds_1") and m.get("odds_x") and m.get("odds_2")) else 0, reverse=True)
+        # Prefer matches that have at least some odds (free-tier odds sources can be partial).
+        def _has_any_odds(m: Dict[str, Any]) -> int:
+            return 1 if (_safe_float(m.get("odds_1")) or _safe_float(m.get("odds_x")) or _safe_float(m.get("odds_2"))) else 0
+
+        pool = sorted(matches_norm, key=_has_any_odds, reverse=True)
 
         for m in pool:
             if len(safe_vip) >= need_safe:

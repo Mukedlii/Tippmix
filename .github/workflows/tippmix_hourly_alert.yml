@@ -53,7 +53,8 @@ jobs:
       TIPPMIX_ALLOW_FRIENDLY: "0"
 
       # keep odds requests bounded
-      ODDS_MAX_REQUESTS_PER_RUN: "6"
+      # Free tiers are sensitive: keep odds requests bounded (override via repo vars)
+      ODDS_MAX_REQUESTS_PER_RUN: ${{ vars.ODDS_MAX_REQUESTS_PER_RUN || '2' }}
       ODDS_SPORT_KEYS: "soccer_epl,soccer_spain_la_liga,soccer_italy_serie_a,soccer_germany_bundesliga,soccer_france_ligue_one,soccer_uefa_champs_league"
 
     steps:

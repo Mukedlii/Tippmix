@@ -31,7 +31,8 @@ jobs:
       TIPPMIX_SEND_PUBLIC: "1"
       TIPPMIX_SEND_VIP: "1"
       TIPPMIX_SEND_EN: "1"
-      ODDS_MAX_REQUESTS_PER_RUN: "12"
+      # Free tiers are sensitive: keep odds requests bounded (override via repo vars)
+      ODDS_MAX_REQUESTS_PER_RUN: ${{ vars.ODDS_MAX_REQUESTS_PER_RUN || '3' }}
       # Broad soccer coverage for odds supplementation (1 request per sport_key)
       ODDS_SPORT_KEYS: "soccer_epl,soccer_spain_la_liga,soccer_italy_serie_a,soccer_germany_bundesliga,soccer_france_ligue_one,soccer_uefa_champs_league,soccer_uefa_europa_league,soccer_uefa_europa_conference_league,soccer_italy_coppa_italia,soccer_spain_copa_del_rey,soccer_netherlands_eredivisie,soccer_portugal_primeira_liga"
 
