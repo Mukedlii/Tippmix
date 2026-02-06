@@ -520,7 +520,7 @@ def fetch_matches_for_today(slot: str = "DAY", date: Optional[str] = None) -> Li
         for m in slot_fixtures:
             if looked >= ODDS_LOOKUP_LIMIT:
                 break
-            if odds_ok >= target_full_odds:
+            if odds_ok_full >= target_full_odds:
                 break
             fid = int(m["fixture_id"])
             odds = fetch_api_football_1x2_odds(fid)
