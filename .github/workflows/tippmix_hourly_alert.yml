@@ -28,6 +28,7 @@ jobs:
       SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
       SPORTMONKS_API_TOKEN: ${{ secrets.SPORTMONKS_API_TOKEN }}
       SPORTSDATAIO_API: ${{ secrets.SPORTSDATAIO_API }}
+      ALLSPORTSAPI_KEY: ${{ secrets.ALLSPORTSAPI_KEY }}
       ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
 
       SPORTS_DATA_PROVIDER: ${{ vars.SPORTS_DATA_PROVIDER }}
