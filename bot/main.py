@@ -638,10 +638,10 @@ def main() -> None:
                 return False
             if conf < conf_thr:
                 return False
-            if odds <= 1.01:
-                return False
-            if odds < o_min or odds > o_max:
-                return False
+            # If we have odds, enforce the odds window; if odds are missing, allow the pick.
+            if odds and odds > 1.01:
+                if odds < o_min or odds > o_max:
+                    return False
             return True
 
         vip_bets = tips_data.get("vip_bets") or []
