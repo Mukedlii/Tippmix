@@ -505,7 +505,7 @@ def fetch_matches_for_today(slot: str = "DAY", date: Optional[str] = None) -> Li
     )
 
     # Odds enrichment
-    odds_ok = 0
+    odds_ok_full = 0
     looked = 0
 
     provider = resolve_sports_provider()
@@ -525,10 +525,12 @@ def fetch_matches_for_today(slot: str = "DAY", date: Optional[str] = None) -> Li
             fid = int(m["fixture_id"])
             odds = fetch_api_football_1x2_odds(fid)
             looked += 1
-            if odds and odds.get("1") and odds.get("X") and odds.get("2"):
+            if odds and (odds.get("1") or odds.get("X") or odds.get("2")):
+                # store partial odds too; combo selection can still use the available side
                 m["odds"] = odds
                 m["odds_source"] = "api-sports"
-                odds_ok += 1
+                if odds.get("1") and odds.get("X") and odds.get("2"):
+                    odds_ok_full += 1
 
     elif provider == "sportmonks":
         # best-effort: pull prematch odds per fixture (can be heavy; keep within ODDS_LOOKUP_LIMIT)
@@ -543,7 +545,7 @@ def fetch_matches_for_today(slot: str = "DAY", date: Optional[str] = None) -> Li
                 if o1 and ox and o2:
                     m["odds"] = {"1": float(o1), "X": float(ox), "2": float(o2)}
                     m["odds_source"] = "sportmonks"
-                    odds_ok += 1
+                    odds_ok_full += 1
             except Exception:
                 looked += 1
                 continue
@@ -555,7 +557,10 @@ def fetch_matches_for_today(slot: str = "DAY", date: Optional[str] = None) -> Li
     except Exception:
         pass
 
-    print(f"[matches] odds enriched: {odds_ok}/{min(len(slot_fixtures), ODDS_LOOKUP_LIMIT)} (limit={ODDS_LOOKUP_LIMIT})")
+    print(
+        f"[matches] odds enriched (full 1X2): {odds_ok_full}/{min(len(slot_fixtures), ODDS_LOOKUP_LIMIT)} "
+        f"(limit={ODDS_LOOKUP_LIMIT})"
+    )
 
     if slot_fixtures:
         print("[matches] RAW MATCH EXAMPLE:\n", slot_fixtures[0])
