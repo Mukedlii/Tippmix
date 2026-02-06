@@ -748,7 +748,7 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
 
         # No odds: allow only confident + low/medium risk tips into combos.
         conf = _safe_float(t.get("confidence")) or 0
-        return conf >= 4.0
+        return conf >= 3.6
 
     safe_vip = [t for t in vip if _is_safe_vip(t, VIP_ODDS_MAX)]
     unsafe_vip = [t for t in vip if t not in safe_vip]
@@ -786,13 +786,15 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             if not sel:
                 continue
             odds_val = _odds_for_selection(m, sel)
-            if odds_val is None:
-                continue
-            if not (VIP_ODDS_MIN <= float(odds_val) <= float(max_odds)):
-                continue
+            if odds_val is not None:
+                if not (VIP_ODDS_MIN <= float(odds_val) <= float(max_odds)):
+                    continue
 
             risk, conf = _baseline_risk_conf(m, sel)
             if (risk or "").lower() == "magas":
+                continue
+            # If we don't have odds, require a bit more confidence so combos stay "stable".
+            if odds_val is None and float(conf or 0) < 3.6:
                 continue
 
             safe_vip.append(
