@@ -62,7 +62,9 @@ jobs:
 
       TIPPMIX_MAX_DAYS_AHEAD: ${{ vars.TIPPMIX_MAX_DAYS_AHEAD || '0' }}
       TIPPMIX_MIN_POOL: ${{ vars.TIPPMIX_MIN_POOL || '21' }}
-      TIPPMIX_ODDS_LOOKUP_LIMIT: "120"
+      # Free tiers: keep per-fixture odds lookups bounded
+      TIPPMIX_ODDS_LOOKUP_LIMIT: ${{ vars.TIPPMIX_ODDS_LOOKUP_LIMIT || '20' }}
+      TIPPMIX_TARGET_FULL_ODDS: ${{ vars.TIPPMIX_TARGET_FULL_ODDS || '10' }}
 
       # The Odds API tuning
       # Free tiers are sensitive: keep odds requests bounded (override via repo vars)

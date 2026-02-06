@@ -90,7 +90,9 @@ jobs:
       TIPPMIX_MIN_POOL: ${{ vars.TIPPMIX_MIN_POOL || '21' }}
       TIPPMIX_ALLOW_FRIENDLY: "0"
 
-      TIPPMIX_ODDS_LOOKUP_LIMIT: "120"
+      # Free tiers: keep per-fixture odds lookups bounded
+      TIPPMIX_ODDS_LOOKUP_LIMIT: ${{ vars.TIPPMIX_ODDS_LOOKUP_LIMIT || '30' }}
+      TIPPMIX_TARGET_FULL_ODDS: ${{ vars.TIPPMIX_TARGET_FULL_ODDS || '14' }}
 
     steps:
       - name: Checkout repo

@@ -814,8 +814,22 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     # ---- structure: IMPORTANT + 2 combos + bold risky ----
     important = safe_vip[: max(0, IMPORTANT_MIN)]
 
-    main1 = safe_vip[: max(0, VIP_MAIN1_COUNT)]
-    main2 = safe_vip[max(0, VIP_MAIN1_COUNT) : max(0, VIP_MAIN1_COUNT + VIP_MAIN2_COUNT)]
+    def _has_odds_tip(t: Dict[str, Any]) -> bool:
+        o = _safe_float(t.get("odds_estimate"))
+        return bool(o and o > 1.01)
+
+    def _combo_build(source: List[Dict[str, Any]], n: int) -> List[Dict[str, Any]]:
+        """Prefer odds-present tips so we can compute 1000 Ft payout."""
+        with_odds = [t for t in source if _has_odds_tip(t)]
+        no_odds = [t for t in source if t not in with_odds]
+        out = with_odds[:n]
+        if len(out) < n:
+            out += no_odds[: max(0, n - len(out))]
+        return out
+
+    # Build combos from SAFE pool, but prioritize tips with odds so we can show stake totals.
+    main1 = _combo_build(safe_vip, max(0, VIP_MAIN1_COUNT))
+    main2 = _combo_build(safe_vip[len(main1):], max(0, VIP_MAIN2_COUNT))
 
     vip_extra = safe_vip[max(0, VIP_MAIN1_COUNT + VIP_MAIN2_COUNT) :]
 

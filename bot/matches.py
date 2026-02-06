@@ -511,8 +511,16 @@ def fetch_matches_for_today(slot: str = "DAY", date: Optional[str] = None) -> Li
     provider = resolve_sports_provider()
 
     if provider == "api-sports":
+        # Free tiers are sensitive: stop once we have enough full 1X2 odds to build combos.
+        try:
+            target_full_odds = int(os.getenv("TIPPMIX_TARGET_FULL_ODDS", "14"))
+        except Exception:
+            target_full_odds = 14
+
         for m in slot_fixtures:
             if looked >= ODDS_LOOKUP_LIMIT:
+                break
+            if odds_ok >= target_full_odds:
                 break
             fid = int(m["fixture_id"])
             odds = fetch_api_football_1x2_odds(fid)
