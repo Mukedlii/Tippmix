@@ -831,6 +831,108 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     main1 = _combo_build(safe_vip, max(0, VIP_MAIN1_COUNT))
     main2 = _combo_build(safe_vip[len(main1):], max(0, VIP_MAIN2_COUNT))
 
+    def _build_combo_from_pool(
+        n: int,
+        used_ids: set,
+        odds_min: float,
+        odds_max: float,
+    ) -> List[Dict[str, Any]]:
+        """Hard combo-engine: build an odds-backed combo directly from the match pool.
+
+        Goal: always produce N picks with odds so we can compute 1000 Ft payout.
+        Selection is based on implied probability (from odds) and baseline risk/conf.
+        """
+
+        candidates = []
+        for m in matches_norm:
+            try:
+                fid = int(m.get("fixture_id"))
+            except Exception:
+                continue
+            if fid in used_ids:
+                continue
+
+            # Pick best selection based on implied probs & odds windows.
+            sel = _best_sel_within(m, tier="VIP", relax=True)
+            if not sel:
+                continue
+
+            o = _odds_for_selection(m, sel)
+            if o is None:
+                continue
+            try:
+                o = float(o)
+            except Exception:
+                continue
+            if o <= 1.01:
+                continue
+            if o < float(odds_min) or o > float(odds_max):
+                continue
+
+            # implied probability
+            imp = _implied_probs(m.get("odds_1"), m.get("odds_x"), m.get("odds_2"))
+            if not imp:
+                continue
+            p = {
+                "Hazai győzelem": imp.get("p1"),
+                "Döntetlen": imp.get("px"),
+                "Vendég győzelem": imp.get("p2"),
+            }.get(sel)
+            if p is None:
+                continue
+
+            risk, conf = _baseline_risk_conf(m, sel)
+            if (risk or "").lower() == "magas":
+                continue
+
+            candidates.append((float(p), float(conf or 0), -float(o), fid, sel, o, risk, conf))
+
+        # sort: highest implied prob, then confidence, then prefer lower odds a bit
+        candidates.sort(reverse=True)
+
+        out: List[Dict[str, Any]] = []
+        for _, _, _, fid, sel, o, risk, conf in candidates:
+            if len(out) >= n:
+                break
+            if fid in used_ids:
+                continue
+            out.append(
+                {
+                    "fixture_id": fid,
+                    "selection": sel,
+                    "is_highlighted": False,
+                    "confidence": conf,
+                    "risk_level": risk,
+                    "reason": "KOMBI-ENGINE: implied valószínűség + stabil odds alapján.",
+                    "odds_estimate": float(o),
+                    "shelf": _shelf_for_match(id_to_match.get(fid) or {}, float(o), tier="VIP"),
+                }
+            )
+            used_ids.add(fid)
+
+        return out
+
+    # If combos are still short, force-fill them from the pool with odds-backed picks.
+    try:
+        want1 = max(0, VIP_MAIN1_COUNT)
+        want2 = max(0, VIP_MAIN2_COUNT)
+        used_combo_ids = {int(t.get("fixture_id")) for t in (vip + free + main1 + main2) if t.get("fixture_id") is not None}
+
+        # Hard engine odds window (tunable)
+        eng_min = float(os.getenv("TIPPMIX_COMBO_ENGINE_ODDS_MIN", str(VIP_ODDS_MIN)))
+        eng_max = float(os.getenv("TIPPMIX_COMBO_ENGINE_ODDS_MAX", "2.40"))
+
+        if len(main1) < want1:
+            fill = _build_combo_from_pool(want1 - len(main1), used_combo_ids, eng_min, eng_max)
+            main1 += fill
+
+        if len(main2) < want2:
+            fill = _build_combo_from_pool(want2 - len(main2), used_combo_ids, eng_min, eng_max)
+            main2 += fill
+
+    except Exception:
+        pass
+
     vip_extra = safe_vip[max(0, VIP_MAIN1_COUNT + VIP_MAIN2_COUNT) :]
 
     # unsafe (red/high odds/high risk) gets pushed to the bold section
