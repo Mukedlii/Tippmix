@@ -56,15 +56,18 @@ jobs:
       TIPPMIX_MAX_VIP: "18"
       TIPPMIX_MAX_FREE: "12"
 
-      # Safe picks odds window
-      TIPPMIX_VIP_ODDS_MIN: "1.35"
-      TIPPMIX_VIP_ODDS_MAX: "1.90"
+      # Safe picks odds window (defaults are AllSportsAPI/free-odds friendly; override via repo vars)
+      TIPPMIX_VIP_ODDS_MIN: ${{ vars.TIPPMIX_VIP_ODDS_MIN || '1.30' }}
+      TIPPMIX_VIP_ODDS_MAX: ${{ vars.TIPPMIX_VIP_ODDS_MAX || '2.05' }}
       # With AllSportsAPI you may have no odds; default to not requiring odds (override via repo vars if you want)
       TIPPMIX_VIP_REQUIRE_ODDS: ${{ vars.TIPPMIX_VIP_REQUIRE_ODDS || '0' }}
-      TIPPMIX_RELAX_IF_SHORT: "0"
+      # If strict constraints produce 0 picks, allow automatic relaxation
+      TIPPMIX_RELAX_IF_SHORT: ${{ vars.TIPPMIX_RELAX_IF_SHORT || '1' }}
+      TIPPMIX_VIP_ODDS_MAX_RELAX: ${{ vars.TIPPMIX_VIP_ODDS_MAX_RELAX || '2.40' }}
+      TIPPMIX_FREE_ODDS_MAX_RELAX: ${{ vars.TIPPMIX_FREE_ODDS_MAX_RELAX || '2.60' }}
 
-      TIPPMIX_FREE_ODDS_MIN: "1.35"
-      TIPPMIX_FREE_ODDS_MAX: "1.85"
+      TIPPMIX_FREE_ODDS_MIN: ${{ vars.TIPPMIX_FREE_ODDS_MIN || '1.30' }}
+      TIPPMIX_FREE_ODDS_MAX: ${{ vars.TIPPMIX_FREE_ODDS_MAX || '2.20' }}
       TIPPMIX_FREE_REQUIRE_ODDS: ${{ vars.TIPPMIX_FREE_REQUIRE_ODDS || '0' }}
 
       # Risky bonus combo (bigger odds)
@@ -80,6 +83,10 @@ jobs:
       TIPPMIX_BLOCK_COUNTRIES: ${{ vars.TIPPMIX_BLOCK_COUNTRIES }}
       TIPPMIX_BLOCK_LEAGUES: ${{ vars.TIPPMIX_BLOCK_LEAGUES }}
       TIPPMIX_ALLOW_YOUTH: "0"
+
+      # Do not expand to future days for the morning product (keeps today-only)
+      TIPPMIX_MAX_DAYS_AHEAD: ${{ vars.TIPPMIX_MAX_DAYS_AHEAD || '0' }}
+      TIPPMIX_MIN_POOL: ${{ vars.TIPPMIX_MIN_POOL || '21' }}
       TIPPMIX_ALLOW_FRIENDLY: "0"
 
       TIPPMIX_MAX_DAYS_AHEAD: "0"

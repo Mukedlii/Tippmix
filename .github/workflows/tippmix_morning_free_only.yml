@@ -42,11 +42,14 @@ jobs:
       TIPPMIX_FREE_SAFE_COUNT: "3"
       TIPPMIX_FREE_RISKY_COUNT: "3"
 
-      # SAFE odds window for FREE
-      TIPPMIX_FREE_ODDS_MIN: "1.35"
-      TIPPMIX_FREE_ODDS_MAX: "1.85"
+      # SAFE odds window for FREE (defaults are free-tier friendly; override via repo vars)
+      TIPPMIX_FREE_ODDS_MIN: ${{ vars.TIPPMIX_FREE_ODDS_MIN || '1.30' }}
+      TIPPMIX_FREE_ODDS_MAX: ${{ vars.TIPPMIX_FREE_ODDS_MAX || '2.20' }}
       # With AllSportsAPI you may have no odds; default to not requiring odds (override via repo vars if you want)
       TIPPMIX_FREE_REQUIRE_ODDS: ${{ vars.TIPPMIX_FREE_REQUIRE_ODDS || '0' }}
+
+      TIPPMIX_RELAX_IF_SHORT: ${{ vars.TIPPMIX_RELAX_IF_SHORT || '1' }}
+      TIPPMIX_FREE_ODDS_MAX_RELAX: ${{ vars.TIPPMIX_FREE_ODDS_MAX_RELAX || '2.60' }}
 
       # Keep VIP generation defaults but do not send
       TIPPMIX_MIN_VIP: "6"
@@ -57,8 +60,8 @@ jobs:
       TIPPMIX_ALLOW_YOUTH: "0"
       TIPPMIX_ALLOW_FRIENDLY: "0"
 
-      TIPPMIX_MAX_DAYS_AHEAD: "0"
-      TIPPMIX_MIN_POOL: "60"
+      TIPPMIX_MAX_DAYS_AHEAD: ${{ vars.TIPPMIX_MAX_DAYS_AHEAD || '0' }}
+      TIPPMIX_MIN_POOL: ${{ vars.TIPPMIX_MIN_POOL || '21' }}
       TIPPMIX_ODDS_LOOKUP_LIMIT: "120"
 
       # The Odds API tuning
