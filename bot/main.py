@@ -10,6 +10,7 @@ from bot.matches import fetch_matches_for_today
 from bot.openai_logic import generate_tips
 from bot.api_keys import resolve_sports_provider
 from bot.storage.sqlite_store import insert_run, insert_bets, insert_fixtures
+from bot.storage.stats import dynamic_block_leagues, overall_hitrate
 
 
 # -----------------------------
@@ -602,6 +603,31 @@ def main() -> None:
     slot_matches = _filter_matches_for_slot(matches, slot)
     print(f"Idősávra szűrt meccsek száma: {len(slot_matches)}")
 
+    # Dynamic league blocking based on historical hitrate (prevents "kamu" leagues from polluting picks)
+    if (os.getenv("TIPPMIX_DYNAMIC_BLOCK") or "1").strip() == "1":
+        try:
+            days = int(os.getenv("TIPPMIX_DYN_BLOCK_DAYS") or "60")
+        except Exception:
+            days = 60
+        try:
+            min_samples = int(os.getenv("TIPPMIX_DYN_BLOCK_MIN_SAMPLES") or "25")
+        except Exception:
+            min_samples = 25
+        try:
+            max_hitrate = float(os.getenv("TIPPMIX_DYN_BLOCK_MAX_HITRATE") or "0.48")
+        except Exception:
+            max_hitrate = 0.48
+
+        bad_leagues = dynamic_block_leagues(days=days, min_samples=min_samples, max_hitrate=max_hitrate, tier="VIP")
+        bad_set = {b.lower().strip() for b in bad_leagues}
+
+        if bad_set:
+            before = len(slot_matches)
+            slot_matches = [m for m in slot_matches if (str(m.get("league_name") or "").lower().strip() not in bad_set)]
+            after = len(slot_matches)
+            if before != after:
+                print(f"[DYN_BLOCK] Blocked leagues: {len(bad_leagues)} | matches {before} -> {after}")
+
     tips_data = generate_tips(slot_matches)
 
     # ALERT mode: send only very strong PRO picks (VIP + EN only).
@@ -807,6 +833,18 @@ def main() -> None:
 
     public_text = tips_data.get("telegram_public_text") or "⚠️ Hiba a FREE tippek generálásánál."
     vip_text = tips_data.get("telegram_vip_text") or "⚠️ Hiba a VIP tippek generálásánál."
+
+    # Transparency footer: show recent real hitrate (anti-kamu)
+    if (os.getenv("TIPPMIX_SHOW_PERF_FOOTER") or "1").strip() == "1":
+        try:
+            days = int(os.getenv("TIPPMIX_PERF_DAYS") or "30")
+        except Exception:
+            days = 30
+        perf_vip = overall_hitrate(days=days, tier="VIP")
+        if perf_vip and float(perf_vip.get("decided", 0)) >= 10:
+            hit = float(perf_vip.get("hitrate", 0)) * 100.0
+            decided = int(perf_vip.get("decided", 0))
+            vip_text = (vip_text or "").rstrip() + f"\n\n<i>Transzparencia: utolsó {days} nap VIP találati arány (eldöntött, DB alapján): {hit:.1f}% ({decided} tipp)</i>"
 
     public_text_en = tips_data.get("telegram_public_text_en")
     vip_text_en = tips_data.get("telegram_vip_text_en")
