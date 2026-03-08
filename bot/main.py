@@ -8,6 +8,7 @@ import requests
 
 from bot.matches import fetch_matches_for_today
 from bot.openai_logic import generate_tips
+from bot.poisson_engine import generate_poisson_tips
 from bot.api_keys import resolve_sports_provider
 from bot.storage.sqlite_store import insert_run, insert_bets, insert_fixtures
 from bot.storage.stats import dynamic_block_leagues, overall_hitrate
@@ -628,7 +629,11 @@ def main() -> None:
             if before != after:
                 print(f"[DYN_BLOCK] Blocked leagues: {len(bad_leagues)} | matches {before} -> {after}")
 
-    tips_data = generate_tips(slot_matches)
+    engine = (os.getenv("TIPPMIX_ENGINE") or "openai").strip().lower()
+    if engine in ("poisson", "stats", "pro"):
+        tips_data = generate_poisson_tips(slot_matches)
+    else:
+        tips_data = generate_tips(slot_matches)
 
     # ALERT mode: send only very strong PRO picks (VIP + EN only).
     alert_only = (os.getenv("TIPPMIX_ALERT_ONLY") or "0").strip() == "1"

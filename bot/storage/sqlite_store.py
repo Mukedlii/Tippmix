@@ -79,7 +79,13 @@ def init_db() -> None:
               result_1x2 TEXT,
               status TEXT,
               updated_ts_utc TEXT NOT NULL,
-              raw_json TEXT
+              raw_json TEXT,
+              home_goals INTEGER,
+              away_goals INTEGER,
+              home_team_id INTEGER,
+              away_team_id INTEGER,
+              league_id INTEGER,
+              season INTEGER
             );
             """
         )
@@ -244,30 +250,125 @@ def upsert_result(
     status: Optional[str],
     raw: Optional[Dict[str, Any]] = None,
 ) -> None:
-    """Store latest result snapshot for a fixture."""
+    """Store latest result snapshot for a fixture.
+
+    Best-effort: if schema has extra columns (home/away goals, team ids, league id), we fill them
+    from raw provider payload. This enables Poisson/multi-market engines without extra APIs.
+    """
     init_db()
     con = _connect()
     try:
-        con.execute(
-            """
-            INSERT INTO results(fixture_id, final_score, result_1x2, status, updated_ts_utc, raw_json)
-            VALUES(?,?,?,?,?,?)
-            ON CONFLICT(fixture_id) DO UPDATE SET
-              final_score=excluded.final_score,
-              result_1x2=excluded.result_1x2,
-              status=excluded.status,
-              updated_ts_utc=excluded.updated_ts_utc,
-              raw_json=excluded.raw_json
-            """,
-            (
-                int(fixture_id),
-                str(final_score) if final_score is not None else None,
-                str(result_1x2) if result_1x2 is not None else None,
-                str(status) if status is not None else None,
-                _utc_iso(),
-                json.dumps(raw or {}, ensure_ascii=False),
-            ),
-        )
+        # detect extra columns
+        cols = {r[1] for r in con.execute("PRAGMA table_info(results)").fetchall()}
+
+        hg = ag = hid = aid = lid = season = None
+        try:
+            payload = raw or {}
+            # API-Sports shape: {fixture, league, teams, goals}
+            teams = payload.get("teams") or {}
+            goals = payload.get("goals") or {}
+            league = payload.get("league") or {}
+
+            if isinstance(goals, dict):
+                hg = goals.get("home")
+                ag = goals.get("away")
+            if isinstance(teams, dict):
+                home = teams.get("home") or {}
+                away = teams.get("away") or {}
+                hid = home.get("id")
+                aid = away.get("id")
+            if isinstance(league, dict):
+                lid = league.get("id")
+                season = league.get("season")
+
+            # SportMonks / others: ignore for now (still keeps raw_json)
+
+            if hg is not None:
+                hg = int(hg)
+            if ag is not None:
+                ag = int(ag)
+            if hid is not None:
+                hid = int(hid)
+            if aid is not None:
+                aid = int(aid)
+            if lid is not None:
+                lid = int(lid)
+            if season is not None:
+                season = int(season)
+        except Exception:
+            hg = ag = hid = aid = lid = season = None
+
+        # build dynamic SQL depending on columns
+        extra_fields = []
+        extra_vals = []
+        if "home_goals" in cols:
+            extra_fields.append("home_goals")
+            extra_vals.append(hg)
+        if "away_goals" in cols:
+            extra_fields.append("away_goals")
+            extra_vals.append(ag)
+        if "home_team_id" in cols:
+            extra_fields.append("home_team_id")
+            extra_vals.append(hid)
+        if "away_team_id" in cols:
+            extra_fields.append("away_team_id")
+            extra_vals.append(aid)
+        if "league_id" in cols:
+            extra_fields.append("league_id")
+            extra_vals.append(lid)
+        if "season" in cols:
+            extra_fields.append("season")
+            extra_vals.append(season)
+
+        if extra_fields:
+            fields_sql = ", ".join(extra_fields)
+            qmarks = ", ".join(["?"] * len(extra_fields))
+            updates_sql = ",\n              ".join([f"{f}=excluded.{f}" for f in extra_fields])
+
+            con.execute(
+                f"""
+                INSERT INTO results(fixture_id, final_score, result_1x2, status, updated_ts_utc, raw_json, {fields_sql})
+                VALUES(?,?,?,?,?,?,{qmarks})
+                ON CONFLICT(fixture_id) DO UPDATE SET
+                  final_score=excluded.final_score,
+                  result_1x2=excluded.result_1x2,
+                  status=excluded.status,
+                  updated_ts_utc=excluded.updated_ts_utc,
+                  raw_json=excluded.raw_json,
+                  {updates_sql}
+                """,
+                (
+                    int(fixture_id),
+                    str(final_score) if final_score is not None else None,
+                    str(result_1x2) if result_1x2 is not None else None,
+                    str(status) if status is not None else None,
+                    _utc_iso(),
+                    json.dumps(raw or {}, ensure_ascii=False),
+                    *extra_vals,
+                ),
+            )
+        else:
+            con.execute(
+                """
+                INSERT INTO results(fixture_id, final_score, result_1x2, status, updated_ts_utc, raw_json)
+                VALUES(?,?,?,?,?,?)
+                ON CONFLICT(fixture_id) DO UPDATE SET
+                  final_score=excluded.final_score,
+                  result_1x2=excluded.result_1x2,
+                  status=excluded.status,
+                  updated_ts_utc=excluded.updated_ts_utc,
+                  raw_json=excluded.raw_json
+                """,
+                (
+                    int(fixture_id),
+                    str(final_score) if final_score is not None else None,
+                    str(result_1x2) if result_1x2 is not None else None,
+                    str(status) if status is not None else None,
+                    _utc_iso(),
+                    json.dumps(raw or {}, ensure_ascii=False),
+                ),
+            )
+
         con.commit()
     finally:
         con.close()

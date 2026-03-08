@@ -16,6 +16,7 @@ from bot.api_keys import (
 from bot.tips_logger import read_tips
 from bot.providers import sportsdataio, sportmonks
 from bot.storage.sqlite_store import upsert_result
+from bot.storage.poisson_stats import ensure_results_columns
 
 
 # -----------------------------
@@ -401,6 +402,12 @@ def _evaluate_bets(bets: List[Dict[str, Any]]) -> Tuple[int, int, int, List[str]
 
 
 def main() -> None:
+    # ensure DB schema has goal/team fields for Poisson engine
+    try:
+        ensure_results_columns()
+    except Exception:
+        pass
+
     telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
     vip_chat_id = os.getenv("TELEGRAM_VIP_CHAT_ID")
     public_chat_id = os.getenv("TELEGRAM_PUBLIC_CHAT_ID")

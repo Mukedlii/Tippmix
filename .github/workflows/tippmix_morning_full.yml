@@ -42,6 +42,9 @@ jobs:
       # Full-day scan (no slot cut)
       TIPPMIX_SLOT: ALL
 
+      # PRO engine (no odds, no OpenAI)
+      TIPPMIX_ENGINE: poisson
+
       # Minimum counts
       TIPPMIX_MIN_VIP: "6"
       TIPPMIX_MIN_FREE: "3"
