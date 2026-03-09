@@ -81,7 +81,7 @@ def team_goal_rates(team_id: int, days: int = 120) -> Optional[Dict[str, float]]
         if not row:
             return None
         n = int(row["n"] or 0)
-        if n < int(os.getenv("TIPPMIX_TEAM_MIN_N", "8")):
+        if n < int(os.getenv("TIPPMIX_TEAM_MIN_N", "4")):
             return None
         gf = float(row["gf_sum"] or 0.0) / n
         ga = float(row["ga_sum"] or 0.0) / n
@@ -114,7 +114,7 @@ def league_goal_baseline(league_id: int, days: int = 180) -> Optional[Dict[str, 
         if not row:
             return None
         n = int(row["n"] or 0)
-        if n < int(os.getenv("TIPPMIX_LEAGUE_MIN_N", "20")):
+        if n < int(os.getenv("TIPPMIX_LEAGUE_MIN_N", "10")):
             return None
         hg = float(row["hg_sum"] or 0.0) / n
         ag = float(row["ag_sum"] or 0.0) / n

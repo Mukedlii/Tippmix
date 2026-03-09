@@ -79,8 +79,8 @@ def _pick_markets(
     p_btts_no = 1.0 - p_btts
 
     # thresholds tunable via env
-    safe_thr = float(os.getenv("TIPPMIX_SAFE_P_MIN", "0.62"))
-    risk_thr = float(os.getenv("TIPPMIX_RISK_P_MIN", "0.56"))
+    safe_thr = float(os.getenv("TIPPMIX_SAFE_P_MIN", "0.58"))
+    risk_thr = float(os.getenv("TIPPMIX_RISK_P_MIN", "0.54"))
 
     # Under/Over 2.5
     if p_under25 >= safe_thr:
@@ -199,7 +199,7 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         return f"• {ht} – {at} | <b>{pick}</b> | p≈{p:.0f}% | {ko}"
 
     vip_lines: List[str] = []
-    vip_lines.append("<b>SZELVÉNYKIRÁLY – PRO (odds nélkül, stat alap)</b>")
+    vip_lines.append("<b>SZELVÉNYKIRÁLY – PRO (stat alap)</b>")
     vip_lines.append("")
     if safe:
         vip_lines.append("<b>SAFE (stabil)</b>")
@@ -219,7 +219,7 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     free_n = int(os.getenv("TIPPMIX_PUBLIC_SAFE_COUNT", "3"))
     free = safe[:free_n]
     public_lines: List[str] = []
-    public_lines.append("<b>SZELVÉNYKIRÁLY – FREE (stat alap)</b>")
+    public_lines.append("<b>SZELVÉNYKIRÁLY – FREE</b>")
     public_lines.append("")
     if free:
         public_lines.append("<b>SAFE tippek</b>")

@@ -46,6 +46,12 @@ jobs:
       # PRO engine (no odds, no OpenAI)
       TIPPMIX_ENGINE: poisson
 
+      # Make sure we actually emit picks while history builds up
+      TIPPMIX_SAFE_P_MIN: "0.58"
+      TIPPMIX_RISK_P_MIN: "0.54"
+      TIPPMIX_TEAM_MIN_N: "4"
+      TIPPMIX_LEAGUE_MIN_N: "10"
+
       # Minimum counts
       TIPPMIX_MIN_VIP: "6"
       TIPPMIX_MIN_FREE: "3"
