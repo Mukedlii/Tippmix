@@ -249,44 +249,107 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             r["shelf"] = r.get("shelf") or "RISK"
         risk = fb
 
-    def fmt_row(r: Dict[str, Any]) -> str:
-        p = float(r.get("p") or 0) * 100.0
-        ht = r.get("home_team") or ""
-        at = r.get("away_team") or ""
-        pick = str(r.get("pick") or "").strip()
-        mkt = str(r.get("market") or "").strip().upper()
-        ko = str(r.get("kickoff_local") or "")
-        t = _fmt_time_iso(ko)
-        t_txt = f"🕒 {t} " if t else ""
-
-        # make OU readable in HU
-        if mkt == "OU" and "UNDER" in pick.upper():
-            pick_disp = "Összgól < 2.5 (max 2 gól)"
-        elif mkt == "OU" and "OVER" in pick.upper():
-            pick_disp = "Összgól > 2.5 (min 3 gól)"
-        elif mkt == "BTTS" and "NO" in pick.upper():
-            pick_disp = "Mindkét csapat szerez gólt: NEM"
-        elif mkt == "BTTS" and "YES" in pick.upper():
-            pick_disp = "Mindkét csapat szerez gólt: IGEN"
+    def _stars(p01: float) -> str:
+        # map prob -> 1..5 stars
+        if p01 >= 0.70:
+            n = 5
+        elif p01 >= 0.64:
+            n = 4
+        elif p01 >= 0.58:
+            n = 3
+        elif p01 >= 0.53:
+            n = 2
         else:
-            pick_disp = pick
+            n = 1
+        return "⭐" * n
 
-        tag = "🏁" if mkt == "1X2" else "🎯"
-        return f"• {t_txt}{ht} – {at}\n  {tag} <b>{pick_disp}</b>  |  p≈{p:.0f}%"
+    def _pick_display(mkt: str, pick: str) -> str:
+        mkt = (mkt or "").upper().strip()
+        pu = (pick or "").upper()
+        if mkt == "OU" and "UNDER" in pu:
+            return "Gólok alatt 2.5 (max 2 gól)"
+        if mkt == "OU" and "OVER" in pu:
+            return "Gólok felett 2.5 (min 3 gól)"
+        if mkt == "BTTS" and "NO" in pu:
+            return "Mindkét csapat gólt szerez: NEM"
+        if mkt == "BTTS" and "YES" in pu:
+            return "Mindkét csapat gólt szerez: IGEN"
+        return pick
 
+    def _analysis_text(r: Dict[str, Any]) -> str:
+        lam_h = float(r.get("lam_home") or 0)
+        lam_a = float(r.get("lam_away") or 0)
+        mkt = str(r.get("market") or "").upper()
+        pick = str(r.get("pick") or "")
+        # short, concrete, data-driven (no promises)
+        s1 = f"Várható gólok: hazai λ={lam_h:.2f}, vendég λ={lam_a:.2f} (Poisson modell, historikus adatok alapján)."
+        if mkt == "OU":
+            s2 = "Az összgól valószínűség eloszlása alapján ez a line adja a legjobb kockázat/hozam arányt."
+        elif mkt == "BTTS":
+            s2 = "A modell szerint a gól nélküli szcenáriók (0 gól egyik oldalon) aránya ezt támogatja."
+        elif mkt == "DNB":
+            s2 = "Döntetlen kockázat csökkentése miatt DNB a stabilabb választás."
+        else:
+            s2 = "Az 1X2 esélyek közül ez a legnagyobb valószínűségű kimenet a modell szerint."
+        s3 = "Fegyelmezett téttel (bankroll 1–3%) érdemes kezelni."
+        return f"{s1} {s2} {s3}"
+
+    def fmt_tip(i: int, r: Dict[str, Any]) -> str:
+        p01 = float(r.get("p") or 0.0)
+        p = p01 * 100.0
+        ht = str(r.get("home_team") or "")
+        at = str(r.get("away_team") or "")
+        league = str(r.get("league_name") or "")
+        ko = str(r.get("kickoff_local") or "")
+        time_txt = _fmt_time_iso(ko)
+        date_txt = ko.split("T", 1)[0] if "T" in ko else ""
+        mkt = str(r.get("market") or "").upper().strip()
+        pick = _pick_display(mkt, str(r.get("pick") or "").strip())
+
+        odds_txt = "—"  # odds not used in this engine
+        stars = _stars(p01)
+
+        parts = []
+        parts.append("━━━━━━━━━━━━━━━━━━━━━━")
+        parts.append(f"🔢 *TIPP #{i}*")
+        parts.append(f"🏟️ {league} – -")
+        parts.append(f"⚽ *{ht}* 🆚 *{at}*")
+        parts.append(f"📅 {date_txt} | 🕐 {time_txt}")
+        parts.append(f"📌 Tipp: {mkt}")
+        parts.append(f"💡 Ajánlott fogadás: *{pick}*")
+        parts.append(f"📈 Odds: {odds_txt}")
+        parts.append(f"🔥 Bizalom: {stars} (p≈{p:.0f}%)")
+        parts.append(f"🧠 Elemzés: {_analysis_text(r)}")
+        return "\n".join(parts)
+
+    # Header
+    date_disp = ""
+    if matches:
+        ko0 = str(matches[0].get("kickoff_local") or "")
+        if "T" in ko0:
+            date_disp = ko0.split("T", 1)[0]
     vip_lines: List[str] = []
-    vip_lines.append("<b>SZELVÉNYKIRÁLY – PRO</b>")
-    vip_lines.append("✅ SAFE = stabilabb | ⚠️ RISK = kockázatosabb")
-    vip_lines.append("")
+    vip_lines.append(f"🏆 *NAPI TIPP CSOMAG – {date_disp or ''}*")
+    vip_lines.append(f"📊 Mai elemzések: {len(matches)} mérkőzés")
+    vip_lines.append("━━━━━━━━━━━━━━━━━━━━━━")
 
-    if safe:
-        vip_lines.append("✅ <b>SAFE</b>")
-        vip_lines.extend(fmt_row(r) for r in safe)
-        vip_lines.append("")
-    if risk:
-        vip_lines.append("⚠️ <b>RISK</b>")
-        vip_lines.extend(fmt_row(r) for r in risk)
-        vip_lines.append("")
+    # Build list: SAFE first then RISK, but numbered sequentially
+    tips_for_msg: List[Dict[str, Any]] = []
+    tips_for_msg.extend(safe)
+    tips_for_msg.extend(risk)
+
+    if not tips_for_msg:
+        # extreme edge-case: no picks at all
+        vip_lines.append("Ma kevés a feldolgozható adat a modellezéshez.")
+    else:
+        for idx, r in enumerate(tips_for_msg, start=1):
+            vip_lines.append(fmt_tip(idx, r))
+
+    vip_lines.append("━━━━━━━━━━━━━━━━━━━━━━")
+    vip_lines.append("⚠️ *FELELŐSSÉG KIZÁRÁS:* A tippek elemzésen alapulnak, nem garantálnak nyereményt. Csak felelősen fogadj!")
+    admin = (os.getenv("TIPPMIX_ADMIN_USERNAME") or "").strip().lstrip("@")
+    if admin:
+        vip_lines.append(f"📩 Kérdés? @{admin}")
 
     vip_text = "\n".join(vip_lines).strip()
 
@@ -294,13 +357,16 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     free_n = int(os.getenv("TIPPMIX_PUBLIC_SAFE_COUNT", "3"))
     free = safe[:free_n]
     public_lines: List[str] = []
-    public_lines.append("<b>SZELVÉNYKIRÁLY – FREE</b>")
-    public_lines.append("")
+    public_lines.append(f"🏆 *NAPI TIPP CSOMAG – {date_disp or ''}*")
+    public_lines.append(f"📊 Mai elemzések: {len(matches)} mérkőzés")
+    public_lines.append("━━━━━━━━━━━━━━━━━━━━━━")
     if free:
-        public_lines.append("✅ <b>SAFE</b>")
-        public_lines.extend(fmt_row(r) for r in free)
+        for idx, r in enumerate(free, start=1):
+            public_lines.append(fmt_tip(idx, r))
     else:
         public_lines.append("Ma kevés jel volt, ezért rövidebb a lista.")
+    public_lines.append("━━━━━━━━━━━━━━━━━━━━━━")
+    public_lines.append("⚠️ *FELELŐSSÉG KIZÁRÁS:* A tippek elemzésen alapulnak, nem garantálnak nyereményt.")
     public_text = "\n".join(public_lines).strip()
 
     # Map to existing schema: vip_bets/public_bets
