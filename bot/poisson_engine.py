@@ -353,9 +353,11 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
 
     vip_text = "\n".join(vip_lines).strip()
 
-    # FREE: only a few SAFE picks
+    # FREE: only a few picks (prefer SAFE, but fall back to best available)
     free_n = int(os.getenv("TIPPMIX_PUBLIC_SAFE_COUNT", "3"))
     free = safe[:free_n]
+    if not free:
+        free = (risk[:free_n])
     public_lines: List[str] = []
     public_lines.append(f"🏆 *NAPI TIPP CSOMAG – {date_disp or ''}*")
     public_lines.append(f"📊 Mai elemzések: {len(matches)} mérkőzés")
@@ -364,7 +366,7 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         for idx, r in enumerate(free, start=1):
             public_lines.append(fmt_tip(idx, r))
     else:
-        public_lines.append("Ma kevés jel volt, ezért rövidebb a lista.")
+        public_lines.append("Ma kevesebb a stabil jel, ezért rövidebb a lista.")
     public_lines.append("━━━━━━━━━━━━━━━━━━━━━━")
     public_lines.append("⚠️ *FELELŐSSÉG KIZÁRÁS:* A tippek elemzésen alapulnak, nem garantálnak nyereményt.")
     public_text = "\n".join(public_lines).strip()
