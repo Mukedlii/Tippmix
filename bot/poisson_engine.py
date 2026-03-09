@@ -149,8 +149,33 @@ def _pick_markets(
     return out
 
 
+def _is_top_league(league_name: str) -> bool:
+    s = (league_name or "").lower()
+    keys = [
+        "premier league", "la liga", "bundesliga", "serie a", "ligue 1",
+        "champions league", "uefa champions league",
+        "europa league", "uefa europa league",
+        "conference league", "uefa europa conference league",
+        "eredivisie", "primeira liga", "scottish premiership",
+        "fa cup", "copa del rey", "dfb pokal", "coppa italia",
+        "segunda", "championship",
+    ]
+    return any(k in s for k in keys)
+
+
+def _fmt_time_iso(dt: str) -> str:
+    # best-effort: "2026-03-09T20:30:00+01:00" -> "20:30"
+    try:
+        if "T" in dt:
+            tail = dt.split("T", 1)[1]
+            return tail[:5]
+    except Exception:
+        pass
+    return ""
+
+
 def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Generates SAFE + RISK picks without odds / without OpenAI."""
+    """Generates SAFE + RISK picks (OU/BTTS/DNB) without odds / without OpenAI."""
 
     ensure_results_columns()
 
@@ -185,16 +210,22 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         out_rows.extend(_pick_markets(m, lam_home, lam_away))
 
     # rank by probability (descending), SAFE first
-    safe = [r for r in out_rows if r.get("shelf") == "SAFE"]
-    risk = [r for r in out_rows if r.get("shelf") == "RISK"]
-    safe.sort(key=lambda x: float(x.get("p") or 0), reverse=True)
-    risk.sort(key=lambda x: float(x.get("p") or 0), reverse=True)
+    safe_all = [r for r in out_rows if r.get("shelf") == "SAFE"]
+    risk_all = [r for r in out_rows if r.get("shelf") == "RISK"]
+    safe_all.sort(key=lambda x: float(x.get("p") or 0), reverse=True)
+    risk_all.sort(key=lambda x: float(x.get("p") or 0), reverse=True)
+
+    # VIP: prioritize top leagues for readability/stability
+    safe_top = [r for r in safe_all if _is_top_league(str(r.get("league_name") or ""))]
+    risk_top = [r for r in risk_all if _is_top_league(str(r.get("league_name") or ""))]
+    safe_other = [r for r in safe_all if r not in safe_top]
+    risk_other = [r for r in risk_all if r not in risk_top]
 
     max_safe = int(os.getenv("TIPPMIX_SAFE_COUNT", "8"))
     max_risk = int(os.getenv("TIPPMIX_RISK_COUNT", "6"))
 
-    safe = safe[:max_safe]
-    risk = risk[:max_risk]
+    safe = (safe_top + safe_other)[:max_safe]
+    risk = (risk_top + risk_other)[:max_risk]
 
     # Fallback: if thresholds were too strict, still emit some picks (better UX for subscribers)
     if not safe and not risk:
@@ -212,22 +243,24 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         ht = r.get("home_team") or ""
         at = r.get("away_team") or ""
         pick = r.get("pick")
-        ko = r.get("kickoff_local") or ""
-        return f"• {ht} – {at} | <b>{pick}</b> | p≈{p:.0f}% | {ko}"
+        ko = str(r.get("kickoff_local") or "")
+        t = _fmt_time_iso(ko)
+        t_txt = f"🕒 {t} " if t else ""
+        return f"• {t_txt}{ht} – {at}\n  🎯 <b>{pick}</b>  |  p≈{p:.0f}%"
 
     vip_lines: List[str] = []
-    vip_lines.append("<b>SZELVÉNYKIRÁLY – PRO (stat alap)</b>")
+    vip_lines.append("<b>SZELVÉNYKIRÁLY – PRO</b>")
+    vip_lines.append("✅ SAFE = stabilabb | ⚠️ RISK = kockázatosabb")
     vip_lines.append("")
+
     if safe:
-        vip_lines.append("<b>SAFE (stabil)</b>")
+        vip_lines.append("✅ <b>SAFE</b>")
         vip_lines.extend(fmt_row(r) for r in safe)
         vip_lines.append("")
     if risk:
-        vip_lines.append("<b>RISK (kockázatos)</b>")
+        vip_lines.append("⚠️ <b>RISK</b>")
         vip_lines.extend(fmt_row(r) for r in risk)
         vip_lines.append("")
-
-    # No extra commentary when lists are empty; fallback logic should avoid empty output.
 
     vip_text = "\n".join(vip_lines).strip()
 
@@ -238,10 +271,10 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     public_lines.append("<b>SZELVÉNYKIRÁLY – FREE</b>")
     public_lines.append("")
     if free:
-        public_lines.append("<b>SAFE tippek</b>")
+        public_lines.append("✅ <b>SAFE</b>")
         public_lines.extend(fmt_row(r) for r in free)
     else:
-        public_lines.append("Ma nincs elég erős jel → NO BET.")
+        public_lines.append("Ma kevés jel volt, ezért rövidebb a lista.")
     public_text = "\n".join(public_lines).strip()
 
     # Map to existing schema: vip_bets/public_bets
