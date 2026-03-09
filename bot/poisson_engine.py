@@ -87,6 +87,17 @@ def _pick_markets(
     p_btts = _p_btts_yes(lam_home, lam_away)
     p_btts_no = 1.0 - p_btts
 
+    # 1X2 main result suggestion (like the original bot)
+    best_1x2 = max(
+        [("Hazai győzelem", p_home), ("Döntetlen", p_draw), ("Vendég győzelem", p_away)],
+        key=lambda x: x[1],
+    )
+    best_pick, best_p = best_1x2
+    if best_p >= safe_thr:
+        out.append({"market": "1X2", "line": None, "pick": best_pick, "p": best_p, "shelf": "SAFE"})
+    elif best_p >= risk_thr:
+        out.append({"market": "1X2", "line": None, "pick": best_pick, "p": best_p, "shelf": "RISK"})
+
     # thresholds tunable via env
     safe_thr = float(os.getenv("TIPPMIX_SAFE_P_MIN", "0.58"))
     risk_thr = float(os.getenv("TIPPMIX_RISK_P_MIN", "0.54"))
@@ -242,11 +253,26 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         p = float(r.get("p") or 0) * 100.0
         ht = r.get("home_team") or ""
         at = r.get("away_team") or ""
-        pick = r.get("pick")
+        pick = str(r.get("pick") or "").strip()
+        mkt = str(r.get("market") or "").strip().upper()
         ko = str(r.get("kickoff_local") or "")
         t = _fmt_time_iso(ko)
         t_txt = f"🕒 {t} " if t else ""
-        return f"• {t_txt}{ht} – {at}\n  🎯 <b>{pick}</b>  |  p≈{p:.0f}%"
+
+        # make OU readable in HU
+        if mkt == "OU" and "UNDER" in pick.upper():
+            pick_disp = "Összgól < 2.5 (max 2 gól)"
+        elif mkt == "OU" and "OVER" in pick.upper():
+            pick_disp = "Összgól > 2.5 (min 3 gól)"
+        elif mkt == "BTTS" and "NO" in pick.upper():
+            pick_disp = "Mindkét csapat szerez gólt: NEM"
+        elif mkt == "BTTS" and "YES" in pick.upper():
+            pick_disp = "Mindkét csapat szerez gólt: IGEN"
+        else:
+            pick_disp = pick
+
+        tag = "🏁" if mkt == "1X2" else "🎯"
+        return f"• {t_txt}{ht} – {at}\n  {tag} <b>{pick_disp}</b>  |  p≈{p:.0f}%"
 
     vip_lines: List[str] = []
     vip_lines.append("<b>SZELVÉNYKIRÁLY – PRO</b>")
