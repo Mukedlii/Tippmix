@@ -9,6 +9,15 @@ from bot.storage.poisson_stats import (
 )
 
 
+def _defaults_base() -> Dict[str, float]:
+    # sane global soccer averages
+    return {"n": 0.0, "home_for": 1.35, "away_for": 1.10}
+
+
+def _defaults_team() -> Dict[str, float]:
+    return {"n": 0.0, "gf": 1.20, "ga": 1.20}
+
+
 def _poisson_pmf(k: int, lam: float) -> float:
     if lam <= 0:
         return 0.0
@@ -154,12 +163,9 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             continue
 
         # baselines from history
-        base = league_goal_baseline(int(lid), days=int(os.getenv("TIPPMIX_HIST_DAYS", "180")))
-        rates_h = team_goal_rates(int(hid), days=int(os.getenv("TIPPMIX_TEAM_DAYS", "120")))
-        rates_a = team_goal_rates(int(aid), days=int(os.getenv("TIPPMIX_TEAM_DAYS", "120")))
-
-        if not base or not rates_h or not rates_a:
-            continue
+        base = league_goal_baseline(int(lid), days=int(os.getenv("TIPPMIX_HIST_DAYS", "180"))) or _defaults_base()
+        rates_h = team_goal_rates(int(hid), days=int(os.getenv("TIPPMIX_TEAM_DAYS", "120"))) or _defaults_team()
+        rates_a = team_goal_rates(int(aid), days=int(os.getenv("TIPPMIX_TEAM_DAYS", "120"))) or _defaults_team()
 
         # Simple multiplicative model around league avg
         lg_home_for = float(base.get("home_for", 1.35))
@@ -190,6 +196,17 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     safe = safe[:max_safe]
     risk = risk[:max_risk]
 
+    # Fallback: if thresholds were too strict, still emit some picks (better UX for subscribers)
+    if not safe and not risk:
+        fallback_min_p = float(os.getenv("TIPPMIX_FALLBACK_MIN_P", "0.50"))
+        max_fb = int(os.getenv("TIPPMIX_FALLBACK_COUNT", "8"))
+        all_rows = sorted(out_rows, key=lambda x: float(x.get("p") or 0), reverse=True)
+        fb = [r for r in all_rows if float(r.get("p") or 0) >= fallback_min_p][:max_fb]
+        # mark as RISK to be honest internally, but don't shout "NO BET"
+        for r in fb:
+            r["shelf"] = r.get("shelf") or "RISK"
+        risk = fb
+
     def fmt_row(r: Dict[str, Any]) -> str:
         p = float(r.get("p") or 0) * 100.0
         ht = r.get("home_team") or ""
@@ -211,7 +228,7 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         vip_lines.append("")
 
     if not safe and not risk:
-        vip_lines.append("Ma nincs elég erős stat jel a küszöbök felett → NO BET (jobb, mint kamu tipp).")
+        vip_lines.append("Ma kevés az egyértelmű jel – ezért csak pár óvatosabb tipp megy ki.")
 
     vip_text = "\n".join(vip_lines).strip()
 
