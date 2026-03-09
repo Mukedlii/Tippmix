@@ -120,7 +120,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add public_bets_day.json vip_bets_day.json public_bets_day_meta.json vip_bets_day_meta.json || true
+          # Persist picks + evolving SQLite DB (needed for Poisson/history)
+          git add public_bets_day.json vip_bets_day.json public_bets_day_meta.json vip_bets_day_meta.json data/tippmix.db || true
 
           if git diff --cached --quiet; then
             echo "Nothing to commit."

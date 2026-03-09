@@ -59,7 +59,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add data/recap_sent.json || true
+          # Persist recap marker + evolving SQLite DB (results history)
+          git add data/recap_sent.json data/tippmix.db || true
 
           if git diff --cached --quiet; then
             echo "No marker changes."
