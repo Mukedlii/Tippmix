@@ -2,8 +2,9 @@ name: Tippmix Morning Full-Day Picks
 
 on:
   schedule:
-    # 08:00 Europe/Budapest (winter) ~= 07:00 UTC
-    - cron: "0 7 * * *"
+    # 06:00 Europe/Budapest (winter, CET) ~= 05:00 UTC
+    # NOTE: GitHub Actions cron is UTC; in summer time (CEST) this will run at 07:00 local.
+    - cron: "0 5 * * *"
   workflow_dispatch:
 
 permissions:
