@@ -93,6 +93,22 @@ def _pick_markets(
         key=lambda x: x[1],
     )
     best_pick, best_p = best_1x2
+
+    # DNB alternative: only meaningful if main pick is home/away (not draw)
+    p_decided = 1.0 - p_draw
+    p_home_dnb = (p_home / p_decided) if p_decided > 1e-9 else 0.0
+    p_away_dnb = (p_away / p_decided) if p_decided > 1e-9 else 0.0
+
+    if best_pick in ("Hazai győzelem", "Vendég győzelem"):
+        if best_pick == "Hazai győzelem":
+            dnb_pick = "Hazai DNB"
+            dnb_p = p_home_dnb
+        else:
+            dnb_pick = "Vendég DNB"
+            dnb_p = p_away_dnb
+        # store DNB as an alternative row (same shelf as 1X2)
+        out.append({"market": "DNB", "line": None, "pick": dnb_pick, "p": dnb_p, "shelf": "SAFE" if best_p >= safe_thr else "RISK"})
+
     if best_p >= safe_thr:
         out.append({"market": "1X2", "line": None, "pick": best_pick, "p": best_p, "shelf": "SAFE"})
     elif best_p >= risk_thr:
@@ -333,17 +349,50 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     vip_lines.append(f"📊 Mai elemzések: {len(matches)} mérkőzés")
     vip_lines.append("━━━━━━━━━━━━━━━━━━━━━━")
 
-    # Build list: SAFE first then RISK, but numbered sequentially
-    tips_for_msg: List[Dict[str, Any]] = []
-    tips_for_msg.extend(safe)
-    tips_for_msg.extend(risk)
+    # Build per-fixture tips: main 1X2 + alternative DNB (same side)
+    by_fixture: Dict[Any, Dict[str, Any]] = {}
+    for r in (safe + risk):
+        fid = r.get("fixture_id")
+        if fid is None:
+            continue
+        box = by_fixture.setdefault(fid, {"base": r, "main": None, "alt": None})
+        if (r.get("market") or "").upper() == "1X2":
+            box["main"] = r
+        elif (r.get("market") or "").upper() == "DNB":
+            box["alt"] = r
+        else:
+            # keep first as base
+            if not box.get("base"):
+                box["base"] = r
 
-    if not tips_for_msg:
-        # extreme edge-case: no picks at all
+    # ranking: prioritize those with main 1X2 probability
+    items = list(by_fixture.values())
+    def score(it: Dict[str, Any]) -> float:
+        r = it.get("main") or it.get("base") or {}
+        try:
+            return float(r.get("p") or 0)
+        except Exception:
+            return 0.0
+    items.sort(key=score, reverse=True)
+
+    max_total = int(os.getenv("TIPPMIX_VIP_MATCH_COUNT", str(max_safe + max_risk)))
+    items = items[:max_total]
+
+    if not items:
         vip_lines.append("Ma kevés a feldolgozható adat a modellezéshez.")
     else:
-        for idx, r in enumerate(tips_for_msg, start=1):
-            vip_lines.append(fmt_tip(idx, r))
+        for idx, it in enumerate(items, start=1):
+            main = it.get("main") or it.get("base") or {}
+            alt = it.get("alt")
+            # main block
+            vip_lines.append(fmt_tip(idx, main))
+            if alt and (alt.get("pick") != main.get("pick")):
+                # append a short alternative line (DNB)
+                try:
+                    p_alt = float(alt.get("p") or 0) * 100.0
+                except Exception:
+                    p_alt = 0.0
+                vip_lines.append(f"💡 Alternatíva (biztonságosabb): *{alt.get('pick')}* (p≈{p_alt:.0f}%)")
 
     vip_lines.append("━━━━━━━━━━━━━━━━━━━━━━")
     vip_lines.append("⚠️ *FELELŐSSÉG KIZÁRÁS:* A tippek elemzésen alapulnak, nem garantálnak nyereményt. Csak felelősen fogadj!")
