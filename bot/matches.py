@@ -453,16 +453,30 @@ def _fetch_fixtures_for_date(date_str: str) -> List[Dict[str, Any]]:
         teams = it.get("teams") or {}
         fixture_id = fixture.get("id")
         kickoff = fixture.get("date")
-        home = (teams.get("home") or {}).get("name")
-        away = (teams.get("away") or {}).get("name")
+
+        home_obj = teams.get("home") or {}
+        away_obj = teams.get("away") or {}
+        home = home_obj.get("name")
+        away = away_obj.get("name")
+        home_id = home_obj.get("id")
+        away_id = away_obj.get("id")
+
+        league_id = league.get("id")
+        season = league.get("season")
+
         if not fixture_id or not home or not away:
             continue
+
         out.append({
             "sport": "football",
             "fixture_id": int(fixture_id),
+            "league_id": int(league_id) if league_id is not None else None,
+            "season": int(season) if season is not None else None,
             "league_name": league.get("name") or "",
             "country_name": league.get("country") or "",
             "kickoff_local": kickoff or "",
+            "home_team_id": int(home_id) if home_id is not None else None,
+            "away_team_id": int(away_id) if away_id is not None else None,
             "home_team": home,
             "away_team": away,
             "odds": {},

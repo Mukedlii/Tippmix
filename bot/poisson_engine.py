@@ -227,8 +227,7 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         vip_lines.extend(fmt_row(r) for r in risk)
         vip_lines.append("")
 
-    if not safe and not risk:
-        vip_lines.append("Ma kevés az egyértelmű jel – ezért csak pár óvatosabb tipp megy ki.")
+    # No extra commentary when lists are empty; fallback logic should avoid empty output.
 
     vip_text = "\n".join(vip_lines).strip()
 
