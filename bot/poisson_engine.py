@@ -397,7 +397,7 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             date_disp = ko0.split("T", 1)[0]
     vip_lines: List[str] = []
     vip_lines.append(f"🏆 *NAPI TIPP CSOMAG – {date_disp or ''}*")
-    vip_lines.append(f"📊 Mai kiemelt meccsek: {len(items)}")
+    vip_lines.append(f"📊 Mai kiemelt meccsek: {len(matches or [])}")
     vip_lines.append("━━━━━━━━━━━━━━━━━━━━━━")
 
     # VIP graceful degradation controls
