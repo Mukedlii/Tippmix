@@ -43,8 +43,8 @@ jobs:
       # Full-day scan (no slot cut)
       TIPPMIX_SLOT: ALL
 
-      # PRO engine (no odds, no OpenAI)
-      TIPPMIX_ENGINE: poisson
+      # Premium engine (OpenAI-based structuring + shelves + combos)
+      TIPPMIX_ENGINE: openai
 
       # Make sure we actually emit picks while history builds up
       TIPPMIX_SAFE_P_MIN: "0.58"
