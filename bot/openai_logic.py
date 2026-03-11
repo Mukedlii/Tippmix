@@ -781,11 +781,11 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         return "Medium"
 
     def _is_safe_vip(t: Dict[str, Any], max_odds: float) -> bool:
-        """Define the pool used for combos.
+        """Define the pool used for IMPORTANT + combos.
 
         If odds are available, enforce VIP odds window.
-        If odds are missing (common on AllSportsAPI/free tiers), still allow SAFE by risk+confidence,
-        but payout won't be computed.
+        If odds are missing, still allow low/medium risk with a softer confidence gate,
+        otherwise the product collapses to only MERÉSZ on free/limited odds days.
         """
         risk = (t.get("risk_level") or "").lower()
         if "magas" in risk:
@@ -798,9 +798,9 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
                 return False
             return True
 
-        # No odds: allow only confident + low/medium risk tips into combos.
+        # No odds: allow medium/low risk with reasonable confidence.
         conf = _safe_float(t.get("confidence")) or 0
-        return conf >= 3.6
+        return conf >= 3.0
 
     safe_vip = [t for t in vip if _is_safe_vip(t, VIP_ODDS_MAX)]
     unsafe_vip = [t for t in vip if t not in safe_vip]
@@ -876,12 +876,19 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         risk_score = 2 if "alacsony" in risk else (1 if "közepes" in risk else 0)
         conf = float(t.get("confidence") or 0)
         odds_present = 1 if _safe_float(t.get("odds_estimate")) else 0
-        # sort: better bucket, top league, odds present, risk, confidence
+        # sort: top leagues first, then better bucket, then odds present, then safer risk, then confidence
         return (-top, bucket, -odds_present, -risk_score, -conf)
 
     safe_vip.sort(key=_quality_key)
 
-    important = safe_vip[: max(0, IMPORTANT_MIN)]
+    # IMPORTANT should not go empty; if SAFE pool is short, backfill from non-high-risk VIP tips.
+    important_pool = list(safe_vip)
+    if len(important_pool) < max(0, IMPORTANT_MIN):
+        extra = [t for t in vip if (t.get("risk_level") or "").lower() != "magas" and t not in important_pool]
+        extra.sort(key=_quality_key)
+        important_pool += extra
+
+    important = important_pool[: max(0, IMPORTANT_MIN)]
 
     def _has_odds_tip(t: Dict[str, Any]) -> bool:
         o = _safe_float(t.get("odds_estimate"))
@@ -1015,7 +1022,7 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     if used_fallback:
         vip_lines.append(f"⚠️ Ma kevés volt a SAFE meccs {VIP_ODDS_MAX:.2f} odds-ig, ezért kitágítottam {VIP_SAFE_MAX_FALLBACK:.2f}-ig a KOMBI-hoz.")
 
-    vip_lines.append(f"✅ <b>FONTOS MECCSEK</b> (min. {IMPORTANT_MIN})")
+    vip_lines.append(f"✅ FONTOS MECCSEK (min. {IMPORTANT_MIN})")
 
     sep_en = "💎⚽️💎"
 
@@ -1139,7 +1146,7 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     # COMBO #1 (do not repeat full match blocks; reference IMPORTANT list)
     if main1:
         o, pay, prof = _combo_totals(main1)
-        vip_lines.append(f"\n🎫 <b>KOMBI #1</b> ({len(main1)} meccs)")
+        vip_lines.append(f"\n🎫 KOMBI #1 ({len(main1)} meccs)")
         if o:
             vip_lines.append(f"💰 Ha {STAKE_HUF} Ft a tét: odds≈{o:.2f} | kifizetés≈{pay} Ft | profit≈{prof} Ft")
         else:
@@ -1155,7 +1162,7 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     # COMBO #2 (skip if empty)
     if main2:
         o2, pay2, prof2 = _combo_totals(main2)
-        vip_lines.append(f"\n🎫 <b>KOMBI #2</b> ({len(main2)} meccs)")
+        vip_lines.append(f"\n🎫 KOMBI #2 ({len(main2)} meccs)")
         if o2:
             vip_lines.append(f"💰 Ha {STAKE_HUF} Ft a tét: odds≈{o2:.2f} | kifizetés≈{pay2} Ft | profit≈{prof2} Ft")
         else:
@@ -1171,7 +1178,7 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     # BOLD / RISKY section (user can play it optionally)
     risky = (vip_bonus or []) + (vip_unsafe_extra or [])
     if risky:
-        vip_lines.append(f"\n😈 <b>MERÉSZ RÉSZ</b> (opcionális) – {len(risky)} tipp")
+        vip_lines.append(f"\n😈 MERÉSZ RÉSZ (opcionális) – {len(risky)} tipp")
         vip_lines.append("🙂 Játsszd, ha akarod (nagyobb kockázat / nagyobb odds).")
 
         vip_lines_en.append(f"\n😈 BOLD PICKS (optional) – {len(risky)}")
