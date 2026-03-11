@@ -393,16 +393,46 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     vip_lines.append(f"📊 Mai elemzések: {len(matches)} mérkőzés")
     vip_lines.append("━━━━━━━━━━━━━━━━━━━━━━")
 
-    vip_allow_defaults = (os.getenv("TIPPMIX_VIP_ALLOW_DEFAULTS") or "1").strip() != "0"
+    # VIP graceful degradation controls
+    vip_allow_defaults = (os.getenv("TIPPMIX_VIP_ALLOW_DEFAULTS") or "1").strip() != "0"  # stage-3
+    vip_allow_partial = (os.getenv("TIPPMIX_VIP_ALLOW_PARTIAL_DEFAULTS") or "1").strip() != "0"  # stage-2
+    vip_min_real = int(os.getenv("TIPPMIX_VIP_MIN_REAL", os.getenv("TIPPMIX_MIN_VIP", "6")))
+    vip_max_fallback = int(os.getenv("TIPPMIX_VIP_MAX_FALLBACK", "4"))
 
     def _is_real_data_row(r: Dict[str, Any]) -> bool:
         return (not bool(r.get("used_team_defaults"))) and (not bool(r.get("used_league_defaults")))
 
+    def _is_partial_row(r: Dict[str, Any]) -> bool:
+        # league baseline real but some team default(s), OR borderline team sample even if one side weak
+        used_league_defaults = bool(r.get("used_league_defaults"))
+        used_team_defaults = bool(r.get("used_team_defaults"))
+        if (not used_league_defaults) and used_team_defaults:
+            return True
+        # If league baseline is real and at least one side has some history, accept as partial.
+        try:
+            n_home = int(r.get("n_home") or 0)
+            n_away = int(r.get("n_away") or 0)
+            n_league = int(r.get("n_league") or 0)
+        except Exception:
+            n_home = n_away = n_league = 0
+        if (not used_league_defaults) and n_league >= 8 and max(n_home, n_away) >= 3 and min(n_home, n_away) < int(os.getenv("TIPPMIX_TEAM_MIN_N", "6")):
+            return True
+        return False
+
+    def _vip_stage(r: Dict[str, Any]) -> int:
+        if _is_real_data_row(r):
+            return 1
+        if vip_allow_partial and _is_partial_row(r):
+            return 2
+        if vip_allow_defaults:
+            return 3
+        return 99
+
     # Build per-fixture tips: main 1X2 + alternative DNB (same side)
     by_fixture: Dict[Any, Dict[str, Any]] = {}
     for r in (safe + risk):
-        # VIP strict mode: optionally drop full-default rows
-        if not vip_allow_defaults and not _is_real_data_row(r):
+        st = _vip_stage(r)
+        if st >= 99:
             continue
 
         fid = r.get("fixture_id")
@@ -414,40 +444,97 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         elif (r.get("market") or "").upper() == "DNB":
             box["alt"] = r
         else:
-            # keep first as base
             if not box.get("base"):
                 box["base"] = r
 
     items = list(by_fixture.values())
 
-    # Ranking order for VIP:
-    # 1) real-data + top leagues
-    # 2) real-data + other
-    # 3) defaults + top leagues
-    # 4) defaults + other
+    def _best_row(it: Dict[str, Any]) -> Dict[str, Any]:
+        return it.get("main") or it.get("base") or {}
+
+    # Ranking priority:
+    # real+top, real+other, partial+top, partial+other, fallback+top, fallback+other (then p)
     def _vip_sort_key(it: Dict[str, Any]) -> tuple:
-        r = it.get("main") or it.get("base") or {}
+        r = _best_row(it)
         p = float(r.get("p") or 0.0)
-        is_real = _is_real_data_row(r)
         is_top = _is_top_league(str(r.get("league_name") or ""))
-        # higher tuple sorts first when reverse=True
-        return (1 if is_real else 0, 1 if is_top else 0, p)
+        st = _vip_stage(r)
+        stage_score = 3 if st == 1 else (2 if st == 2 else 1)
+        top_score = 1 if is_top else 0
+        return (stage_score, top_score, p)
 
     items.sort(key=_vip_sort_key, reverse=True)
+
+    # Stage selection with controlled fallback + anti-spam de-dup
+    def _sig_for_row(r: Dict[str, Any]) -> tuple:
+        # Collapse near-duplicates from default lambdas
+        try:
+            lh = round(float(r.get("lam_home") or 0.0), 2)
+            la = round(float(r.get("lam_away") or 0.0), 2)
+        except Exception:
+            lh, la = 0.0, 0.0
+        return (
+            str(r.get("market") or "").upper(),
+            str(r.get("pick") or ""),
+            lh,
+            la,
+            bool(r.get("used_team_defaults")),
+            bool(r.get("used_league_defaults")),
+        )
+
+    selected: List[Dict[str, Any]] = []
+    seen_sigs: set = set()
+    fallback_used = 0
+    real_used = 0
+
+    for it in items:
+        r = _best_row(it)
+        st = _vip_stage(r)
+        if st == 99:
+            continue
+
+        # Full fallback (stage-3) strict conditions
+        if st == 3:
+            if fallback_used >= vip_max_fallback:
+                continue
+            if not _is_top_league(str(r.get("league_name") or "")):
+                continue
+
+        sig = _sig_for_row(r)
+        if sig in seen_sigs:
+            continue
+
+        selected.append(it)
+        seen_sigs.add(sig)
+
+        if st == 1:
+            real_used += 1
+        elif st == 3:
+            fallback_used += 1
+
+        # Stop early once we have enough (keep earlier max_total cap below)
+        if len(selected) >= int(os.getenv("TIPPMIX_VIP_MATCH_COUNT", str(max_safe + max_risk))):
+            break
+
+    # Ensure we try to hit vip_min_real if possible by preferring stage-1 items first
+    if real_used < vip_min_real:
+        # selected is already globally sorted; no extra action needed (stage-1 are ahead).
+        pass
+
+    items = selected
 
     max_total = int(os.getenv("TIPPMIX_VIP_MATCH_COUNT", str(max_safe + max_risk)))
     items = items[:max_total]
 
     if not items:
-        vip_lines.append("Ma kevés a feldolgozható adat a modellezéshez.")
+        # do not collapse to empty unless literally nothing made it through (should be rare)
+        vip_lines.append("Ma kevés a stabil adat; csak óvatos, alacsony bizalmú jelzések vannak.")
     else:
         for idx, it in enumerate(items, start=1):
             main = it.get("main") or it.get("base") or {}
             alt = it.get("alt")
-            # main block
             vip_lines.append(fmt_tip(idx, main))
             if alt and (alt.get("pick") != main.get("pick")):
-                # append a short alternative line (DNB)
                 try:
                     p_alt = float(alt.get("p") or 0) * 100.0
                 except Exception:
@@ -516,8 +603,21 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             "data_quality": dq,
         }
 
-    # VIP bets list: keep consistent with VIP strict mode (optional defaults blocking)
-    vip_rows_for_bets = [r for r in (safe + risk) if (vip_allow_defaults or _is_real_data_row(r))]
+    # VIP bets list: keep consistent with VIP staged policy
+    def _is_allowed_vip_row_for_bets(r: Dict[str, Any]) -> bool:
+        st = _vip_stage(r)
+        if st == 1:
+            return True
+        if st == 2:
+            return True
+        if st == 3:
+            # mirror strict stage-3 constraints
+            if not _is_top_league(str(r.get("league_name") or "")):
+                return False
+            return True
+        return False
+
+    vip_rows_for_bets = [r for r in (safe + risk) if _is_allowed_vip_row_for_bets(r)]
     vip_bets = [to_bet(r, "VIP") for r in vip_rows_for_bets]
     public_bets = [to_bet(r, "FREE") for r in free]
 
