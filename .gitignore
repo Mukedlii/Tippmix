@@ -1,6 +1,23 @@
-bot/__pycache__/  
-bot/storage/__pycache__/  
-__pycache__/  
-__pycache__/ 
-bot/__pycache__/ 
+# Python
+__pycache__/
+bot/__pycache__/
 bot/storage/__pycache__/
+
+# Local env / secrets
+.env
+*.env
+
+# Runtime/state data
+Tippmix/data/*.db
+data/*.db
+*.db
+
+Tippmix/data/*.json
+data/*.json
+
+Tippmix/data/archive/
+data/archive/
+
+# Generated outputs
+public_bets*.json
+vip_bets*.json
