@@ -465,6 +465,19 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
 
     # Map to existing schema: vip_bets/public_bets
     def to_bet(r: Dict[str, Any], tier: str) -> Dict[str, Any]:
+        used_team_defaults = bool(r.get("used_team_defaults"))
+        used_league_defaults = bool(r.get("used_league_defaults"))
+        n_league = int(r.get("n_league") or 0)
+        n_home = int(r.get("n_home") or 0)
+        n_away = int(r.get("n_away") or 0)
+
+        if used_team_defaults or used_league_defaults:
+            dq = "low"
+        elif min(n_home, n_away) >= 8 and n_league >= 25:
+            dq = "high"
+        else:
+            dq = "medium"
+
         return {
             "fixture_id": r.get("fixture_id"),
             "selection": r.get("pick"),
@@ -476,6 +489,14 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             "line": r.get("line"),
             "shelf": r.get("shelf"),
             "tier": tier,
+
+            # data-quality fields for DB verification / long-term tracking
+            "used_team_defaults": used_team_defaults,
+            "used_league_defaults": used_league_defaults,
+            "n_home": n_home,
+            "n_away": n_away,
+            "n_league": n_league,
+            "data_quality": dq,
         }
 
     vip_bets = [to_bet(r, "VIP") for r in (safe + risk)]
