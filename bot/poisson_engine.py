@@ -491,8 +491,23 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
 
     selected: List[Dict[str, Any]] = []
     seen_sigs: set = set()
+    seen_fixtures: set = set()
     fallback_used = 0
     real_used = 0
+
+    def _fixture_sig(r: Dict[str, Any]) -> tuple:
+        # Prevent same match appearing multiple times (provider duplicates / multi-market rows)
+        hid = r.get("home_team_id")
+        aid = r.get("away_team_id")
+        if hid is not None and aid is not None:
+            return ("id", int(hid), int(aid), str(r.get("kickoff_local") or ""))
+        return (
+            "name",
+            str(r.get("home_team") or "").strip().lower(),
+            str(r.get("away_team") or "").strip().lower(),
+            str(r.get("kickoff_local") or ""),
+            str(r.get("league_name") or "").strip().lower(),
+        )
 
     for it in items:
         r = _best_row(it)
@@ -507,11 +522,16 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             if not _is_top_league(str(r.get("league_name") or "")):
                 continue
 
+        fixture_sig = _fixture_sig(r)
+        if fixture_sig in seen_fixtures:
+            continue
+
         sig = _sig_for_row(r)
         if sig in seen_sigs:
             continue
 
         selected.append(it)
+        seen_fixtures.add(fixture_sig)
         seen_sigs.add(sig)
 
         if st == 1:
