@@ -264,6 +264,7 @@ def upsert_result(
         hg = ag = hid = aid = lid = season = None
         try:
             payload = raw or {}
+
             # API-Sports shape: {fixture, league, teams, goals}
             teams = payload.get("teams") or {}
             goals = payload.get("goals") or {}
@@ -281,7 +282,68 @@ def upsert_result(
                 lid = league.get("id")
                 season = league.get("season")
 
-            # SportMonks / others: ignore for now (still keeps raw_json)
+            # SportMonks shape: {id, league:{id}, participants:[{id,meta:{location}}], scores:[...]}
+            if (hid is None or aid is None) and isinstance(payload.get("participants"), list):
+                home_p = away_p = None
+                for p in (payload.get("participants") or []):
+                    meta = p.get("meta") or {}
+                    loc = (meta.get("location") or "").lower()
+                    if loc == "home":
+                        home_p = p
+                    elif loc == "away":
+                        away_p = p
+                # fallback: first two
+                parts = payload.get("participants") or []
+                if home_p is None and len(parts) >= 1:
+                    home_p = parts[0]
+                if away_p is None and len(parts) >= 2:
+                    away_p = parts[1]
+                if home_p and hid is None:
+                    hid = home_p.get("id")
+                if away_p and aid is None:
+                    aid = away_p.get("id")
+
+            if lid is None and isinstance(payload.get("league"), dict):
+                lid = (payload.get("league") or {}).get("id")
+            if season is None:
+                season = payload.get("season_id") or (payload.get("league") or {}).get("season_id")
+
+            if (hg is None or ag is None) and isinstance(payload.get("scores"), list):
+                # mimic daily_recap_main CURRENT extraction
+                hg2 = ag2 = None
+                for sc in (payload.get("scores") or []):
+                    if (sc.get("description") or "").upper() != "CURRENT":
+                        continue
+                    score = sc.get("score") or {}
+                    part = (score.get("participant") or "").lower()
+                    goals_val = score.get("goals")
+                    try:
+                        goals_val = int(goals_val)
+                    except Exception:
+                        continue
+                    if part == "home":
+                        hg2 = goals_val
+                    elif part == "away":
+                        ag2 = goals_val
+                if hg is None:
+                    hg = hg2
+                if ag is None:
+                    ag = ag2
+
+            # AllSportsAPI shape (best-effort): event_home_team_id / event_away_team_id / league_id / event_final_result
+            if hid is None:
+                hid = payload.get("event_home_team_id") or payload.get("home_team_id")
+            if aid is None:
+                aid = payload.get("event_away_team_id") or payload.get("away_team_id")
+            if lid is None:
+                lid = payload.get("league_key") or payload.get("league_id")
+            if (hg is None or ag is None) and payload.get("event_final_result"):
+                try:
+                    a, b = [x.strip() for x in str(payload.get("event_final_result")).split("-", 1)]
+                    hg = int(a)
+                    ag = int(b)
+                except Exception:
+                    pass
 
             if hg is not None:
                 hg = int(hg)
