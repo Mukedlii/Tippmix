@@ -132,13 +132,20 @@ jobs:
 
       - name: DB metrics (temporary)
         run: |
-          python -c "import sqlite3; con=sqlite3.connect('data/tippmix.db'); c=con.cursor();
-print('results_total', c.execute('select count(*) from results').fetchone()[0]);
-print('results_usable_goals', c.execute(\"select count(*) from results where home_goals is not null and away_goals is not null\").fetchone()[0]);
-print('distinct_leagues', c.execute(\"select count(distinct league_id) from results where league_id is not null\").fetchone()[0]);
-print('distinct_teams', c.execute(\"select count(distinct team_id) from (select home_team_id team_id from results where home_team_id is not null union select away_team_id from results where away_team_id is not null)\").fetchone()[0]);
-print('updated_last_7d', c.execute(\"select count(*) from results where date(substr(updated_ts_utc,1,10)) >= date('now','-7 day')\").fetchone()[0]);
-con.close()"
+          python - <<'PY'
+          import sqlite3
+
+          con = sqlite3.connect('data/tippmix.db')
+          c = con.cursor()
+
+          print('results_total', c.execute('select count(*) from results').fetchone()[0])
+          print('results_usable_goals', c.execute('select count(*) from results where home_goals is not null and away_goals is not null').fetchone()[0])
+          print('distinct_leagues', c.execute('select count(distinct league_id) from results where league_id is not null').fetchone()[0])
+          print('distinct_teams', c.execute('select count(distinct team_id) from (select home_team_id team_id from results where home_team_id is not null union select away_team_id from results where away_team_id is not null)').fetchone()[0])
+          print('updated_last_7d', c.execute("select count(*) from results where date(substr(updated_ts_utc,1,10)) >= date('now','-7 day')").fetchone()[0])
+
+          con.close()
+          PY
       - name: Commit morning bets JSON to repo
         run: |
           git config user.name "github-actions[bot]"
