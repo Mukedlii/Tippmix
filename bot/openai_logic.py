@@ -1018,7 +1018,9 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         lines_en.append(block_en)
 
     # IMPORTANT
+    important_idx: Dict[Any, int] = {}
     for i, t in enumerate(important, 1):
+        important_idx[t["fixture_id"]] = i
         m = id_to_match.get(t["fixture_id"])
         label = _build_match_label(m)
         _append_tip_block(vip_lines, vip_lines_en, i, t, label)
@@ -1041,37 +1043,45 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         profit = payout - int(STAKE_HUF)
         return total_odds, payout, profit
 
-    # COMBO #1
-    o, pay, prof = _combo_totals(main1)
-    vip_lines.append(f"\n🎫 <b>KOMBI #1</b> ({len(main1)} meccs)")
-    if o:
-        vip_lines.append(f"💰 Ha {STAKE_HUF} Ft a tét: odds≈{o:.2f} | kifizetés≈{pay} Ft | profit≈{prof} Ft")
-    elif main1:
-        vip_lines.append(f"💰 Ha {STAKE_HUF} Ft a tét: kifizetés nem számolható (nincs odds minden meccshez).")
-    vip_lines_en.append(f"\n🎫 COMBO #1 ({len(main1)} picks)")
-    if o:
-        vip_lines_en.append(f"💰 If stake is {STAKE_HUF} HUF: total odds≈{o:.2f} | payout≈{pay} | profit≈{prof}")
+    def _combo_refs(tips: List[Dict[str, Any]]) -> str:
+        refs: List[str] = []
+        for t in tips:
+            fid = t.get("fixture_id")
+            if fid in important_idx:
+                refs.append(f"#{important_idx[fid]}")
+        return ", ".join(refs)
 
-    for j, t in enumerate(main1, 1):
-        m = id_to_match.get(t["fixture_id"])
-        label = _build_match_label(m)
-        _append_tip_block(vip_lines, vip_lines_en, j, t, label)
+    # COMBO #1 (do not repeat full match blocks; reference IMPORTANT list)
+    if main1:
+        o, pay, prof = _combo_totals(main1)
+        vip_lines.append(f"\n🎫 <b>KOMBI #1</b> ({len(main1)} meccs)")
+        if o:
+            vip_lines.append(f"💰 Ha {STAKE_HUF} Ft a tét: odds≈{o:.2f} | kifizetés≈{pay} Ft | profit≈{prof} Ft")
+        else:
+            vip_lines.append(f"💰 Ha {STAKE_HUF} Ft a tét: kifizetés nem számolható (nincs odds minden meccshez).")
+        refs = _combo_refs(main1)
+        if refs:
+            vip_lines.append(f"📌 Meccsek: {refs} (lásd fent)")
 
-    # COMBO #2
-    o2, pay2, prof2 = _combo_totals(main2)
-    vip_lines.append(f"\n🎫 <b>KOMBI #2</b> ({len(main2)} meccs)")
-    if o2:
-        vip_lines.append(f"💰 Ha {STAKE_HUF} Ft a tét: odds≈{o2:.2f} | kifizetés≈{pay2} Ft | profit≈{prof2} Ft")
-    elif main2:
-        vip_lines.append(f"💰 Ha {STAKE_HUF} Ft a tét: kifizetés nem számolható (nincs odds minden meccshez).")
-    vip_lines_en.append(f"\n🎫 COMBO #2 ({len(main2)} picks)")
-    if o2:
-        vip_lines_en.append(f"💰 If stake is {STAKE_HUF} HUF: total odds≈{o2:.2f} | payout≈{pay2} | profit≈{prof2}")
+        vip_lines_en.append(f"\n🎫 COMBO #1 ({len(main1)} picks)")
+        if o:
+            vip_lines_en.append(f"💰 If stake is {STAKE_HUF} HUF: total odds≈{o:.2f} | payout≈{pay} | profit≈{prof}")
 
-    for j, t in enumerate(main2, 1):
-        m = id_to_match.get(t["fixture_id"])
-        label = _build_match_label(m)
-        _append_tip_block(vip_lines, vip_lines_en, j, t, label)
+    # COMBO #2 (skip if empty)
+    if main2:
+        o2, pay2, prof2 = _combo_totals(main2)
+        vip_lines.append(f"\n🎫 <b>KOMBI #2</b> ({len(main2)} meccs)")
+        if o2:
+            vip_lines.append(f"💰 Ha {STAKE_HUF} Ft a tét: odds≈{o2:.2f} | kifizetés≈{pay2} Ft | profit≈{prof2} Ft")
+        else:
+            vip_lines.append(f"💰 Ha {STAKE_HUF} Ft a tét: kifizetés nem számolható (nincs odds minden meccshez).")
+        refs2 = _combo_refs(main2)
+        if refs2:
+            vip_lines.append(f"📌 Meccsek: {refs2} (lásd fent)")
+
+        vip_lines_en.append(f"\n🎫 COMBO #2 ({len(main2)} picks)")
+        if o2:
+            vip_lines_en.append(f"💰 If stake is {STAKE_HUF} HUF: total odds≈{o2:.2f} | payout≈{pay2} | profit≈{prof2}")
 
     # BOLD / RISKY section (user can play it optionally)
     risky = (vip_bonus or []) + (vip_unsafe_extra or [])
