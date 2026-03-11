@@ -215,9 +215,16 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             continue
 
         # baselines from history
-        base = league_goal_baseline(int(lid), days=int(os.getenv("TIPPMIX_HIST_DAYS", "180"))) or _defaults_base()
-        rates_h = team_goal_rates(int(hid), days=int(os.getenv("TIPPMIX_TEAM_DAYS", "120"))) or _defaults_team()
-        rates_a = team_goal_rates(int(aid), days=int(os.getenv("TIPPMIX_TEAM_DAYS", "120"))) or _defaults_team()
+        base_raw = league_goal_baseline(int(lid), days=int(os.getenv("TIPPMIX_HIST_DAYS", "180")))
+        rates_h_raw = team_goal_rates(int(hid), days=int(os.getenv("TIPPMIX_TEAM_DAYS", "120")))
+        rates_a_raw = team_goal_rates(int(aid), days=int(os.getenv("TIPPMIX_TEAM_DAYS", "120")))
+
+        base = base_raw or _defaults_base()
+        rates_h = rates_h_raw or _defaults_team()
+        rates_a = rates_a_raw or _defaults_team()
+
+        used_league_defaults = base_raw is None
+        used_team_defaults = (rates_h_raw is None) or (rates_a_raw is None)
 
         # Simple multiplicative model around league avg
         lg_home_for = float(base.get("home_for", 1.35))
@@ -234,7 +241,24 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         lam_home = max(0.05, lg_home_for * h_att * a_def + home_adv)
         lam_away = max(0.05, lg_away_for * a_att * h_def)
 
-        out_rows.extend(_pick_markets(m, lam_home, lam_away))
+        rows = _pick_markets(m, lam_home, lam_away)
+        for r in rows:
+            # attach data quality signals so the text layer can be honest
+            try:
+                r["n_league"] = int(base.get("n") or 0)
+            except Exception:
+                r["n_league"] = 0
+            try:
+                r["n_home"] = int(rates_h.get("n") or 0)
+            except Exception:
+                r["n_home"] = 0
+            try:
+                r["n_away"] = int(rates_a.get("n") or 0)
+            except Exception:
+                r["n_away"] = 0
+            r["used_league_defaults"] = bool(used_league_defaults)
+            r["used_team_defaults"] = bool(used_team_defaults)
+        out_rows.extend(rows)
 
     # rank by probability (descending), SAFE first
     safe_all = [r for r in out_rows if r.get("shelf") == "SAFE"]
@@ -296,19 +320,38 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         lam_h = float(r.get("lam_home") or 0)
         lam_a = float(r.get("lam_away") or 0)
         mkt = str(r.get("market") or "").upper()
-        pick = str(r.get("pick") or "")
-        # short, concrete, data-driven (no promises)
-        s1 = f"Várható gólok: hazai λ={lam_h:.2f}, vendég λ={lam_a:.2f} (Poisson modell, historikus adatok alapján)."
-        if mkt == "OU":
-            s2 = "Az összgól valószínűség eloszlása alapján ez a line adja a legjobb kockázat/hozam arányt."
-        elif mkt == "BTTS":
-            s2 = "A modell szerint a gól nélküli szcenáriók (0 gól egyik oldalon) aránya ezt támogatja."
-        elif mkt == "DNB":
-            s2 = "Döntetlen kockázat csökkentése miatt DNB a stabilabb választás."
+
+        used_team_defaults = bool(r.get("used_team_defaults"))
+        used_league_defaults = bool(r.get("used_league_defaults"))
+        n_league = int(r.get("n_league") or 0)
+        n_home = int(r.get("n_home") or 0)
+        n_away = int(r.get("n_away") or 0)
+
+        if used_team_defaults or used_league_defaults:
+            dq = "alacsony"
+        elif min(n_home, n_away) >= 8 and n_league >= 25:
+            dq = "magas"
         else:
-            s2 = "Az 1X2 esélyek közül ez a legnagyobb valószínűségű kimenet a modell szerint."
-        s3 = "Fegyelmezett téttel (bankroll 1–3%) érdemes kezelni."
-        return f"{s1} {s2} {s3}"
+            dq = "közepes"
+
+        # Keep it short + honest; avoid template-y confidence when data is weak.
+        s1 = f"Várható gólok: hazai λ={lam_h:.2f}, vendég λ={lam_a:.2f} (Poisson, historikus DB)."
+        s1b = f"Mintaszám: liga n={n_league}, hazai n={n_home}, vendég n={n_away} → adatminőség: {dq}."
+
+        if dq == "alacsony":
+            s2 = "Kevés a releváns múltbeli adat; ezt inkább iránytűnek vedd, ne erős állításnak."
+        else:
+            if mkt == "OU":
+                s2 = "Az összgól-eloszlás alapján a 2.5 line adja itt a legjobb kompromisszumot."
+            elif mkt == "BTTS":
+                s2 = "A gólmegoszlás alapján a BTTS jel erősebb/gyengébb a várható gólokhoz képest."
+            elif mkt == "DNB":
+                s2 = "Döntetlen-kockázat csökkentése miatt a DNB stabilabb, mint a sima 1X2."
+            else:
+                s2 = "Az 1X2 kimenetek közül ez a legvalószínűbb a score-mátrix szerint."
+
+        s3 = "Tét: fegyelmezetten (bankroll 1–3%)."
+        return f"{s1} {s1b} {s2} {s3}"
 
     def fmt_tip(i: int, r: Dict[str, Any]) -> str:
         p01 = float(r.get("p") or 0.0)

@@ -42,6 +42,18 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Restore persistent Tippmix DB (cache)
+        uses: actions/cache@v4
+        with:
+          path: |
+            data/tippmix.db*
+          key: tippmix-db-${{ github.run_id }}
+          restore-keys: |
+            tippmix-db-
+
+      - name: Refresh results cache (backfill history)
+        run: python -m bot.refresh_results_cache --days 21 --max 800
+
       - name: Run recap (DAY)
         env:
           TIPPMIX_SLOT: DAY
@@ -59,8 +71,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Persist recap marker + evolving SQLite DB (results history)
-          git add data/recap_sent.json data/tippmix.db || true
+          # Persist recap marker (DB persists via Actions cache)
+          git add data/recap_sent.json || true
 
           if git diff --cached --quiet; then
             echo "No marker changes."

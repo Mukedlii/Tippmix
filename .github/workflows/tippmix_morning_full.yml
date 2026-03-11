@@ -118,6 +118,15 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Restore persistent Tippmix DB (cache)
+        uses: actions/cache@v4
+        with:
+          path: |
+            data/tippmix.db*
+          key: tippmix-db-${{ github.run_id }}
+          restore-keys: |
+            tippmix-db-
+
       - name: Run bot (morning full-day)
         run: python -m bot.main
 
@@ -126,8 +135,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Persist picks + evolving SQLite DB (needed for Poisson/history)
-          git add public_bets_day.json vip_bets_day.json public_bets_day_meta.json vip_bets_day_meta.json data/tippmix.db || true
+          # Persist picks (DB persists via Actions cache)
+          git add public_bets_day.json vip_bets_day.json public_bets_day_meta.json vip_bets_day_meta.json || true
 
           if git diff --cached --quiet; then
             echo "Nothing to commit."
