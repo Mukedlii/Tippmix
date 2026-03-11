@@ -121,6 +121,17 @@ jobs:
           """).fetchone()
           print('vip_last_run_avg_ns', avg_row)
 
+          dq_rows = c.execute("""
+          WITH last_run AS ( SELECT MAX(id) AS run_id FROM runs )
+          SELECT json_extract(b.raw_json,'$.data_quality') AS dq, COUNT(*)
+          FROM bets b
+          JOIN last_run lr ON b.run_id = lr.run_id
+          WHERE b.tier='VIP'
+          GROUP BY dq
+          ORDER BY COUNT(*) DESC;
+          """).fetchall()
+          print('vip_last_run_dq_dist', dq_rows)
+
           con.close()
           PY
       - name: Commit recap marker

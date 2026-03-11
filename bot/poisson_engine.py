@@ -359,6 +359,7 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         ht = str(r.get("home_team") or "")
         at = str(r.get("away_team") or "")
         league = str(r.get("league_name") or "")
+        country = str(r.get("country_name") or "")
         ko = str(r.get("kickoff_local") or "")
         time_txt = _fmt_time_iso(ko)
         date_txt = ko.split("T", 1)[0] if "T" in ko else ""
@@ -371,7 +372,7 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         parts = []
         parts.append("━━━━━━━━━━━━━━━━━━━━━━")
         parts.append(f"🔢 *TIPP #{i}*")
-        parts.append(f"🏟️ {league} – -")
+        parts.append(f"🏟️ {league} – {country}" if country else f"🏟️ {league}")
         parts.append(f"⚽ *{ht}* 🆚 *{at}*")
         parts.append(f"📅 {date_txt} | 🕐 {time_txt}")
         parts.append(f"📌 Tipp: {mkt}")
@@ -392,9 +393,18 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     vip_lines.append(f"📊 Mai elemzések: {len(matches)} mérkőzés")
     vip_lines.append("━━━━━━━━━━━━━━━━━━━━━━")
 
+    vip_allow_defaults = (os.getenv("TIPPMIX_VIP_ALLOW_DEFAULTS") or "1").strip() != "0"
+
+    def _is_real_data_row(r: Dict[str, Any]) -> bool:
+        return (not bool(r.get("used_team_defaults"))) and (not bool(r.get("used_league_defaults")))
+
     # Build per-fixture tips: main 1X2 + alternative DNB (same side)
     by_fixture: Dict[Any, Dict[str, Any]] = {}
     for r in (safe + risk):
+        # VIP strict mode: optionally drop full-default rows
+        if not vip_allow_defaults and not _is_real_data_row(r):
+            continue
+
         fid = r.get("fixture_id")
         if fid is None:
             continue
@@ -408,15 +418,22 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             if not box.get("base"):
                 box["base"] = r
 
-    # ranking: prioritize those with main 1X2 probability
     items = list(by_fixture.values())
-    def score(it: Dict[str, Any]) -> float:
+
+    # Ranking order for VIP:
+    # 1) real-data + top leagues
+    # 2) real-data + other
+    # 3) defaults + top leagues
+    # 4) defaults + other
+    def _vip_sort_key(it: Dict[str, Any]) -> tuple:
         r = it.get("main") or it.get("base") or {}
-        try:
-            return float(r.get("p") or 0)
-        except Exception:
-            return 0.0
-    items.sort(key=score, reverse=True)
+        p = float(r.get("p") or 0.0)
+        is_real = _is_real_data_row(r)
+        is_top = _is_top_league(str(r.get("league_name") or ""))
+        # higher tuple sorts first when reverse=True
+        return (1 if is_real else 0, 1 if is_top else 0, p)
+
+    items.sort(key=_vip_sort_key, reverse=True)
 
     max_total = int(os.getenv("TIPPMIX_VIP_MATCH_COUNT", str(max_safe + max_risk)))
     items = items[:max_total]
@@ -499,7 +516,9 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             "data_quality": dq,
         }
 
-    vip_bets = [to_bet(r, "VIP") for r in (safe + risk)]
+    # VIP bets list: keep consistent with VIP strict mode (optional defaults blocking)
+    vip_rows_for_bets = [r for r in (safe + risk) if (vip_allow_defaults or _is_real_data_row(r))]
+    vip_bets = [to_bet(r, "VIP") for r in vip_rows_for_bets]
     public_bets = [to_bet(r, "FREE") for r in free]
 
     return {
