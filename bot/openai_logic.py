@@ -323,11 +323,32 @@ def _stars(conf: float) -> str:
     return "⭐" * int(round(c)) + f" ({c:.1f}/5)"
 
 
+def _fmt_time(kickoff: str) -> str:
+    """Telegram-friendly time formatter from ISO-like kickoff."""
+    s = (kickoff or "").strip()
+    if "T" in s:
+        try:
+            t = s.split("T", 1)[1]
+            return t[:5]
+        except Exception:
+            return ""
+    # fallback
+    return s[:5]
+
+
+def _league_line(m: Dict[str, Any]) -> str:
+    league = (m.get("league") or "").strip()
+    country = (m.get("country") or "").strip()
+    if league and country:
+        return f"🏆 Liga: {league} – {country}"
+    if league:
+        return f"🏆 Liga: {league}"
+    return ""
+
+
 def _build_match_label(m: Dict[str, Any]) -> str:
-    league_country = m.get("league") or ""
-    if m.get("country"):
-        league_country += f" {m['country']}"
-    return f"{m.get('home_team')} vs {m.get('away_team')} ({league_country}, {m.get('kickoff')})"
+    """Short match label for blocks (no parentheses spam)."""
+    return f"{m.get('home_team')} vs {m.get('away_team')}"
 
 
 def _payout_text(odds_val: Optional[float]) -> str:
@@ -378,21 +399,52 @@ def _odds_ok(odds_val: Optional[float], tier: str, relax: bool = False) -> bool:
     return FREE_ODDS_MIN <= float(odds_val) <= mx
 
 
-def _shelf_for_match(m: Dict[str, Any], odds_val: Optional[float], tier: str) -> str:
+def _is_top_league(league: str) -> bool:
+    s = (league or "").strip().lower()
+    top = [
+        "premier league",
+        "la liga",
+        "bundesliga",
+        "serie a",
+        "ligue 1",
+        "championship",
+        "eredivisie",
+        "primeira liga",
+        "uefa",
+        "champions league",
+        "europa league",
+        "conference league",
+        "world cup",
+        "euro",
+    ]
+    return any(x in s for x in top)
+
+
+def _shelf_for_tip(m: Dict[str, Any], odds_val: Optional[float], risk: str, conf: float, tier: str) -> str:
     """Assign a presentation shelf label.
 
-    - PRO: top bucket (0) and odds present
-    - STANDARD: everything else in the safe windows
-    - BOLD: handled separately (bonus/risky sections)
+    PRO should be genuinely selective (stronger leagues + safer + higher confidence).
+    STANDARD is the main body.
+    BOLD/MERÉSZ is handled separately.
     """
 
     try:
-        bucket = int(m.get("bucket")) if m.get("bucket") is not None else None
+        bucket = int(m.get("bucket")) if m.get("bucket") is not None else 9
     except Exception:
-        bucket = None
+        bucket = 9
 
-    if bucket == 0 and odds_val is not None:
+    risk_l = (risk or "").lower()
+    league = str(m.get("league") or "")
+
+    # PRO gate: top bucket/top league + odds present + not high risk + stronger confidence.
+    if (
+        (bucket <= 1 or _is_top_league(league))
+        and odds_val is not None
+        and "magas" not in risk_l
+        and float(conf or 0) >= 4.1
+    ):
         return "PRO"
+
     return "STANDARD"
 
 
@@ -432,7 +484,7 @@ def _clean_list(raw: List[Dict[str, Any]], id_to_match: Dict[int, Dict[str, Any]
         reason = (it.get("reason") or "").strip()[:220] or "Összkép alapján."
         used.add(fid)
 
-        shelf = _shelf_for_match(m, odds_val, tier=tier)
+        shelf = _shelf_for_tip(m, odds_val, risk=risk, conf=conf, tier=tier)
 
         out.append(
             {
@@ -806,12 +858,29 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
                     "risk_level": risk,
                     "reason": "Stabil odds + implied valószínűség alapján.",
                     "odds_estimate": odds_val,
-                    "shelf": _shelf_for_match(m, odds_val, tier="VIP"),
+                    "shelf": _shelf_for_tip(m, odds_val, risk=risk, conf=conf, tier="VIP"),
                 }
             )
             used_ids.add(fid)
 
     # ---- structure: IMPORTANT + 2 combos + bold risky ----
+    def _quality_key(t: Dict[str, Any]) -> tuple:
+        m = id_to_match.get(int(t.get("fixture_id"))) or {}
+        try:
+            bucket = int(m.get("bucket")) if m.get("bucket") is not None else 9
+        except Exception:
+            bucket = 9
+        league = str(m.get("league") or "")
+        top = 1 if _is_top_league(league) else 0
+        risk = (t.get("risk_level") or "").lower()
+        risk_score = 2 if "alacsony" in risk else (1 if "közepes" in risk else 0)
+        conf = float(t.get("confidence") or 0)
+        odds_present = 1 if _safe_float(t.get("odds_estimate")) else 0
+        # sort: better bucket, top league, odds present, risk, confidence
+        return (-top, bucket, -odds_present, -risk_score, -conf)
+
+    safe_vip.sort(key=_quality_key)
+
     important = safe_vip[: max(0, IMPORTANT_MIN)]
 
     def _has_odds_tip(t: Dict[str, Any]) -> bool:
@@ -905,7 +974,7 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
                     "risk_level": risk,
                     "reason": "KOMBI-ENGINE: implied valószínűség + stabil odds alapján.",
                     "odds_estimate": float(o),
-                    "shelf": _shelf_for_match(id_to_match.get(fid) or {}, float(o), tier="VIP"),
+                    "shelf": _shelf_for_tip(id_to_match.get(fid) or {}, float(o), risk=risk, conf=conf, tier="VIP"),
                 }
             )
             used_ids.add(fid)
@@ -940,8 +1009,8 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
 
     vip_lines = [
         "👑⚽️ SZELVÉNYKIRÁLY VIP – NAPI AJÁNLÓ ⚽️👑",
-        f"📅 Dátum: {today}.",
-        "🙂 3 polc: 🏆PRO / 🧩STANDARD / 😈MERESZ",
+        f"📅 Dátum: {today}",
+        "🙂 3 polc: 🏆 PRO / 🧩 STANDARD / 😈 MERÉSZ",
     ]
     if used_fallback:
         vip_lines.append(f"⚠️ Ma kevés volt a SAFE meccs {VIP_ODDS_MAX:.2f} odds-ig, ezért kitágítottam {VIP_SAFE_MAX_FALLBACK:.2f}-ig a KOMBI-hoz.")
@@ -991,15 +1060,31 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         if (t.get("shelf") or "").upper() == "BOLD":
             reason = ""
 
+        m = id_to_match.get(int(t.get("fixture_id"))) if t.get("fixture_id") is not None else None
+        m = m or {}
+        league_line = _league_line(m)
+        time_txt = _fmt_time(str(m.get("kickoff") or ""))
+
         block = (
             f"{idx}. {_shelf_hu(t)}  {prefix}{label}\n"
-            f"🎯 Tipp: {t['selection']}\n"
-            f"📊 Odds: {odds_txt}\n"
-            f"⚠️ Kockázat: {_risk_to_emoji(t['risk_level'])}\n"
-            f"💡 Bizalom: {_stars(t['confidence'])}"
+            + (f"{league_line}\n" if league_line else "")
+            + (f"🕒 Idő: {time_txt}\n" if time_txt else "")
+            + f"🎯 Tipp: {t['selection']}\n"
+            + f"📊 Odds: {odds_txt}\n"
+            + f"⚠️ Kockázat: {_risk_to_emoji(t['risk_level'])}\n"
+            + f"💡 Bizalom: {_stars(t['confidence'])}"
         )
         if reason:
             block += f"\n🧠 Miért? {reason}"
+
+        # Low-data note only when needed
+        try:
+            bucket = int(m.get("bucket")) if m.get("bucket") is not None else 9
+        except Exception:
+            bucket = 9
+        if bucket >= 4 or (odds_txt == "n/a"):
+            block += "\n⚠️ Adatbiztonság: alacsony"
+
         lines_hu.append(block)
 
         reason_en = (t.get("reason") or "").strip()
