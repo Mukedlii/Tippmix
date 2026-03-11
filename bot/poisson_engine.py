@@ -87,6 +87,10 @@ def _pick_markets(
     p_btts = _p_btts_yes(lam_home, lam_away)
     p_btts_no = 1.0 - p_btts
 
+    # thresholds tunable via env
+    safe_thr = float(os.getenv("TIPPMIX_SAFE_P_MIN", "0.58"))
+    risk_thr = float(os.getenv("TIPPMIX_RISK_P_MIN", "0.54"))
+
     # 1X2 main result suggestion (like the original bot)
     best_1x2 = max(
         [("Hazai győzelem", p_home), ("Döntetlen", p_draw), ("Vendég győzelem", p_away)],
@@ -113,10 +117,6 @@ def _pick_markets(
         out.append({"market": "1X2", "line": None, "pick": best_pick, "p": best_p, "shelf": "SAFE"})
     elif best_p >= risk_thr:
         out.append({"market": "1X2", "line": None, "pick": best_pick, "p": best_p, "shelf": "RISK"})
-
-    # thresholds tunable via env
-    safe_thr = float(os.getenv("TIPPMIX_SAFE_P_MIN", "0.58"))
-    risk_thr = float(os.getenv("TIPPMIX_RISK_P_MIN", "0.54"))
 
     # Under/Over 2.5
     if p_under25 >= safe_thr:
