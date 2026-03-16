@@ -841,8 +841,9 @@ def main() -> None:
             pass
 
         # save to SQLite as a run
+        # NOTE: sqlite_store helpers are imported at module level; do NOT re-import here
+        # otherwise Python treats them as function-locals and later references can crash.
         try:
-            from bot.storage.sqlite_store import insert_run, insert_bets, insert_fixtures
             provider = None
             try:
                 provider = resolve_sports_provider()

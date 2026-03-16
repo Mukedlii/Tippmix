@@ -239,7 +239,7 @@ def _call_llm(dossiers: List[Dict[str, Any]], web_context: str = "") -> Dict[str
     slot = (os.getenv("TIPPMIX_SLOT", "DAY") or "DAY").upper()
     slot_text = "délelőtt / nappal" if slot == "DAY" else "délután / este"
 
-    model = os.getenv("TIPPMIX_MODEL", "gpt-5-mini")
+    model = os.getenv("TIPPMIX_MODEL", "gpt-4o-mini")
     temp = float(os.getenv("TIPPMIX_TEMP", "0.25"))
 
     ctx_block = ""
@@ -283,7 +283,7 @@ def _call_llm(dossiers: List[Dict[str, Any]], web_context: str = "") -> Dict[str
 
 
 def _call_validator(dossiers: List[Dict[str, Any]], vip_raw: List[Dict[str, Any]], free_raw: List[Dict[str, Any]]) -> Dict[str, Any]:
-    model = os.getenv("TIPPMIX_VALIDATOR_MODEL") or os.getenv("TIPPMIX_MODEL", "gpt-5-mini")
+    model = os.getenv("TIPPMIX_VALIDATOR_MODEL") or os.getenv("TIPPMIX_MODEL", "gpt-4o-mini")
     temp = float(os.getenv("TIPPMIX_TEMP", "0.25"))
 
     allowed_ids = [d.get("fixture_id") for d in dossiers if d.get("fixture_id") is not None]
