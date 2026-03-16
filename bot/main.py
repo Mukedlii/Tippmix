@@ -10,6 +10,8 @@ from bot.matches import fetch_matches_for_today
 from bot.openai_logic import generate_tips
 from bot.poisson_engine import generate_poisson_tips
 from bot.providers.web_context import build_match_context, format_context_for_prompt
+from bot.providers.odds_scraper import get_best_odds, format_odds_for_prompt
+from bot.self_learning import build_learning_context
 from bot.api_keys import resolve_sports_provider
 from bot.storage.sqlite_store import insert_run, insert_bets, insert_fixtures
 from bot.storage.stats import dynamic_block_leagues, overall_hitrate
@@ -634,17 +636,23 @@ def main() -> None:
     if engine in ("poisson", "stats", "pro"):
         tips_data = generate_poisson_tips(slot_matches)
     else:
-        # Web kontextus gyűjtése (ingyenes, API nélkül)
-        # Max pár meccsre gyűjt, hogy ne legyen túl lassú
-        WEB_CONTEXT_MAX_MATCHES = int(os.getenv("WEB_CONTEXT_MAX_MATCHES", "5"))
-        web_contexts: Dict[Any, str] = {}
+        # Kontextus gyűjtés (web_context + odds + self-learning)
+        WEB_CONTEXT_MAX = int(os.getenv("WEB_CONTEXT_MAX_MATCHES", "5"))
+        ODDS_MAX = int(os.getenv("ODDS_MAX_MATCHES", "8"))
 
-        for m in slot_matches[:WEB_CONTEXT_MAX_MATCHES]:
+        web_contexts: Dict[Any, str] = {}
+        odds_data: Dict[Any, str] = {}
+
+        for m in slot_matches[: max(WEB_CONTEXT_MAX, ODDS_MAX)]:
             home = m.get("home_team", "")
             away = m.get("away_team", "")
             league = m.get("league_name", "")
             fid = m.get("fixture_id")
-            if home and away and fid:
+            if not (home and away and fid):
+                continue
+
+            # Web kontextus (xG, sérülések, hírek)
+            if len(web_contexts) < WEB_CONTEXT_MAX:
                 try:
                     ctx = build_match_context(
                         home_team=home,
@@ -660,11 +668,40 @@ def main() -> None:
                 except Exception as e:
                     print(f"[WEB_CTX] Hiba ({home} vs {away}): {e}")
 
-        combined_context = "\n\n".join(
-            f"[{fid}] {ctx}" for fid, ctx in web_contexts.items() if ctx
+            # Odds scraping
+            if len(odds_data) < ODDS_MAX:
+                try:
+                    odds = get_best_odds(home, away)
+                    if odds.get("found"):
+                        odds_data[fid] = format_odds_for_prompt(odds)
+                        # Odds-ot visszaírjuk a meccs adatába (Poisson engine / későbbi logika)
+                        m["scraped_odds"] = {
+                            "1": odds.get("odds_1_avg"),
+                            "X": odds.get("odds_x_avg"),
+                            "2": odds.get("odds_2_avg"),
+                        }
+                except Exception as e:
+                    print(f"[ODDS] Hiba ({home} vs {away}): {e}")
+
+        # Önjavító tanulságok
+        learning_context = ""
+        try:
+            learning_context = build_learning_context(days=30)
+            if learning_context:
+                print(f"[LEARN] Tanulságok betöltve ({len(learning_context)} chars)")
+        except Exception as e:
+            print(f"[LEARN] Hiba: {e}")
+
+        combined_web = "\n\n".join(
+            f"Meccs [{fid}]:\n{ctx}" for fid, ctx in web_contexts.items() if ctx
+        )
+        combined_odds = "\n\n".join(
+            f"Meccs [{fid}]:\n{o}" for fid, o in odds_data.items() if o
         )
 
-        tips_data = generate_tips(slot_matches, slot=slot, web_context=combined_context)
+        full_context = "\n\n".join([x for x in [learning_context, combined_web, combined_odds] if x])
+
+        tips_data = generate_tips(slot_matches, slot=slot, web_context=full_context)
 
     # ALERT mode: send only very strong PRO picks (VIP + EN only).
     alert_only = (os.getenv("TIPPMIX_ALERT_ONLY") or "0").strip() == "1"
@@ -861,15 +898,22 @@ def main() -> None:
 
             print(f"[GROK] Vétózott meccsek: {len(veto_keys)}. Újragenerálás tiltólistával... (attempt={attempt})")
 
-            # Rebuild web context for the filtered pool as well (keeps it consistent)
-            WEB_CONTEXT_MAX_MATCHES = int(os.getenv("WEB_CONTEXT_MAX_MATCHES", "5"))
+            # Rebuild extra context for the filtered pool as well
+            WEB_CONTEXT_MAX = int(os.getenv("WEB_CONTEXT_MAX_MATCHES", "5"))
+            ODDS_MAX = int(os.getenv("ODDS_MAX_MATCHES", "8"))
+
             web_contexts: Dict[Any, str] = {}
-            for m in filtered_pool[:WEB_CONTEXT_MAX_MATCHES]:
+            odds_data: Dict[Any, str] = {}
+
+            for m in filtered_pool[: max(WEB_CONTEXT_MAX, ODDS_MAX)]:
                 home = m.get("home_team", "")
                 away = m.get("away_team", "")
                 league = m.get("league_name", "")
                 fid = m.get("fixture_id")
-                if home and away and fid:
+                if not (home and away and fid):
+                    continue
+
+                if len(web_contexts) < WEB_CONTEXT_MAX:
                     try:
                         ctx = build_match_context(
                             home_team=home,
@@ -884,11 +928,34 @@ def main() -> None:
                     except Exception:
                         pass
 
-            combined_context = "\n\n".join(
-                f"[{fid}] {ctx}" for fid, ctx in web_contexts.items() if ctx
-            )
+                if len(odds_data) < ODDS_MAX:
+                    try:
+                        odds = get_best_odds(home, away)
+                        if odds.get("found"):
+                            odds_data[fid] = format_odds_for_prompt(odds)
+                            m["scraped_odds"] = {
+                                "1": odds.get("odds_1_avg"),
+                                "X": odds.get("odds_x_avg"),
+                                "2": odds.get("odds_2_avg"),
+                            }
+                    except Exception:
+                        pass
 
-            tips_data = generate_tips(filtered_pool, slot=slot, web_context=combined_context)
+            learning_context = ""
+            try:
+                learning_context = build_learning_context(days=30)
+            except Exception:
+                learning_context = ""
+
+            combined_web = "\n\n".join(
+                f"Meccs [{fid}]:\n{ctx}" for fid, ctx in web_contexts.items() if ctx
+            )
+            combined_odds = "\n\n".join(
+                f"Meccs [{fid}]:\n{o}" for fid, o in odds_data.items() if o
+            )
+            full_context = "\n\n".join([x for x in [learning_context, combined_web, combined_odds] if x])
+
+            tips_data = generate_tips(filtered_pool, slot=slot, web_context=full_context)
             time.sleep(1.0)
 
         final_audit = consensus_passes[-1]["audit"] if consensus_passes else {"enabled": False}
