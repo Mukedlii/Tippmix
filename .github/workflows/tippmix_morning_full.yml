@@ -38,8 +38,9 @@ jobs:
       ODDS_MAX_REQUESTS_PER_RUN: ${{ vars.ODDS_MAX_REQUESTS_PER_RUN || '0' }}
       ODDS_SPORT_KEYS: ${{ vars.ODDS_SPORT_KEYS || '' }}
 
-      # Provider selection
-      SPORTS_DATA_PROVIDER: ${{ vars.SPORTS_DATA_PROVIDER || 'api-sports' }}
+      # Provider selection (daily tips)
+      # Use free_scraper by default to get broader daily coverage + SofaScore-derived odds.
+      SPORTS_DATA_PROVIDER: ${{ vars.SPORTS_DATA_PROVIDER || 'free_scraper' }}
 
       # Full-day scan (no slot cut)
       TIPPMIX_SLOT: ALL
