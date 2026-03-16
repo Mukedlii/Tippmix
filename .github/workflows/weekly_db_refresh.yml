@@ -14,10 +14,16 @@ jobs:
   refresh-db:
     runs-on: ubuntu-latest
     env:
+      # Force historical refresh provider (independent from daily tips provider)
+      SPORTS_DATA_PROVIDER: footballdata
+
       SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
       SPORTSDATAIO_API: ${{ secrets.SPORTSDATAIO_API }}
-      FOOTBALL_DATA_TOKEN: ${{ secrets.FOOTBALL_DATA_TOKEN }}
       SPORTMONKS_API_TOKEN: ${{ secrets.SPORTMONKS_API_TOKEN }}
+
+      # football-data.org token (support both secret names)
+      FOOTBALLDATA_API_KEY: ${{ secrets.FOOTBALLDATA_API_KEY }}
+      FOOTBALL_DATA_TOKEN: ${{ secrets.FOOTBALL_DATA_TOKEN }}
 
     steps:
       - name: Checkout repo
