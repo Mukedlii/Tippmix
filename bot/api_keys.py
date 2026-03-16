@@ -28,7 +28,8 @@ def get_optional_sportmonks_token() -> str:
 
 
 def get_optional_football_data_token() -> str:
-    return (os.getenv("FOOTBALL_DATA_TOKEN") or "").strip()
+    # Support both env names (older + current workflow naming)
+    return (os.getenv("FOOTBALLDATA_API_KEY") or os.getenv("FOOTBALL_DATA_TOKEN") or "").strip()
 
 
 def get_optional_allsportsapi_key() -> str:
@@ -37,6 +38,9 @@ def get_optional_allsportsapi_key() -> str:
 
 def resolve_sports_provider() -> str:
     provider = (os.getenv("SPORTS_DATA_PROVIDER") or "").strip().lower()
+    # football-data.org (free)
+    if provider in ("footballdata", "football-data", "football_data", "footballdata.org"):
+        return "footballdata"
     if provider in ("api-sports", "api_sports", "apisports", "api-football", "apifootball"):
         return "api-sports"
     if provider in ("sportsdataio", "sports-data-io", "sportsdata"):
@@ -45,10 +49,8 @@ def resolve_sports_provider() -> str:
         return "sportmonks"
     if provider in ("allsportsapi", "all-sports-api", "allsports"):
         return "allsportsapi"
-    if provider in ("footballdata", "football-data", "football_data"):
-        return "footballdata"
 
-    # auto-pick preference order: api-sports -> sportmonks -> allsportsapi -> sportsdataio
+    # auto-pick preference order: api-sports -> sportmonks -> allsportsapi -> sportsdataio -> footballdata
     if get_optional_api_sports_key():
         return "api-sports"
     if get_optional_sportmonks_token():
@@ -57,8 +59,11 @@ def resolve_sports_provider() -> str:
         return "allsportsapi"
     if get_optional_sportsdataio_key():
         return "sportsdataio"
+    # football-data.org key present
+    if get_optional_football_data_token():
+        return "footballdata"
 
-    raise RuntimeError("SPORTS_API_KEY / SPORTMONKS_API_TOKEN / ALLSPORTSAPI_KEY / SPORTSDATAIO_API nincs beállítva (GitHub Secrets).")
+    raise RuntimeError("SPORTS_API_KEY / SPORTMONKS_API_TOKEN / ALLSPORTSAPI_KEY / SPORTSDATAIO_API / FOOTBALLDATA_API_KEY nincs beállítva (GitHub Secrets).")
 
 
 def get_sports_api_key() -> str:
