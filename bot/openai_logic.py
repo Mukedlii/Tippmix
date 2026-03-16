@@ -234,13 +234,21 @@ def _baseline_risk_conf(m: Dict[str, Any], sel: str) -> Tuple[str, float]:
     return risk, conf
 
 
-def _call_llm(dossiers: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _call_llm(dossiers: List[Dict[str, Any]], web_context: str = "") -> Dict[str, Any]:
     today = datetime.date.today().strftime("%Y.%m.%d.")
     slot = (os.getenv("TIPPMIX_SLOT", "DAY") or "DAY").upper()
     slot_text = "délelőtt / nappal" if slot == "DAY" else "délután / este"
 
     model = os.getenv("TIPPMIX_MODEL", "gpt-5-mini")
     temp = float(os.getenv("TIPPMIX_TEMP", "0.25"))
+
+    ctx_block = ""
+    if web_context and web_context.strip():
+        ctx_block = (
+            "\n\nEXTRA WEB KONTEXTUS (sérülések/xG/hírek/forma):\n"
+            + web_context.strip()
+            + "\n\nFONTOS: vedd figyelembe a sérüléseket és a hírek hangulatát. Ha xG erősen ellentmond az odds-nak, jelezd a kockázatot.\n"
+        )
 
     prompt = (
         f"Dátum: {today}\n"
@@ -251,8 +259,9 @@ def _call_llm(dossiers: List[Dict[str, Any]]) -> Dict[str, Any]:
         f"Odds-szabály (stabilabb 6-os kombi):\n"
         f"- VIP odds tartomány: {VIP_ODDS_MIN:.2f}–{VIP_ODDS_MAX:.2f} (cél: 6-os kombi ~10–15 össz-odds)\n"
         f"- VIP max {VIP_MAX_HIGH_ODDS} tipp lehet {VIP_HIGH_ODDS_THRESHOLD:.2f} felett\n"
-        f"- FREE odds tartomány: {FREE_ODDS_MIN:.2f}–{FREE_ODDS_MAX:.2f} (cél: 4-es kombi ~6–10 össz-odds)\n\n"
-        "Meccs dossziék:\n"
+        f"- FREE odds tartomány: {FREE_ODDS_MIN:.2f}–{FREE_ODDS_MAX:.2f} (cél: 4-es kombi ~6–10 össz-odds)\n"
+        + ctx_block
+        + "\nMeccs dossziék:\n"
         + json.dumps(dossiers, ensure_ascii=False, indent=2)
     )
 
@@ -712,7 +721,7 @@ def _fill_minimum(matches_norm: List[Dict[str, Any]], vip: List[Dict[str, Any]],
     return vip, free
 
 
-def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
+def generate_tips(matches: List[Dict[str, Any]], slot: str = "DAY", web_context: str = "") -> Dict[str, Any]:
     if not matches:
         provider = (os.getenv("SPORTS_DATA_PROVIDER") or "auto").strip()
         msg = (
@@ -732,7 +741,7 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     free_raw: List[Dict[str, Any]] = []
     vip_raw: List[Dict[str, Any]] = []
     try:
-        data = _call_llm(dossiers)
+        data = _call_llm(dossiers, web_context=web_context)
         free_raw = data.get("free_tips") or []
         vip_raw = data.get("vip_tips") or []
     except Exception as e:
@@ -761,7 +770,7 @@ def generate_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
     vip_bonus = _pick_bonus(matches_norm, used_bonus)
 
     today = datetime.date.today().strftime("%Y.%m.%d.")
-    slot = (os.getenv("TIPPMIX_SLOT", "DAY") or "DAY").upper()
+    slot = (slot or os.getenv("TIPPMIX_SLOT", "DAY") or "DAY").upper()
     slot_text = "délelőtt / nappal" if slot == "DAY" else "délután / este"
     slot_text_en = "Day" if slot == "DAY" else "Evening"
 
