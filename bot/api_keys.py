@@ -45,6 +45,8 @@ def resolve_sports_provider() -> str:
         return "sportmonks"
     if provider in ("allsportsapi", "all-sports-api", "allsports"):
         return "allsportsapi"
+    if provider in ("footballdata", "football-data", "football_data"):
+        return "footballdata"
 
     # auto-pick preference order: api-sports -> sportmonks -> allsportsapi -> sportsdataio
     if get_optional_api_sports_key():
