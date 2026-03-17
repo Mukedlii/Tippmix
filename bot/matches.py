@@ -632,19 +632,20 @@ def fetch_matches_for_today(slot: str = "DAY", date: Optional[str] = None) -> Li
                 looked += 1
                 continue
                 
-    # SofaScore ingyenes odds enrichment
-    if provider == "free_scraper":
-        from bot.providers.free_fixtures import fetch_sofascore_odds
-        for m in slot_fixtures[:20]:
-            fid = m.get("fixture_id")
-            if fid and not m.get("odds", {}).get("1"):
-                try:
-                    odds = fetch_sofascore_odds(int(fid))
-                    if odds:
-                        m["odds"] = odds
-                        m["odds_source"] = "sofascore"
-                except Exception:
-                    pass
+   # SofaScore ingyenes odds enrichment
+   if provider == "free_scraper":
+    from bot.providers.free_fixtures import fetch_sofascore_odds
+    for m in slot_fixtures[:20]:
+        fid = m.get("fixture_id")
+        if fid and not m.get("odds", {}).get("1"):
+            try:
+                odds = fetch_sofascore_odds(int(fid))
+                if odds:
+                    m["odds"] = odds
+                    m["odds_source"] = "sofascore"
+            except Exception:
+                pass
+
 
 
     # The Odds API supplement (football-data.org esetén különösen hasznos, mert az nincs odds)
