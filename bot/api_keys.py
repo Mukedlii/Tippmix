@@ -28,7 +28,6 @@ def get_optional_sportmonks_token() -> str:
 
 
 def get_optional_football_data_token() -> str:
-    # Support both env names (older + current workflow naming)
     return (os.getenv("FOOTBALLDATA_API_KEY") or os.getenv("FOOTBALL_DATA_TOKEN") or "").strip()
 
 
@@ -38,9 +37,15 @@ def get_optional_allsportsapi_key() -> str:
 
 def resolve_sports_provider() -> str:
     provider = (os.getenv("SPORTS_DATA_PROVIDER") or "").strip().lower()
+
+    # ÚJ: teljesen ingyenes scraper (SofaScore/LiveScore/Flashscore) — nincs key
+    if provider == "free_scraper":
+        return "free_scraper"
+
     # football-data.org (free)
     if provider in ("footballdata", "football-data", "football_data", "footballdata.org"):
         return "footballdata"
+
     if provider in ("api-sports", "api_sports", "apisports", "api-football", "apifootball"):
         return "api-sports"
     if provider in ("sportsdataio", "sports-data-io", "sportsdata"):
@@ -50,7 +55,7 @@ def resolve_sports_provider() -> str:
     if provider in ("allsportsapi", "all-sports-api", "allsports"):
         return "allsportsapi"
 
-    # auto-pick preference order: api-sports -> sportmonks -> allsportsapi -> sportsdataio -> footballdata
+    # auto-pick preference order
     if get_optional_api_sports_key():
         return "api-sports"
     if get_optional_sportmonks_token():
@@ -59,7 +64,6 @@ def resolve_sports_provider() -> str:
         return "allsportsapi"
     if get_optional_sportsdataio_key():
         return "sportsdataio"
-    # football-data.org key present
     if get_optional_football_data_token():
         return "footballdata"
 
