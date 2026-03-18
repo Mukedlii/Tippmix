@@ -101,6 +101,8 @@ Cél: "stabil" 6-os VIP kombi (magasabb találati arány), ezért kerüld a coin
 Elemzés:
 - Hazai pálya, erőviszonyok, liga-szint (komoly vs egzotikus), tabella/forma/sérülés (ha van).
 - Odds csak sanity check, nem vakon.
+- ⚠️ FONTOS: Ha egy meccshez NINCS odds (odds_1/odds_x/odds_2 üres vagy null), NE írj "stabil odds"-t az indoklásba!
+  Helyette: "Liga-szintű erőviszonyok alapján." vagy "Forma és hazai pálya előny alapján."
 
 Szabály:
 - Csak: "Hazai győzelem" | "Döntetlen" | "Vendég győzelem"
@@ -168,6 +170,7 @@ def _normalize_match(m: Dict[str, Any]) -> Dict[str, Any]:
         "home_team": m.get("home_team") or "",
         "away_team": m.get("away_team") or "",
         "bucket": m.get("bucket"),
+        "data_source": m.get("source", "unknown"),
         "odds_1": _safe_float(odds.get("1")),
         "odds_x": _safe_float(odds.get("X")),
         "odds_2": _safe_float(odds.get("2")),
@@ -858,6 +861,12 @@ def generate_tips(matches: List[Dict[str, Any]], slot: str = "DAY", web_context:
             if odds_val is None and float(conf or 0) < 3.6:
                 continue
 
+            # reason: check if we have odds
+            if odds_val:
+                reason_text = "Stabil odds + implied valószínűség alapján."
+            else:
+                reason_text = "Liga-szintű erőviszonyok és forma alapján."
+
             safe_vip.append(
                 {
                     "fixture_id": fid,
@@ -865,7 +874,7 @@ def generate_tips(matches: List[Dict[str, Any]], slot: str = "DAY", web_context:
                     "is_highlighted": False,
                     "confidence": conf,
                     "risk_level": risk,
-                    "reason": "Stabil odds + implied valószínűség alapján.",
+                    "reason": reason_text,
                     "odds_estimate": odds_val,
                     "shelf": _shelf_for_tip(m, odds_val, risk=risk, conf=conf, tier="VIP"),
                 }
@@ -1072,7 +1081,10 @@ def generate_tips(matches: List[Dict[str, Any]], slot: str = "DAY", web_context:
 
         reason = (t.get("reason") or "").strip()
         if reason.startswith("Feltöltés:"):
-            reason = "Stabil odds + összkép alapján."
+            if odds_val:
+                reason = "Stabil odds + összkép alapján."
+            else:
+                reason = "Forma és liga-erőviszonyok alapján."
         if (t.get("shelf") or "").upper() == "BOLD":
             reason = ""
 
