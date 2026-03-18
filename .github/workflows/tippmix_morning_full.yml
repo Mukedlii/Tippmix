@@ -21,6 +21,9 @@ jobs:
 
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
+      # Provider selection (from Variables)
+      SPORTS_DATA_PROVIDER: ${{ vars.SPORTS_DATA_PROVIDER }}
+
       # Provider keys (use whichever you have)
       SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
       SPORTMONKS_API_TOKEN: ${{ secrets.SPORTMONKS_API_TOKEN }}

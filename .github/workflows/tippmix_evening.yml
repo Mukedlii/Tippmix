@@ -18,6 +18,9 @@ jobs:
       TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
       TELEGRAM_EN_CHAT_ID: ${{ secrets.TELEGRAM_EN_CHAT_ID }}
 
+      # Provider selection (from Variables)
+      SPORTS_DATA_PROVIDER: ${{ vars.SPORTS_DATA_PROVIDER }}
+
       # API kulcsok
       SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
       SPORTSDATAIO_API: ${{ secrets.SPORTSDATAIO_API }}
