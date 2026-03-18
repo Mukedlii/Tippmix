@@ -368,7 +368,7 @@ def _fetch_fixtures_for_date(date_str: str) -> List[Dict[str, Any]]:
     # ── ÚJ: teljesen ingyenes scraper provider (SofaScore/LiveScore/Flashscore) ──
     if provider == "free_scraper":
         from bot.providers.free_fixtures import fetch_free_fixtures
-        return fetch_free_fixtures(date_str, top_leagues_only=True)
+        return fetch_free_fixtures(date_str, top_leagues_only=False)
 
     if provider == "sportsdataio":
         games = sportsdataio.fetch_games_by_date(date_str)
