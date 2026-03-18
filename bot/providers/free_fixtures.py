@@ -394,7 +394,8 @@ def fetch_free_fixtures(date_str: str, top_leagues_only: bool = False) -> list[d
         log.info(f"[FreeFix] Top liga szűrés: {before} → {len(matches)}")
 
     enriched = 0
-    for m in matches[:20]:
+    # Limit to avoid rate limiting: try first 60 matches, with delays
+    for m in matches[:60]:
         fid = m.get("fixture_id")
         source = m.get("source", "")
         if fid and source == "sofascore" and not (m.get("odds") or {}).get("1"):
@@ -404,6 +405,9 @@ def fetch_free_fixtures(date_str: str, top_leagues_only: bool = False) -> list[d
                     m["odds"] = odds
                     m["odds_source"] = "sofascore"
                     enriched += 1
+                # Small delay to avoid rate limit (SofaScore is lenient but still)
+                if enriched > 0 and enriched % 10 == 0:
+                    time.sleep(1.5)
             except Exception as e:
                 log.debug(f"[FreeFix] Odds enrichment hiba {fid}: {e}")
 
