@@ -54,6 +54,20 @@ jobs:
       TIPPMIX_BLOCK_COUNTRIES: ${{ vars.TIPPMIX_BLOCK_COUNTRIES }}
       TIPPMIX_BLOCK_LEAGUES: ${{ vars.TIPPMIX_BLOCK_LEAGUES }}
       TIPPMIX_MAX_DAYS_AHEAD: ${{ vars.TIPPMIX_MAX_DAYS_AHEAD }}
+      
+      # Marketing format (inline buttons + clean design)
+      TIPPMIX_USE_MARKETING_FORMAT: "1"
+      TIPPMIX_DASHBOARD_URL: "https://tippmix.vercel.app"
+      TIPPMIX_VIP_URL: "https://tippmix.vercel.app/vip"
+      TIPPMIX_BETTING_SITE: "tippmix"
+      
+      # Multi-sport support
+      TIPPMIX_ENABLE_MULTI_SPORT: "1"
+      TIPPMIX_EXTRA_SPORTS: "basketball,handball"
+      
+      # TheOddsAPI
+      ODDS_MAX_REQUESTS_PER_RUN: "20"
+      ODDS_SPORT_KEYS: "soccer_uefa_europa_league,soccer_uefa_europa_conference_league"
 
     steps:
       - name: Checkout repo

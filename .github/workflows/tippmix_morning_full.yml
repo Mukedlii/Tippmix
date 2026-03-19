@@ -38,10 +38,21 @@ jobs:
       TIPPMIX_SEND_PUBLIC: "1"
       TIPPMIX_SEND_VIP: "1"
       TIPPMIX_SEND_EN: "1"
+      
+      # Marketing format (inline buttons + clean design)
+      TIPPMIX_USE_MARKETING_FORMAT: "1"
+      TIPPMIX_DASHBOARD_URL: "https://tippmix.vercel.app"
+      TIPPMIX_VIP_URL: "https://tippmix.vercel.app/vip"
+      TIPPMIX_BETTING_SITE: "tippmix"
+      
+      # Multi-sport support (basketball, handball)
+      TIPPMIX_ENABLE_MULTI_SPORT: "1"
+      TIPPMIX_EXTRA_SPORTS: "basketball,handball"
+      
       # Keep API usage minimal on free plans
-      # Disable The Odds API calls by default (can override via repo vars if needed)
-      ODDS_MAX_REQUESTS_PER_RUN: ${{ vars.ODDS_MAX_REQUESTS_PER_RUN || '0' }}
-      ODDS_SPORT_KEYS: ${{ vars.ODDS_SPORT_KEYS || '' }}
+      # TheOddsAPI enabled (free tier: 500 req/month)
+      ODDS_MAX_REQUESTS_PER_RUN: ${{ vars.ODDS_MAX_REQUESTS_PER_RUN || '20' }}
+      ODDS_SPORT_KEYS: ${{ vars.ODDS_SPORT_KEYS || 'soccer_uefa_europa_league,soccer_uefa_europa_conference_league,soccer_england_league1' }}
 
       # Provider selection (daily tips)
       # Use free_scraper by default to get broader daily coverage + SofaScore-derived odds.
