@@ -16,6 +16,12 @@ from bot.poisson_engine import generate_poisson_tips
 from bot.providers.web_context import build_match_context, format_context_for_prompt
 from bot.providers.odds_scraper import get_best_odds, format_odds_for_prompt
 from bot.providers.sports_news import get_match_news, format_news_for_prompt
+from bot.telegram_marketing import (
+    format_marketing_vip,
+    format_marketing_free,
+    format_alert_message,
+    create_inline_buttons,
+)
 from bot.self_learning import build_learning_context
 from bot.api_keys import resolve_sports_provider
 from bot.storage.sqlite_store import insert_run, insert_bets, insert_fixtures
@@ -76,6 +82,7 @@ def send_telegram_message(
     text: str,
     label: str,
     meta: Optional[Dict[str, Any]] = None,
+    inline_buttons: Optional[List[List[Dict[str, str]]]] = None,
 ) -> Tuple[bool, str]:
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     parts = _split_telegram(text)
@@ -97,6 +104,12 @@ def send_telegram_message(
             "parse_mode": "Markdown",
             "disable_web_page_preview": True,
         }
+        
+        # Add inline buttons to the LAST part only
+        if inline_buttons and idx == len(parts):
+            payload["reply_markup"] = {
+                "inline_keyboard": inline_buttons
+            }
 
         print(f"[{label}] Part {idx}/{len(parts)} sendMessage...")
         try:
@@ -1098,11 +1111,49 @@ def main() -> None:
     send_public = (os.getenv("TIPPMIX_SEND_PUBLIC") or "1").strip() != "0"
     send_vip = (os.getenv("TIPPMIX_SEND_VIP") or "1").strip() != "0"
     send_en = (os.getenv("TIPPMIX_SEND_EN") or "1").strip() != "0"
-
-    if send_public and public_chat_id:
-        send_telegram_message(telegram_token, public_chat_id, public_text, f"PUBLIC_{slot}", meta=base_meta)
-    if send_vip and vip_chat_id:
-        send_telegram_message(telegram_token, vip_chat_id, vip_text, f"VIP_{slot}", meta=base_meta)
+    
+    # Marketing format with inline buttons (optional)
+    use_marketing = (os.getenv("TIPPMIX_USE_MARKETING_FORMAT") or "0").strip() == "1"
+    
+    if use_marketing:
+        # Generate marketing-optimized messages with inline buttons
+        import datetime
+        date_today = datetime.date.today().strftime("%Y.%m.%d.")
+        
+        # Get stats for VIP header (if available)
+        try:
+            from bot.roi_tracker import ROITracker
+            tracker = ROITracker()
+            stats_7d = tracker.get_stats(days=7, tier="VIP")
+        except Exception:
+            stats_7d = None
+        
+        if send_vip and vip_chat_id and vip_bets_enriched:
+            # Extract combos from tips_data if available
+            combos_data = []
+            # TODO: extract combo data from tips_data structure
+            
+            vip_text_marketing, vip_buttons = format_marketing_vip(
+                tips=vip_bets_enriched[:6],
+                combos=combos_data,
+                date_str=date_today,
+                stats=stats_7d
+            )
+            send_telegram_message(telegram_token, vip_chat_id, vip_text_marketing, f"VIP_{slot}", meta=base_meta, inline_buttons=vip_buttons)
+        
+        if send_public and public_chat_id and public_bets_enriched:
+            free_text_marketing, free_buttons = format_marketing_free(
+                tips=public_bets_enriched[:3],
+                date_str=date_today
+            )
+            send_telegram_message(telegram_token, public_chat_id, free_text_marketing, f"PUBLIC_{slot}", meta=base_meta, inline_buttons=free_buttons)
+    
+    else:
+        # Use original format (backward compatible)
+        if send_public and public_chat_id:
+            send_telegram_message(telegram_token, public_chat_id, public_text, f"PUBLIC_{slot}", meta=base_meta)
+        if send_vip and vip_chat_id:
+            send_telegram_message(telegram_token, vip_chat_id, vip_text, f"VIP_{slot}", meta=base_meta)
 
     # EN broadcast (optional)
     # Default: VIP-only for the EN channel/group.
