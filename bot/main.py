@@ -5,12 +5,17 @@ import datetime
 from typing import Any, Dict, Tuple, List, Optional
 
 import requests
+from dotenv import load_dotenv
+
+# Load .env file if it exists (for local development)
+load_dotenv()
 
 from bot.matches import fetch_matches_for_today
 from bot.openai_logic import generate_tips
 from bot.poisson_engine import generate_poisson_tips
 from bot.providers.web_context import build_match_context, format_context_for_prompt
 from bot.providers.odds_scraper import get_best_odds, format_odds_for_prompt
+from bot.providers.sports_news import get_match_news, format_news_for_prompt
 from bot.self_learning import build_learning_context
 from bot.api_keys import resolve_sports_provider
 from bot.storage.sqlite_store import insert_run, insert_bets, insert_fixtures
@@ -580,8 +585,8 @@ def main() -> None:
     print("EN_CHAT_ID     =", repr(en_chat_id))
 
     if not telegram_token:
-        print("NINCS TELEGRAM_BOT_TOKEN, kilépek.")
-        return
+        print("NINCS TELEGRAM_BOT_TOKEN - DRY-RUN mode (csak JSON/DB mentés).")
+        # Not returning - allow bot to run and save to DB/JSON without Telegram send
 
     if not public_chat_id:
         print("[WARN] TELEGRAM_PUBLIC_CHAT_ID nincs beállítva! FREE üzenet nem fog kimenni.")
@@ -667,6 +672,22 @@ def main() -> None:
                     print(f"[WEB_CTX] OK: {home} vs {away}")
                 except Exception as e:
                     print(f"[WEB_CTX] Hiba ({home} vs {away}): {e}")
+
+            # Sport news scraping (Nemzeti Sport, BBC, Goal.com, stb.)
+            news_max = int(os.getenv("TIPPMIX_NEWS_MAX", "15"))
+            if len(web_contexts) < news_max:
+                try:
+                    news = get_match_news(home, away, league, max_results=5)
+                    if news:
+                        news_text = format_news_for_prompt(news, home, away)
+                        # Append to existing web context or create new
+                        if fid in web_contexts:
+                            web_contexts[fid] += "\n\n" + news_text
+                        else:
+                            web_contexts[fid] = news_text
+                        print(f"[NEWS] {home} vs {away} → {len(news)} hírek")
+                except Exception as e:
+                    print(f"[NEWS] Hiba ({home} vs {away}): {e}")
 
             # Odds scraping
             if len(odds_data) < ODDS_MAX:

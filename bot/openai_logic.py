@@ -45,8 +45,13 @@ def _promo_footer(today_iso: str, lang: str) -> str:
 from anthropic import Anthropic
 
 # Support both Anthropic and OpenAI for backward compatibility
-client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-use_anthropic = True
+anthropic_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+use_anthropic = bool(anthropic_key)
+
+if use_anthropic:
+    client = Anthropic(api_key=anthropic_key)
+else:
+    client = None  # Will use OpenAI instead
 
 MIN_VIP = int(os.getenv("TIPPMIX_MIN_VIP", "6"))
 MIN_FREE = int(os.getenv("TIPPMIX_MIN_FREE", "3"))
