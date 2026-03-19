@@ -29,6 +29,7 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      TIPPMIX_USE_ENSEMBLE: "0"
 
       # Modell és LLM beállítások
       TIPPMIX_MODEL: "gpt-5-mini"

@@ -170,8 +170,8 @@ class EnsembleAI:
             }
         """
         if not self.use_ensemble:
-            # Fallback to single model (Claude)
-            return self._call_claude(dossiers, web_context)
+            # Fallback to single model (GPT)
+            return self._call_gpt(dossiers, web_context, system_prompt)
         
         log.info(f"Running ensemble with models: {self.models}")
         
