@@ -28,7 +28,7 @@ def add_secret(github_token):
     
     resp = requests.get(url_key, headers=headers)
     if resp.status_code != 200:
-        print(f"❌ Hiba public key lekérésnél: {resp.status_code}")
+        print(f"ERROR - Hiba public key lekeresnel: {resp.status_code}")
         print(resp.text)
         return False
     
@@ -51,10 +51,10 @@ def add_secret(github_token):
     
     resp = requests.put(url_secret, headers=headers, json=payload)
     if resp.status_code in (201, 204):
-        print(f"✅ Secret '{SECRET_NAME}' sikeresen hozzáadva!")
+        print(f"OK - Secret '{SECRET_NAME}' sikeresen hozzaadva!")
         return True
     else:
-        print(f"❌ Hiba secret hozzáadásnál: {resp.status_code}")
+        print(f"ERROR - Hiba secret hozzaadasnal: {resp.status_code}")
         print(resp.text)
         return False
 
