@@ -1129,8 +1129,9 @@ def main() -> None:
     # Marketing format with inline buttons (optional)
     use_marketing = (os.getenv("TIPPMIX_USE_MARKETING_FORMAT") or "0").strip() == "1"
     
-    if use_marketing:
+    if use_marketing and vip_bets_enriched and public_bets_enriched:
         # Generate marketing-optimized messages with inline buttons
+        # ONLY if we have actual bets (not empty)
         date_today = datetime.date.today().strftime("%Y.%m.%d.")
         
         # Get stats for VIP header (if available)
@@ -1141,7 +1142,7 @@ def main() -> None:
         except Exception:
             stats_7d = None
         
-        if send_vip and vip_chat_id and vip_bets_enriched:
+        if send_vip and vip_chat_id:
             # Extract combos from tips_data if available
             combos_data = []
             # TODO: extract combo data from tips_data structure
@@ -1154,7 +1155,7 @@ def main() -> None:
             )
             send_telegram_message(telegram_token, vip_chat_id, vip_text_marketing, f"VIP_{slot}", meta=base_meta, inline_buttons=vip_buttons)
         
-        if send_public and public_chat_id and public_bets_enriched:
+        if send_public and public_chat_id:
             free_text_marketing, free_buttons = format_marketing_free(
                 tips=public_bets_enriched[:3],
                 date_str=date_today
@@ -1162,11 +1163,13 @@ def main() -> None:
             send_telegram_message(telegram_token, public_chat_id, free_text_marketing, f"PUBLIC_{slot}", meta=base_meta, inline_buttons=free_buttons)
     
     else:
-        # Use original format (backward compatible)
+        # Fallback to original format + add inline buttons
+        buttons = create_inline_buttons() if use_marketing else None
+        
         if send_public and public_chat_id:
-            send_telegram_message(telegram_token, public_chat_id, public_text, f"PUBLIC_{slot}", meta=base_meta)
+            send_telegram_message(telegram_token, public_chat_id, public_text, f"PUBLIC_{slot}", meta=base_meta, inline_buttons=buttons)
         if send_vip and vip_chat_id:
-            send_telegram_message(telegram_token, vip_chat_id, vip_text, f"VIP_{slot}", meta=base_meta)
+            send_telegram_message(telegram_token, vip_chat_id, vip_text, f"VIP_{slot}", meta=base_meta, inline_buttons=buttons)
 
     # EN broadcast (optional)
     # Default: VIP-only for the EN channel/group.
