@@ -16,6 +16,7 @@ from bot.poisson_engine import generate_poisson_tips
 from bot.providers.web_context import build_match_context, format_context_for_prompt
 from bot.providers.odds_scraper import get_best_odds, format_odds_for_prompt
 from bot.providers.sports_news import get_match_news, format_news_for_prompt
+from bot.providers.multi_sport import fetch_multi_sport_matches, format_match_with_sport
 from bot.telegram_marketing import (
     format_marketing_vip,
     format_marketing_free,
@@ -624,6 +625,19 @@ def main() -> None:
 
     slot_matches = _filter_matches_for_slot(matches, slot)
     print(f"Idősávra szűrt meccsek száma: {len(slot_matches)}")
+    
+    # Multi-sport pool expansion (if football pool is small)
+    enable_multi_sport = (os.getenv("TIPPMIX_ENABLE_MULTI_SPORT") or "1").strip() == "1"
+    min_pool = int(os.getenv("TIPPMIX_MIN_POOL", "15"))
+    
+    if enable_multi_sport and len(slot_matches) < min_pool:
+        print(f"[MultiSport] Foci pool kicsi ({len(slot_matches)}), bővítés kosár/kézi-vel...")
+        slot_matches = fetch_multi_sport_matches(
+            date_str=run_date_str,
+            min_pool_size=min_pool,
+            current_pool=slot_matches,
+        )
+        print(f"[MultiSport] Bővített pool: {len(slot_matches)} meccs")
 
     # Dynamic league blocking based on historical hitrate (prevents "kamu" leagues from polluting picks)
     if (os.getenv("TIPPMIX_DYNAMIC_BLOCK") or "1").strip() == "1":
@@ -1117,7 +1131,6 @@ def main() -> None:
     
     if use_marketing:
         # Generate marketing-optimized messages with inline buttons
-        import datetime
         date_today = datetime.date.today().strftime("%Y.%m.%d.")
         
         # Get stats for VIP header (if available)
