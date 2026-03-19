@@ -42,9 +42,11 @@ def _promo_footer(today_iso: str, lang: str) -> str:
     end_txt = f" (eddig: {end})" if end else ""
     return f"\n\n🎁 7 nap INGYEN beta{end_txt} → utána ${price}/hó."
 
-from openai import OpenAI
+from anthropic import Anthropic
 
-client = OpenAI()
+# Support both Anthropic and OpenAI for backward compatibility
+client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+use_anthropic = True
 
 MIN_VIP = int(os.getenv("TIPPMIX_MIN_VIP", "6"))
 MIN_FREE = int(os.getenv("TIPPMIX_MIN_FREE", "3"))
@@ -268,21 +270,43 @@ def _call_llm(dossiers: List[Dict[str, Any]], web_context: str = "") -> Dict[str
         + json.dumps(dossiers, ensure_ascii=False, indent=2)
     )
 
-    kwargs: Dict[str, Any] = {
-        "model": model,
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": prompt},
-        ],
-        "response_format": {"type": "json_object"},
-    }
-
-    # gpt-5* esetén NE küldj temperature-t
-    if not str(model).startswith("gpt-5"):
-        kwargs["temperature"] = temp
-
-    r = client.chat.completions.create(**kwargs)
-    return json.loads(r.choices[0].message.content or "{}")
+    # Claude API call
+    if use_anthropic:
+        # Default to Claude Sonnet 4.6 if not specified
+        if model in ["gpt-4o-mini", "gpt-4o", "gpt-4"]:
+            model = "claude-sonnet-4-20250514"
+        
+        r = client.messages.create(
+            model=model,
+            max_tokens=8192,
+            temperature=temp,
+            system=SYSTEM_PROMPT + "\n\nRespond ONLY with valid JSON. No markdown, no code blocks, just the JSON object.",
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+        content = r.content[0].text
+        # Strip potential markdown wrappers
+        if content.startswith("```"):
+            lines = content.split("\n")
+            content = "\n".join(lines[1:-1]) if len(lines) > 2 else content
+        return json.loads(content)
+    else:
+        # OpenAI fallback (deprecated)
+        kwargs: Dict[str, Any] = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+            "response_format": {"type": "json_object"},
+        }
+        if not str(model).startswith("gpt-5"):
+            kwargs["temperature"] = temp
+        from openai import OpenAI
+        oai_client = OpenAI()
+        r = oai_client.chat.completions.create(**kwargs)
+        return json.loads(r.choices[0].message.content or "{}")
 
 
 def _call_validator(dossiers: List[Dict[str, Any]], vip_raw: List[Dict[str, Any]], free_raw: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -305,20 +329,43 @@ def _call_validator(dossiers: List[Dict[str, Any]], vip_raw: List[Dict[str, Any]
         "note": "Csak a megadott allowed_fixture_ids listából válassz. Csak 1X2. Csak JSON.",
     }
 
-    kwargs: Dict[str, Any] = {
-        "model": model,
-        "messages": [
-            {"role": "system", "content": VALIDATOR_SYSTEM_PROMPT},
-            {"role": "user", "content": json.dumps(prompt_obj, ensure_ascii=False)},
-        ],
-        "response_format": {"type": "json_object"},
-    }
-
-    if not str(model).startswith("gpt-5"):
-        kwargs["temperature"] = temp
-
-    r = client.chat.completions.create(**kwargs)
-    return json.loads(r.choices[0].message.content or "{}")
+    # Claude API call
+    if use_anthropic:
+        # Default to Claude Sonnet 4.6 if not specified
+        if model in ["gpt-4o-mini", "gpt-4o", "gpt-4"]:
+            model = "claude-sonnet-4-20250514"
+        
+        r = client.messages.create(
+            model=model,
+            max_tokens=8192,
+            temperature=temp,
+            system=VALIDATOR_SYSTEM_PROMPT + "\n\nRespond ONLY with valid JSON. No markdown, no code blocks, just the JSON object.",
+            messages=[
+                {"role": "user", "content": json.dumps(prompt_obj, ensure_ascii=False)}
+            ]
+        )
+        content = r.content[0].text
+        # Strip potential markdown wrappers
+        if content.startswith("```"):
+            lines = content.split("\n")
+            content = "\n".join(lines[1:-1]) if len(lines) > 2 else content
+        return json.loads(content)
+    else:
+        # OpenAI fallback (deprecated)
+        kwargs: Dict[str, Any] = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": VALIDATOR_SYSTEM_PROMPT},
+                {"role": "user", "content": json.dumps(prompt_obj, ensure_ascii=False)},
+            ],
+            "response_format": {"type": "json_object"},
+        }
+        if not str(model).startswith("gpt-5"):
+            kwargs["temperature"] = temp
+        from openai import OpenAI
+        oai_client = OpenAI()
+        r = oai_client.chat.completions.create(**kwargs)
+        return json.loads(r.choices[0].message.content or "{}")
 
 
 def _risk_to_emoji(r: str) -> str:

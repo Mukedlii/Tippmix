@@ -2,7 +2,7 @@
 
 Ez egy alap projekt, ami:
 - GitHub Actions segítségével napi többször lefut
-- OpenAI-t használ a meccsek elemzésére
+- **Claude Sonnet 4.6-ot** (Anthropic) használ a meccsek elemzésére
 - Telegram csatornákra küldi a tippeket (nyilvános + VIP)
 
 Fontos:
