@@ -20,6 +20,7 @@ jobs:
       TELEGRAM_EN_CHAT_ID: ${{ secrets.TELEGRAM_EN_CHAT_ID }}
 
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       # Provider selection (from Variables)
       SPORTS_DATA_PROVIDER: ${{ vars.SPORTS_DATA_PROVIDER }}

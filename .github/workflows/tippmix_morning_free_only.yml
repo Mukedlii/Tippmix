@@ -22,6 +22,7 @@ jobs:
       TIPPMIX_SEND_EN: "0"
 
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       # Provider keys
       SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
