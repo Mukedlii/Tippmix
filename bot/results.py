@@ -47,6 +47,20 @@ def _get_fixture_result(fixture_id: int) -> Dict[str, Any]:
     API-FOOTBALL (API-Sports) vagy SportsDataIO provider alapján.
     """
     provider = resolve_sports_provider()
+    
+    # Free scraper (SofaScore)
+    if provider == "free_scraper":
+        from bot.providers.free_fixtures import fetch_sofascore_result
+        result = fetch_sofascore_result(fixture_id)
+        if not result:
+            return {}
+        # Normalize to a common format
+        return {
+            "status": result.get("status"),
+            "home_score": result.get("home_score"),
+            "away_score": result.get("away_score"),
+        }
+    
     if provider == "sportsdataio":
         game = sportsdataio.fetch_game_by_id(fixture_id)
         return game or {}
@@ -84,7 +98,19 @@ def _settle_tip_1x2(tip: str, fixture: Dict[str, Any]) -> str:
     if not fixture:
         return "unknown"
 
-    if resolve_sports_provider() == "sportsdataio":
+    # Free scraper (SofaScore) format
+    if resolve_sports_provider() == "free_scraper":
+        raw_status = (fixture.get("status") or "").upper()
+        home_goals = fixture.get("home_score")
+        away_goals = fixture.get("away_score")
+        if raw_status not in ("FT", "FINISHED"):
+            return "pending"
+        if home_goals is None or away_goals is None:
+            return "unknown"
+        # Normalize status to FT for common logic below
+        status = "FT"
+
+    elif resolve_sports_provider() == "sportsdataio":
         status = (fixture.get("Status") or "").upper()
         home_goals = fixture.get("HomeTeamScore")
         away_goals = fixture.get("AwayTeamScore")

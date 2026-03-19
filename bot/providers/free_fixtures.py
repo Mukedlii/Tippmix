@@ -208,6 +208,54 @@ def fetch_sofascore_odds(fixture_id: int) -> Optional[dict]:
     return None
 
 
+def fetch_sofascore_result(fixture_id: int) -> Optional[dict]:
+    """
+    Fetch match result from SofaScore for a given fixture_id.
+    Returns: {"status": "FT"|"LIVE"|"NS"|..., "home_score": int, "away_score": int}
+    """
+    url = f"https://api.sofascore.com/api/v1/event/{fixture_id}"
+    extra_headers = {
+        "Referer": f"https://www.sofascore.com/event/{fixture_id}",
+        "Origin": "https://www.sofascore.com",
+    }
+
+    data = _json_get(url, extra_headers=extra_headers)
+    if not data:
+        return None
+
+    try:
+        event = data.get("event") or {}
+        status = event.get("status") or {}
+        status_code = status.get("code")  # 0=not started, 6=FT, 100=live, etc.
+        status_type = status.get("type", "").upper()  # "notstarted", "finished", "inprogress"
+
+        home_score = event.get("homeScore") or {}
+        away_score = event.get("awayScore") or {}
+        
+        # current/display scores
+        home_goals = home_score.get("current") or home_score.get("display")
+        away_goals = away_score.get("current") or away_score.get("display")
+
+        # map status
+        if status_code == 6 or status_type == "FINISHED":
+            result_status = "FT"
+        elif status_code == 100 or status_type == "INPROGRESS":
+            result_status = "LIVE"
+        elif status_code == 0 or status_type == "NOTSTARTED":
+            result_status = "NS"
+        else:
+            result_status = "UNKNOWN"
+
+        return {
+            "status": result_status,
+            "home_score": int(home_goals) if home_goals is not None else None,
+            "away_score": int(away_goals) if away_goals is not None else None,
+        }
+    except Exception as e:
+        log.debug(f"[SofaScore] Result parse error for {fixture_id}: {e}")
+        return None
+
+
 # ──────────────────────────────────────────────
 # 2. FLASHSCORE — HTML scraping
 # ──────────────────────────────────────────────
