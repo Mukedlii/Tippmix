@@ -77,7 +77,7 @@ class EnsembleAI:
             import json
             
             genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-            model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            model = genai.GenerativeModel('gemini-1.5-flash')
             
             prompt = f"{system_prompt}\n\nMeccs dossziék:\n{json.dumps(dossiers[:30], ensure_ascii=False, indent=2)}\n\n{web_context}\n\nRespond ONLY with valid JSON."
             
