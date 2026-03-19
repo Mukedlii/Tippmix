@@ -128,14 +128,14 @@ def generate_all_data():
     
     # 7. Metadata (last updated)
     metadata = {
-        "last_updated": datetime.utcnow().isoformat() + "Z",
+        "last_updated": datetime.now().replace(microsecond=0).isoformat() + "Z",
         "total_stats": len(recent_bets),
     }
     
     with open(os.path.join(output_dir, "metadata.json"), "w") as f:
         json.dump(metadata, f, indent=2)
     
-    print(f"✅ Generated dashboard data:")
+    print(f"Generated dashboard data:")
     print(f"   - Overall: {stats_7d.get('total_bets')} bets, {stats_7d.get('roi')}% ROI")
     print(f"   - VIP: {vip_7d.get('total_bets')} bets, {vip_7d.get('roi')}% ROI")
     print(f"   - FREE: {free_7d.get('total_bets')} bets, {free_7d.get('roi')}% ROI")
