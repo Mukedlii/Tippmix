@@ -722,7 +722,22 @@ def main() -> None:
 
         full_context = "\n\n".join([x for x in [learning_context, combined_web, combined_odds] if x])
 
-        tips_data = generate_tips(slot_matches, slot=slot, web_context=full_context)
+        # AI engine selection
+        engine = os.getenv("TIPPMIX_ENGINE", "openai").lower()
+        openai_key = os.getenv("OPENAI_API_KEY", "").strip()
+        anthropic_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+        
+        # Fallback to Poisson if no AI keys available
+        if engine == "poisson" or (not openai_key and not anthropic_key):
+            print("[ENGINE] Using Poisson (statistical model - no API needed)")
+            tips_data = generate_poisson_tips(slot_matches)
+        else:
+            print(f"[ENGINE] Using AI ({engine})")
+            try:
+                tips_data = generate_tips(slot_matches, slot=slot, web_context=full_context)
+            except Exception as e:
+                print(f"[ENGINE] AI failed: {e}, falling back to Poisson")
+                tips_data = generate_poisson_tips(slot_matches)
 
     # ALERT mode: send only very strong PRO picks (VIP + EN only).
     alert_only = (os.getenv("TIPPMIX_ALERT_ONLY") or "0").strip() == "1"
