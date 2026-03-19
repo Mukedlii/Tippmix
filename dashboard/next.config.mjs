@@ -1,7 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
+  output: 'export',  // Static export (no server required)
+  images: {
+    unoptimized: true,  // Required for static export
   },
 };
 

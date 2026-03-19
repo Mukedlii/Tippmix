@@ -1,63 +1,78 @@
 # SZELVÉNYKIRÁLY Dashboard
 
-Real-time betting performance analytics dashboard built with Next.js.
+**100% FREE** static dashboard - no server required! 🎉
 
 ## Features
 
-- 📊 Live ROI tracking (daily, weekly, monthly)
+- 📊 ROI tracking (7/30 nap)
 - 🎯 Hit rate analytics by tier (VIP vs FREE)
 - 🏆 Top winning bets showcase
 - 📈 ROI trend visualization
-- ⚡ Real-time data updates
 - 📱 Responsive design
+- 💸 **Zero hosting costs** (Vercel free tier)
 
-## Setup
+## How It Works
+
+1. **GitHub Actions** generates static JSON files daily (1:00 + 19:00 UTC)
+2. **Next.js** static export reads JSON files
+3. **Vercel** hosts for free (no server needed!)
+
+## Setup (Local Development)
 
 1. Install dependencies:
 ```bash
 npm install
 ```
 
-2. Start the Flask API (from parent directory):
+2. Generate data locally (optional):
 ```bash
 cd ..
-pip install flask flask-cors
-python api/stats_api.py
+python scripts/generate_dashboard_data.py
 ```
 
-3. Start the Next.js dev server:
+3. Start dev server:
 ```bash
 npm run dev
 ```
 
 4. Open http://localhost:3000
 
-## Environment Variables
+## Production Deployment (Vercel)
 
-Create `.env.local`:
-
-```
-NEXT_PUBLIC_API_URL=http://localhost:5000
-```
-
-## Production Deployment
-
-### Vercel (Recommended)
+### Auto-Deploy (Recommended)
 
 1. Push to GitHub
-2. Import project in Vercel
-3. Set environment variables
-4. Deploy!
+2. Connect repo to Vercel
+3. Deploy! (zero config needed)
 
-### Docker
+Every time GitHub Actions updates the JSON files, Vercel auto-redeploys.
+
+### Manual Build
 
 ```bash
-docker build -t tippmix-dashboard .
-docker run -p 3000:3000 -e NEXT_PUBLIC_API_URL=https://api.yourdomain.com tippmix-dashboard
+npm run build
+npm run start
 ```
 
-## API Integration
+## Data Updates
 
-The dashboard connects to the Flask API (`api/stats_api.py`) which reads from the SQLite database.
+- **Automatic**: GitHub Actions runs daily at 1:00 AM & 7:00 PM UTC
+- **Manual**: Run `python scripts/generate_dashboard_data.py`
+- **Files**: `dashboard/public/data/*.json`
 
-Make sure the API is running and accessible before starting the dashboard.
+## Cost Breakdown
+
+- Vercel hosting: **FREE** ✅
+- GitHub Actions: **FREE** ✅
+- Data storage: **FREE** (JSON in repo)
+- **Total: $0/month** 💰
+
+## Data Files
+
+- `stats_7d.json` - Overall 7-day stats
+- `vip_7d.json` - VIP tier 7-day stats
+- `free_7d.json` - FREE tier 7-day stats
+- `top_wins.json` - Top 3 winning bets
+- `roi_trend.json` - 30-day ROI trend
+- `recent_bets.json` - Last 20 bets
+- `metadata.json` - Last updated timestamp
