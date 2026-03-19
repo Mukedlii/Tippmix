@@ -808,6 +808,42 @@ def generate_tips(matches: List[Dict[str, Any]], slot: str = "DAY", web_context:
                 web_context = (web_context or "") + "\n\n=== ENHANCED DATA ===\n" + enhanced_block
     except Exception as e:
         print(f"Enhanced data enrichment failed: {repr(e)}")
+    
+    # Enrich with weather data
+    try:
+        from bot.weather import enrich_with_weather, format_weather_context
+        if os.getenv("TIPPMIX_USE_WEATHER", "1") == "1":
+            weather_contexts = []
+            for i, dossier in enumerate(dossiers):
+                dossiers[i] = enrich_with_weather(dossier)
+                ctx = format_weather_context(dossiers[i])
+                if ctx:
+                    match_label = f"{dossier.get('home')} vs {dossier.get('away')}"
+                    weather_contexts.append(f"\n--- {match_label} ---\n{ctx}")
+            
+            if weather_contexts:
+                weather_block = "\n".join(weather_contexts)
+                web_context = (web_context or "") + "\n\n=== WEATHER CONDITIONS ===\n" + weather_block
+    except Exception as e:
+        print(f"Weather enrichment failed: {repr(e)}")
+    
+    # Enrich with betting exchange data (sharp money indicators)
+    try:
+        from bot.betting_exchange import enrich_with_exchange_data, format_exchange_context
+        if os.getenv("TIPPMIX_USE_EXCHANGE_DATA", "1") == "1":
+            exchange_contexts = []
+            for i, dossier in enumerate(dossiers):
+                dossiers[i] = enrich_with_exchange_data(dossier)
+                ctx = format_exchange_context(dossiers[i])
+                if ctx:
+                    match_label = f"{dossier.get('home')} vs {dossier.get('away')}"
+                    exchange_contexts.append(f"\n--- {match_label} ---\n{ctx}")
+            
+            if exchange_contexts:
+                exchange_block = "\n".join(exchange_contexts)
+                web_context = (web_context or "") + "\n\n=== BETTING MARKET ANALYSIS ===\n" + exchange_block
+    except Exception as e:
+        print(f"Exchange data enrichment failed: {repr(e)}")
 
     free_raw: List[Dict[str, Any]] = []
     vip_raw: List[Dict[str, Any]] = []
