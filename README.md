@@ -2,7 +2,7 @@
 
 Ez egy alap projekt, ami:
 - GitHub Actions segítségével napi többször lefut
-- **Claude Sonnet 4.6-ot** (Anthropic) használ a meccsek elemzésére
+- **Ensemble AI-t** használ (Claude + GPT-4o + Gemini szavazás) a meccsek elemzésére
 - Telegram csatornákra küldi a tippeket (nyilvános + VIP)
 
 Fontos:

@@ -847,12 +847,35 @@ def generate_tips(matches: List[Dict[str, Any]], slot: str = "DAY", web_context:
 
     free_raw: List[Dict[str, Any]] = []
     vip_raw: List[Dict[str, Any]] = []
-    try:
-        data = _call_llm(dossiers, web_context=web_context)
-        free_raw = data.get("free_tips") or []
-        vip_raw = data.get("vip_tips") or []
-    except Exception as e:
-        print("OpenAI hiba (primary):", repr(e))
+    ensemble_stats = {}
+    
+    # Use Ensemble AI if enabled
+    if os.getenv("TIPPMIX_USE_ENSEMBLE", "1") == "1":
+        try:
+            from bot.ensemble import EnsembleAI
+            ensemble = EnsembleAI()
+            data = ensemble.get_ensemble_predictions(dossiers, web_context, SYSTEM_PROMPT)
+            free_raw = data.get("free_tips") or []
+            vip_raw = data.get("vip_tips") or []
+            ensemble_stats = data.get("ensemble_stats", {})
+            print(f"Ensemble used: {ensemble_stats}")
+        except Exception as e:
+            print(f"Ensemble failed, fallback to single model: {repr(e)}")
+            # Fallback to single model
+            try:
+                data = _call_llm(dossiers, web_context=web_context)
+                free_raw = data.get("free_tips") or []
+                vip_raw = data.get("vip_tips") or []
+            except Exception as e2:
+                print("LLM hiba (fallback):", repr(e2))
+    else:
+        # Single model mode
+        try:
+            data = _call_llm(dossiers, web_context=web_context)
+            free_raw = data.get("free_tips") or []
+            vip_raw = data.get("vip_tips") or []
+        except Exception as e:
+            print("LLM hiba (primary):", repr(e))
 
     # Validator kör (opcionális)
     if os.getenv("TIPPMIX_USE_VALIDATOR", "1") == "1":
