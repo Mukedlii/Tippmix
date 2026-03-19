@@ -787,6 +787,27 @@ def generate_tips(matches: List[Dict[str, Any]], slot: str = "DAY", web_context:
     id_to_match = {m["fixture_id"]: m for m in matches_norm}
 
     dossiers = matches_norm[: int(os.getenv("TIPPMIX_DOSSIER_LIMIT", "60"))]
+    
+    # Enrich dossiers with enhanced data (injuries, H2H, advanced stats)
+    try:
+        from bot.enhanced_data import EnhancedDataProvider, format_enhanced_context
+        if os.getenv("TIPPMIX_USE_ENHANCED_DATA", "1") == "1":
+            provider = EnhancedDataProvider()
+            dossiers = provider.batch_enrich(dossiers)
+            
+            # Add formatted enhanced context to web_context
+            enhanced_contexts = []
+            for dossier in dossiers:
+                ctx = format_enhanced_context(dossier)
+                if ctx:
+                    match_label = f"{dossier.get('home')} vs {dossier.get('away')}"
+                    enhanced_contexts.append(f"\n--- {match_label} ---\n{ctx}")
+            
+            if enhanced_contexts:
+                enhanced_block = "\n".join(enhanced_contexts)
+                web_context = (web_context or "") + "\n\n=== ENHANCED DATA ===\n" + enhanced_block
+    except Exception as e:
+        print(f"Enhanced data enrichment failed: {repr(e)}")
 
     free_raw: List[Dict[str, Any]] = []
     vip_raw: List[Dict[str, Any]] = []
