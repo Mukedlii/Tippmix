@@ -1,32 +1,32 @@
 [
   {
     "days": 5,
-    "roi": 0,
-    "hit_rate": 0
+    "roi": -100.0,
+    "hit_rate": 48.3
   },
   {
     "days": 10,
-    "roi": 0,
-    "hit_rate": 0
+    "roi": -100.0,
+    "hit_rate": 48.3
   },
   {
     "days": 15,
-    "roi": 0,
-    "hit_rate": 0
+    "roi": -100.0,
+    "hit_rate": 48.3
   },
   {
     "days": 20,
-    "roi": 0,
-    "hit_rate": 0
+    "roi": -100.0,
+    "hit_rate": 48.3
   },
   {
     "days": 25,
-    "roi": 0,
-    "hit_rate": 0
+    "roi": -100.0,
+    "hit_rate": 48.3
   },
   {
     "days": 30,
-    "roi": 0,
-    "hit_rate": 0
+    "roi": -100.0,
+    "hit_rate": 48.3
   }
 ]
