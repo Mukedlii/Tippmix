@@ -168,6 +168,8 @@ def get_over_under_for_match(
 ) -> Tuple[Optional[float], Optional[float]]:
     """Get Over/Under odds for a match.
     
+    Strategy: Try exact line first, then fallback to closest available line (±1.0 tolerance).
+    
     Returns:
         (over_odds, under_odds) or (None, None)
     """
@@ -177,34 +179,59 @@ def get_over_under_for_match(
             if not match_event_to_fixture(ev, home_team, away_team):
                 continue
             
-            # Find totals market
+            # Collect all available lines with odds
+            line_options = {}  # {point: (over_odds, under_odds)}
+            
             for bm in (ev.get("bookmakers") or []):
                 for mkt in (bm.get("markets") or []):
                     if (mkt.get("key") or "").lower() != "totals":
                         continue
                     
-                    # Check if this is the right line
-                    mkt_line = mkt.get("line")
-                    if mkt_line is None or abs(float(mkt_line) - line) > 0.01:
-                        continue
-                    
-                    over_odds = None
-                    under_odds = None
-                    
+                    # Group outcomes by point
+                    point_map = {}
                     for out in (mkt.get("outcomes") or []):
+                        point = out.get("point")
+                        if point is None:
+                            continue
+                        
+                        point = float(point)
                         name = (out.get("name") or "").lower()
+                        
                         try:
                             price = float(out.get("price"))
                         except:
                             continue
                         
+                        if point not in point_map:
+                            point_map[point] = {}
+                        
                         if "over" in name:
-                            over_odds = price if over_odds is None else max(over_odds, price)
+                            point_map[point]["over"] = max(point_map[point].get("over", 0), price)
                         elif "under" in name:
-                            under_odds = price if under_odds is None else max(under_odds, price)
+                            point_map[point]["under"] = max(point_map[point].get("under", 0), price)
                     
-                    if over_odds and under_odds:
-                        return over_odds, under_odds
+                    # Merge into line_options (keep best odds)
+                    for pt, odds in point_map.items():
+                        if "over" in odds and "under" in odds:
+                            if pt not in line_options:
+                                line_options[pt] = (odds["over"], odds["under"])
+                            else:
+                                line_options[pt] = (
+                                    max(line_options[pt][0], odds["over"]),
+                                    max(line_options[pt][1], odds["under"])
+                                )
+            
+            if not line_options:
+                return None, None
+            
+            # Try exact line first
+            if line in line_options:
+                return line_options[line]
+            
+            # Fallback: find closest line (within ±3.0 tolerance)
+            closest_line = min(line_options.keys(), key=lambda x: abs(x - line))
+            if abs(closest_line - line) <= 3.0:
+                return line_options[closest_line]
             
             return None, None
     

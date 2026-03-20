@@ -1047,18 +1047,8 @@ def main() -> None:
     public_bets = tips_data.get("public_bets", []) or []
     vip_bets = tips_data.get("vip_bets", []) or []
 
-    # DEBUG: Check if slot_matches contains odds
-    print(f"[DEBUG_ENRICH] slot_matches count: {len(slot_matches)}")
-    if slot_matches:
-        print(f"[DEBUG_ENRICH] First match odds: {slot_matches[0].get('odds')}")
-        print(f"[DEBUG_ENRICH] First match fixture_id: {slot_matches[0].get('fixture_id')}")
-    
     public_bets_enriched = _enrich_bets_for_storage(public_bets, slot_matches, run_date_str, slot)
     vip_bets_enriched = _enrich_bets_for_storage(vip_bets, slot_matches, run_date_str, slot)
-    
-    # DEBUG: Check enriched output
-    if vip_bets_enriched:
-        print(f"[DEBUG_ENRICH] First VIP bet odds_1x2: {vip_bets_enriched[0].get('odds_1x2')}")
 
     public_json_path = f"public_bets_{suffix}.json"
     vip_json_path = f"vip_bets_{suffix}.json"
