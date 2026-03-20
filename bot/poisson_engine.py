@@ -105,10 +105,10 @@ def _pick_markets(
 
     if best_pick in ("Hazai győzelem", "Vendég győzelem"):
         if best_pick == "Hazai győzelem":
-            dnb_pick = "Hazai DNB"
+            dnb_pick = "Hazai (döntetlen visszajár)"
             dnb_p = p_home_dnb
         else:
-            dnb_pick = "Vendég DNB"
+            dnb_pick = "Vendég (döntetlen visszajár)"
             dnb_p = p_away_dnb
         # store DNB as an alternative row (same shelf as 1X2)
         out.append({"market": "DNB", "line": None, "pick": dnb_pick, "p": dnb_p, "shelf": "SAFE" if best_p >= safe_thr else "RISK"})
@@ -120,23 +120,23 @@ def _pick_markets(
 
     # Under/Over 2.5
     if p_under25 >= safe_thr:
-        out.append({"market": "OU", "line": 2.5, "pick": "Under 2.5", "p": p_under25, "shelf": "SAFE"})
+        out.append({"market": "OU", "line": 2.5, "pick": "2.5 alatt (max. 2 gól)", "p": p_under25, "shelf": "SAFE"})
     elif p_over25 >= safe_thr:
-        out.append({"market": "OU", "line": 2.5, "pick": "Over 2.5", "p": p_over25, "shelf": "SAFE"})
+        out.append({"market": "OU", "line": 2.5, "pick": "2.5 felett (min. 3 gól)", "p": p_over25, "shelf": "SAFE"})
     elif p_over25 >= risk_thr:
-        out.append({"market": "OU", "line": 2.5, "pick": "Over 2.5", "p": p_over25, "shelf": "RISK"})
+        out.append({"market": "OU", "line": 2.5, "pick": "2.5 felett (min. 3 gól)", "p": p_over25, "shelf": "RISK"})
     elif p_under25 >= risk_thr:
-        out.append({"market": "OU", "line": 2.5, "pick": "Under 2.5", "p": p_under25, "shelf": "RISK"})
+        out.append({"market": "OU", "line": 2.5, "pick": "2.5 alatt (max. 2 gól)", "p": p_under25, "shelf": "RISK"})
 
     # BTTS
     if p_btts_no >= safe_thr:
-        out.append({"market": "BTTS", "line": None, "pick": "BTTS: NO", "p": p_btts_no, "shelf": "SAFE"})
+        out.append({"market": "BTTS", "line": None, "pick": "Legalább egy 0-n marad", "p": p_btts_no, "shelf": "SAFE"})
     elif p_btts >= safe_thr:
-        out.append({"market": "BTTS", "line": None, "pick": "BTTS: YES", "p": p_btts, "shelf": "SAFE"})
+        out.append({"market": "BTTS", "line": None, "pick": "Mindkét csapat góloz", "p": p_btts, "shelf": "SAFE"})
     elif p_btts >= risk_thr:
-        out.append({"market": "BTTS", "line": None, "pick": "BTTS: YES", "p": p_btts, "shelf": "RISK"})
+        out.append({"market": "BTTS", "line": None, "pick": "Mindkét csapat góloz", "p": p_btts, "shelf": "RISK"})
     elif p_btts_no >= risk_thr:
-        out.append({"market": "BTTS", "line": None, "pick": "BTTS: NO", "p": p_btts_no, "shelf": "RISK"})
+        out.append({"market": "BTTS", "line": None, "pick": "Legalább egy 0-n marad", "p": p_btts_no, "shelf": "RISK"})
 
     # DNB (winner without draw)
     p_decided = 1.0 - p_draw
@@ -147,7 +147,7 @@ def _pick_markets(
             out.append({
                 "market": "DNB",
                 "line": None,
-                "pick": "Home DNB" if p_home_dnb >= p_away_dnb else "Away DNB",
+                "pick": "Hazai (döntetlen visszajár)" if p_home_dnb >= p_away_dnb else "Vendég (döntetlen visszajár)",
                 "p": max(p_home_dnb, p_away_dnb),
                 "shelf": "SAFE",
             })
@@ -155,7 +155,7 @@ def _pick_markets(
             out.append({
                 "market": "DNB",
                 "line": None,
-                "pick": "Home DNB" if p_home_dnb >= p_away_dnb else "Away DNB",
+                "pick": "Hazai (döntetlen visszajár)" if p_home_dnb >= p_away_dnb else "Vendég (döntetlen visszajár)",
                 "p": max(p_home_dnb, p_away_dnb),
                 "shelf": "RISK",
             })
