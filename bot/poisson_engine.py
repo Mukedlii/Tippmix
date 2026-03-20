@@ -153,6 +153,9 @@ def _pick_markets(
         it["away_team_id"] = match.get("away_team_id")
         it["lam_home"] = lam_home
         it["lam_away"] = lam_away
+        # Pass through odds from match
+        it["odds"] = match.get("odds")
+        it["odds_source"] = match.get("odds_source")
 
     return out
 
@@ -618,6 +621,21 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         else:
             dq = "medium"
 
+        # Extract odds from match data
+        odds_dict = r.get("odds") or {}
+        odds_estimate = None
+        
+        # Calculate odds estimate based on pick
+        pick = r.get("pick", "")
+        if "Hazai" in pick or "Home" in pick:
+            odds_estimate = odds_dict.get("1")
+        elif "Vendég" in pick or "Away" in pick:
+            odds_estimate = odds_dict.get("2")
+        elif "Döntetlen" in pick or "Draw" in pick:
+            odds_estimate = odds_dict.get("X")
+        # For other markets (Over/Under, BTTS, DNB), we don't have specific odds
+        # Could use average or leave as None
+        
         return {
             "fixture_id": r.get("fixture_id"),
             "selection": r.get("pick"),
@@ -629,6 +647,9 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             "line": r.get("line"),
             "shelf": r.get("shelf"),
             "tier": tier,
+            "odds_estimate": odds_estimate,  # ADD ODDS!
+            "odds": odds_dict,  # Keep full odds dict too
+            "odds_source": r.get("odds_source"),
 
             # data-quality fields for DB verification / long-term tracking
             "used_team_defaults": used_team_defaults,
