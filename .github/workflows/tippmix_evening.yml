@@ -65,9 +65,9 @@ jobs:
       TIPPMIX_ENABLE_MULTI_SPORT: "1"
       TIPPMIX_EXTRA_SPORTS: "basketball,handball"
       
-      # TheOddsAPI
+      # TheOddsAPI - több liga coverage
       ODDS_MAX_REQUESTS_PER_RUN: "20"
-      ODDS_SPORT_KEYS: "soccer_uefa_europa_league,soccer_uefa_europa_conference_league"
+      ODDS_SPORT_KEYS: "soccer_epl,soccer_germany_bundesliga,soccer_italy_serie_a,soccer_spain_la_liga,soccer_france_ligue_one,soccer_netherlands_eredivisie,soccer_portugal_primeira_liga,soccer_england_championship,soccer_uefa_europa_league,soccer_uefa_europa_conference_league"
 
     steps:
       - name: Checkout repo
