@@ -78,19 +78,25 @@ def backfill_competition(comp_code: str, season: int):
             season_obj = match.get("season", {})
             season_year = season_obj.get("startDate", "")[:4] if season_obj.get("startDate") else None
             
-            # Store in database
+            # Convert football-data format to API-Sports format for upsert_result
+            converted_match = {
+                "fixture": {"id": fixture_id, "status": {"short": "FT"}},
+                "teams": {
+                    "home": {"id": home_team_id, "name": home_team.get("name")},
+                    "away": {"id": away_team_id, "name": away_team.get("name")}
+                },
+                "goals": {"home": home_goals, "away": away_goals},
+                "league": {"id": league_id, "name": competition.get("name")},
+                "season": int(season_year) if season_year and season_year.isdigit() else None
+            }
+            
+            # Store in database (upsert_result extracts from raw)
             upsert_result(
                 fixture_id=fixture_id,
                 final_score=f"{home_goals}-{away_goals}",
                 result_1x2=result_1x2,
                 status="FT",
-                home_goals=home_goals,
-                away_goals=away_goals,
-                home_team_id=home_team_id,
-                away_team_id=away_team_id,
-                league_id=league_id,
-                season=int(season_year) if season_year and season_year.isdigit() else None,
-                raw_json=match
+                raw=converted_match
             )
             
             stored += 1
