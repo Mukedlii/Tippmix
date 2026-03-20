@@ -52,7 +52,7 @@ jobs:
       # Keep API usage minimal on free plans
       # TheOddsAPI enabled (free tier: 500 req/month)
       ODDS_MAX_REQUESTS_PER_RUN: ${{ vars.ODDS_MAX_REQUESTS_PER_RUN || '20' }}
-      ODDS_SPORT_KEYS: ${{ vars.ODDS_SPORT_KEYS || 'soccer_uefa_europa_league,soccer_uefa_europa_conference_league,soccer_england_league1' }}
+      ODDS_SPORT_KEYS: ${{ vars.ODDS_SPORT_KEYS || 'soccer_epl,soccer_germany_bundesliga,soccer_italy_serie_a,soccer_spain_la_liga,soccer_france_ligue_one,soccer_uefa_europa_league,soccer_uefa_europa_conference_league' }}
 
       # Provider selection (daily tips)
       # Use free_scraper by default to get broader daily coverage + SofaScore-derived odds.
