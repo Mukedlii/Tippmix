@@ -14,6 +14,7 @@ data/*.db
 
 Tippmix/data/*.json
 data/*.json
+!data/manual_bets_*.json
 
 Tippmix/data/archive/
 data/archive/

@@ -1,0 +1,60 @@
+{
+  "date": "2026-03-19",
+  "source": "manual_telegram",
+  "stake_per_bet": 1000,
+  "currency": "HUF",
+  "bets": [
+    {
+      "match": "Roma",
+      "tip": "unknown",
+      "result": "loss",
+      "payout": 0,
+      "odds": null
+    },
+    {
+      "match": "Villa",
+      "tip": "unknown",
+      "result": "win",
+      "payout": 1750,
+      "odds": 1.75
+    },
+    {
+      "match": "Porto",
+      "tip": "unknown",
+      "result": "win",
+      "payout": 1700,
+      "odds": 1.70
+    },
+    {
+      "match": "Betis",
+      "tip": "unknown",
+      "result": "win",
+      "payout": 1650,
+      "odds": 1.65
+    },
+    {
+      "match": "Rayo",
+      "tip": "unknown",
+      "result": "win",
+      "payout": 1700,
+      "odds": 1.70
+    },
+    {
+      "match": "Döntetlen",
+      "tip": "X",
+      "result": "loss",
+      "payout": 0,
+      "odds": null
+    }
+  ],
+  "summary": {
+    "total_bets": 6,
+    "wins": 4,
+    "losses": 2,
+    "win_rate": 0.667,
+    "total_stake": 6000,
+    "total_payout": 6800,
+    "net_profit": 800,
+    "roi": 0.133
+  }
+}
