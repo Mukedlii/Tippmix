@@ -4,6 +4,7 @@ import datetime
 from typing import Any, Dict, Optional
 
 from bot.storage.sqlite_store import _db_path  # type: ignore
+from bot.storage.team_matcher import find_historical_team_id
 
 
 def _connect() -> sqlite3.Connection:
@@ -53,9 +54,30 @@ def _days_ago(days: int) -> str:
     return dt.isoformat()
 
 
-def team_goal_rates(team_id: int, days: int = 120) -> Optional[Dict[str, float]]:
-    """Return per-match avg goals for/against for a team over last N days."""
+def team_goal_rates(
+    team_id: Optional[int] = None, 
+    team_name: Optional[str] = None,
+    days: int = 120
+) -> Optional[Dict[str, float]]:
+    """
+    Return per-match avg goals for/against for a team over last N days.
+    
+    Args:
+        team_id: Team ID from current match provider (optional)
+        team_name: Team name for fallback matching (optional)
+        days: Lookback period in days
+    
+    Returns:
+        Dict with 'n' (matches), 'gf' (goals for), 'ga' (goals against) or None
+    """
     if not os.path.exists(_db_path()):
+        return None
+
+    # Try name-based matching if team_id not found or not provided
+    if team_id is None and team_name:
+        team_id = find_historical_team_id(team_name)
+    
+    if team_id is None:
         return None
 
     ensure_results_columns()

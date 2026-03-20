@@ -230,9 +230,18 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             m["league_id"] = lid
 
         # baselines from history
+        # Try team_id first, fallback to team_name matching
         base_raw = league_goal_baseline(int(lid), days=int(os.getenv("TIPPMIX_HIST_DAYS", "180")))
-        rates_h_raw = team_goal_rates(int(hid), days=int(os.getenv("TIPPMIX_TEAM_DAYS", "120")))
-        rates_a_raw = team_goal_rates(int(aid), days=int(os.getenv("TIPPMIX_TEAM_DAYS", "120")))
+        rates_h_raw = team_goal_rates(
+            team_id=int(hid) if hid else None,
+            team_name=m.get("home_team"),
+            days=int(os.getenv("TIPPMIX_TEAM_DAYS", "120"))
+        )
+        rates_a_raw = team_goal_rates(
+            team_id=int(aid) if aid else None,
+            team_name=m.get("away_team"),
+            days=int(os.getenv("TIPPMIX_TEAM_DAYS", "120"))
+        )
 
         base = base_raw or _defaults_base()
         rates_h = rates_h_raw or _defaults_team()
