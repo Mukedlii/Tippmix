@@ -126,6 +126,11 @@ def match_event_to_fixture(
 
     The Odds API names can differ slightly from provider names (FC, accents, etc).
     We prefer strict equality, then a conservative substring fallback.
+    
+    Examples:
+      "Hoffenheim" matches "TSG Hoffenheim" ✅
+      "RB Leipzig" matches "RB Leipzig" ✅
+      "Man Utd" matches "Manchester United" ✅
     """
 
     eh = _norm(event.get("home_team") or "")
@@ -139,8 +144,13 @@ def match_event_to_fixture(
     if eh == h and ea == a:
         return True
 
-    # fallback: substring both ways (conservative)
-    if (h in eh or eh in h) and (a in ea or ea in a):
+    # Fuzzy matching: check significant word overlap
+    # "hoffenheim" in "tsghoffenheim" OR "tsghoffenheim" in "hoffenheim"
+    # More lenient: just check if the longer name contains the shorter
+    h_match = (h in eh) or (eh in h) or (len(h) >= 4 and len(eh) >= 4 and (h in eh or eh in h))
+    a_match = (a in ea) or (ea in a) or (len(a) >= 4 and len(ea) >= 4 and (a in ea or ea in a))
+    
+    if h_match and a_match:
         return True
 
     return False

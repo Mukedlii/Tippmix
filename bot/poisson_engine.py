@@ -637,7 +637,6 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             # Over/Under - Over
             try:
                 from bot.providers.theoddsapi import get_over_under_for_match
-                from bot.matches import _theodds_sport_keys_for_matches
                 import os
                 
                 sport_keys_env = (os.getenv("ODDS_SPORT_KEYS") or "").strip()
@@ -649,8 +648,15 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
                 if sport_keys:
                     line = r.get("line", 2.5)
                     over_odds, under_odds = get_over_under_for_match(home_team, away_team, sport_keys, line)
-                    odds_estimate = over_odds
-            except:
+                    if over_odds:
+                        odds_estimate = over_odds
+                        print(f"[OU_ODDS] Over {line} for {home_team} vs {away_team}: {over_odds}")
+                    else:
+                        print(f"[OU_ODDS] No Over odds found for {home_team} vs {away_team}")
+                else:
+                    print(f"[OU_ODDS] No sport keys configured!")
+            except Exception as e:
+                print(f"[OU_ODDS] ERROR: {repr(e)}")
                 pass
         
         elif market == "OU" and ("alatt" in pick.lower() or "under" in pick.lower()):
@@ -665,8 +671,15 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
                 if sport_keys:
                     line = r.get("line", 2.5)
                     over_odds, under_odds = get_over_under_for_match(home_team, away_team, sport_keys, line)
-                    odds_estimate = under_odds
-            except:
+                    if under_odds:
+                        odds_estimate = under_odds
+                        print(f"[OU_ODDS] Under {line} for {home_team} vs {away_team}: {under_odds}")
+                    else:
+                        print(f"[OU_ODDS] No Under odds found for {home_team} vs {away_team}")
+                else:
+                    print(f"[OU_ODDS] No sport keys configured!")
+            except Exception as e:
+                print(f"[OU_ODDS] ERROR: {repr(e)}")
                 pass
         
         elif "Hazai" in pick or "Home" in pick:
