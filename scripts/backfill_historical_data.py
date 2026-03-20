@@ -124,8 +124,8 @@ def main():
         sys.exit(1)
     
     if args.all:
-        # Top 5 leagues + CL/EL, last 3 seasons
-        competitions = ["PL", "PD", "SA", "BL1", "FL1", "CL", "EL"]
+        # Top 5 leagues + CL only (EL not in free tier), last 3 seasons
+        competitions = ["PL", "PD", "SA", "BL1", "FL1", "CL"]
         current_year = datetime.now().year
         seasons = [current_year - 3, current_year - 2, current_year - 1]
     else:
@@ -153,7 +153,7 @@ def main():
             total_stored += count
             
             # Rate limit: 10 req/min on free tier
-            time.sleep(7)  # ~8-9 req/min to be safe
+            time.sleep(10)  # 6 req/min to be very safe
     
     print("\n" + "="*60)
     print(f"âś… DONE: Stored {total_stored} total matches")
