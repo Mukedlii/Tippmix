@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 
 from bot.storage.sqlite_store import _db_path  # type: ignore
 from bot.storage.team_matcher import find_historical_team_id
+from bot.storage.league_matcher import find_historical_league_id
 
 
 def _connect() -> sqlite3.Connection:
@@ -120,8 +121,22 @@ def team_goal_rates(
         con.close()
 
 
-def league_goal_baseline(league_id: int, days: int = 180) -> Optional[Dict[str, float]]:
-    """League baseline goals per match for home/away over last N days."""
+def league_goal_baseline(
+    league_id: Optional[int] = None,
+    league_name: Optional[str] = None,
+    days: int = 180
+) -> Optional[Dict[str, float]]:
+    """
+    League baseline goals per match for home/away over last N days.
+    
+    Args:
+        league_id: League ID from current match provider (optional)
+        league_name: League name for fallback matching (optional)
+        days: Lookback period in days
+    
+    Returns:
+        Dict with 'n' (matches), 'home_for', 'away_for' or None
+    """
     if not os.path.exists(_db_path()):
         return None
 
@@ -140,15 +155,30 @@ def league_goal_baseline(league_id: int, days: int = 180) -> Optional[Dict[str, 
 
     con = _connect()
     try:
-        row = con.execute(sql, (league_id, league_id, league_id, start)).fetchone()
-        if not row:
-            return None
-        n = int(row["n"] or 0)
-        if n < int(os.getenv("TIPPMIX_LEAGUE_MIN_N", "10")):
-            return None
-        hg = float(row["hg_sum"] or 0.0) / n
-        ag = float(row["ag_sum"] or 0.0) / n
-        # clamp to sane values
-        return {"n": float(n), "home_for": max(0.6, min(2.5, hg)), "away_for": max(0.5, min(2.3, ag))}
+        # Try with provided league_id first
+        if league_id is not None:
+            row = con.execute(sql, (league_id, league_id, league_id, start)).fetchone()
+            if row:
+                n = int(row["n"] or 0)
+                if n >= int(os.getenv("TIPPMIX_LEAGUE_MIN_N", "10")):
+                    hg = float(row["hg_sum"] or 0.0) / n
+                    ag = float(row["ag_sum"] or 0.0) / n
+                    # clamp to sane values
+                    return {"n": float(n), "home_for": max(0.6, min(2.5, hg)), "away_for": max(0.5, min(2.3, ag))}
+        
+        # Fallback: try name-based matching
+        if league_name:
+            matched_id = find_historical_league_id(league_name)
+            if matched_id and matched_id != league_id:
+                row = con.execute(sql, (matched_id, matched_id, matched_id, start)).fetchone()
+                if row:
+                    n = int(row["n"] or 0)
+                    if n >= int(os.getenv("TIPPMIX_LEAGUE_MIN_N", "10")):
+                        hg = float(row["hg_sum"] or 0.0) / n
+                        ag = float(row["ag_sum"] or 0.0) / n
+                        return {"n": float(n), "home_for": max(0.6, min(2.5, hg)), "away_for": max(0.5, min(2.3, ag))}
+        
+        # No data found
+        return None
     finally:
         con.close()
