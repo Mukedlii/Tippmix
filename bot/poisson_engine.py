@@ -138,27 +138,8 @@ def _pick_markets(
     elif p_btts_no >= risk_thr:
         out.append({"market": "BTTS", "line": None, "pick": "Legalább egy 0-n marad", "p": p_btts_no, "shelf": "RISK"})
 
-    # DNB (winner without draw)
-    p_decided = 1.0 - p_draw
-    if p_decided > 0:
-        p_home_dnb = p_home / p_decided
-        p_away_dnb = p_away / p_decided
-        if max(p_home_dnb, p_away_dnb) >= safe_thr:
-            out.append({
-                "market": "DNB",
-                "line": None,
-                "pick": "Hazai (döntetlen visszajár)" if p_home_dnb >= p_away_dnb else "Vendég (döntetlen visszajár)",
-                "p": max(p_home_dnb, p_away_dnb),
-                "shelf": "SAFE",
-            })
-        elif max(p_home_dnb, p_away_dnb) >= risk_thr:
-            out.append({
-                "market": "DNB",
-                "line": None,
-                "pick": "Hazai (döntetlen visszajár)" if p_home_dnb >= p_away_dnb else "Vendég (döntetlen visszajár)",
-                "p": max(p_home_dnb, p_away_dnb),
-                "shelf": "RISK",
-            })
+    # DNB already handled above as alternative to 1X2 (lines 106-114)
+    # No need to duplicate here
 
     # attach ids
     for it in out:
