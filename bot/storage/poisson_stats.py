@@ -73,13 +73,6 @@ def team_goal_rates(
     if not os.path.exists(_db_path()):
         return None
 
-    # Try name-based matching if team_id not found or not provided
-    if team_id is None and team_name:
-        team_id = find_historical_team_id(team_name)
-    
-    if team_id is None:
-        return None
-
     ensure_results_columns()
     start = _days_ago(days)
 
@@ -99,15 +92,30 @@ def team_goal_rates(
 
     con = _connect()
     try:
-        row = con.execute(sql, (team_id, team_id, team_id, team_id, team_id, team_id, start)).fetchone()
-        if not row:
-            return None
-        n = int(row["n"] or 0)
-        if n < int(os.getenv("TIPPMIX_TEAM_MIN_N", "4")):
-            return None
-        gf = float(row["gf_sum"] or 0.0) / n
-        ga = float(row["ga_sum"] or 0.0) / n
-        return {"n": float(n), "gf": gf, "ga": ga}
+        # Try with provided team_id first
+        if team_id is not None:
+            row = con.execute(sql, (team_id, team_id, team_id, team_id, team_id, team_id, start)).fetchone()
+            if row:
+                n = int(row["n"] or 0)
+                if n >= int(os.getenv("TIPPMIX_TEAM_MIN_N", "4")):
+                    gf = float(row["gf_sum"] or 0.0) / n
+                    ga = float(row["ga_sum"] or 0.0) / n
+                    return {"n": float(n), "gf": gf, "ga": ga}
+        
+        # Fallback: try name-based matching
+        if team_name:
+            matched_id = find_historical_team_id(team_name)
+            if matched_id and matched_id != team_id:
+                row = con.execute(sql, (matched_id, matched_id, matched_id, matched_id, matched_id, matched_id, start)).fetchone()
+                if row:
+                    n = int(row["n"] or 0)
+                    if n >= int(os.getenv("TIPPMIX_TEAM_MIN_N", "4")):
+                        gf = float(row["gf_sum"] or 0.0) / n
+                        ga = float(row["ga_sum"] or 0.0) / n
+                        return {"n": float(n), "gf": gf, "ga": ga}
+        
+        # No data found
+        return None
     finally:
         con.close()
 
