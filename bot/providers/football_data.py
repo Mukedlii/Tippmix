@@ -55,3 +55,53 @@ def guess_competition_code(league_name: str) -> Optional[str]:
 
 def get_standings_for_comp(code: str) -> Dict[str, Any]:
     return _get(f"/competitions/{code}/standings")
+
+
+def get_matches_for_comp(code: str, season: Optional[int] = None, status: str = "FINISHED") -> Dict[str, Any]:
+    """
+    Fetch matches for a competition.
+    
+    Args:
+        code: Competition code (e.g., "PL", "CL")
+        season: Year (e.g., 2023 for 2023/24 season) - current season if None
+        status: SCHEDULED|LIVE|IN_PLAY|PAUSED|FINISHED|POSTPONED|SUSPENDED|CANCELLED
+    """
+    params = {"status": status}
+    if season:
+        params["season"] = str(season)
+    
+    return _get(f"/competitions/{code}/matches", params=params)
+
+
+def get_team_matches(team_id: int, limit: int = 50, status: str = "FINISHED") -> Dict[str, Any]:
+    """
+    Fetch recent matches for a team.
+    
+    Args:
+        team_id: Team ID from football-data.org
+        limit: Max matches to return (1-100)
+        status: Filter by status
+    """
+    params = {"limit": min(limit, 100), "status": status}
+    return _get(f"/teams/{team_id}/matches", params=params)
+
+
+# Top competitions available on free tier
+FREE_TIER_COMPETITIONS = {
+    "PL": "Premier League",
+    "PD": "La Liga", 
+    "SA": "Serie A",
+    "BL1": "Bundesliga",
+    "FL1": "Ligue 1",
+    "DED": "Eredivisie",
+    "PPL": "Primeira Liga",
+    "CL": "Champions League",
+    "EL": "Europa League",
+    "EC": "European Championship",
+    "WC": "World Cup",
+}
+
+
+def get_all_competitions() -> Dict[str, Any]:
+    """Get list of all available competitions"""
+    return _get("/competitions")
