@@ -20,8 +20,8 @@ from bot.storage.sqlite_store import _db_path
 
 
 # Team name normalization patterns
-TEAM_PREFIXES = ["fc", "afc", "sfc", "bfc", "rfc", "asc", "sc", "us", "ac", "ss"]
-TEAM_SUFFIXES = ["fc", "united", "city", "town", "athletic", "wanderers"]
+TEAM_PREFIXES = ["fc", "afc", "sfc", "bfc", "rfc", "asc", "sc", "us", "ac", "ss", "tsg"]
+TEAM_SUFFIXES = ["fc", "city", "town", "athletic", "wanderers"]  # Removed "united" - it's often part of the core name
 
 
 def normalize_team_name(name: str) -> str:
@@ -35,16 +35,19 @@ def normalize_team_name(name: str) -> str:
     # Remove common prefixes/suffixes
     words = name.split()
     if len(words) > 1:
-        # Remove prefix
-        if words[0] in TEAM_PREFIXES:
+        # Remove prefix (but only if we still have 1+ words left)
+        if words[0] in TEAM_PREFIXES and len(words) > 1:
             words = words[1:]
-        # Remove suffix
-        if words and words[-1] in TEAM_SUFFIXES:
+        # Remove suffix (but only if we still have 1+ words left)
+        if len(words) > 1 and words[-1] in TEAM_SUFFIXES:
             words = words[:-1]
     
-    # Remove special chars
+    # Remove special chars and numbers (TSG 1899 Hoffenheim → TSG Hoffenheim)
     name = " ".join(words)
     name = name.replace("'", "").replace("-", " ")
+    # Remove standalone numbers
+    words = [w for w in name.split() if not w.isdigit()]
+    name = " ".join(words)
     
     return name.strip()
 
