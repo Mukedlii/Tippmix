@@ -669,25 +669,6 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             except:
                 pass
         
-        elif market == "BTTS" or "mindkét csapat" in pick.lower() or "both teams" in pick.lower():
-            # Both Teams To Score
-            try:
-                from bot.providers.theoddsapi import get_btts_for_match
-                import os
-                
-                sport_keys_env = (os.getenv("ODDS_SPORT_KEYS") or "").strip()
-                sport_keys = [x.strip() for x in sport_keys_env.split(",") if x.strip()] if sport_keys_env else []
-                
-                if sport_keys:
-                    yes_odds, no_odds = get_btts_for_match(home_team, away_team, sport_keys)
-                    # BTTS usually means "Yes"
-                    if "nem" in pick.lower() or "no" in pick.lower():
-                        odds_estimate = no_odds
-                    else:
-                        odds_estimate = yes_odds
-            except:
-                pass
-        
         elif "Hazai" in pick or "Home" in pick:
             odds_estimate = odds_dict.get("1")
         elif "Vendég" in pick or "Away" in pick:

@@ -82,15 +82,14 @@ def _extract_best_h2h(event: Dict[str, Any]) -> Tuple[Optional[float], Optional[
     return best_home, best_draw, best_away
 
 
-def fetch_odds_for_sport_key(sport_key: str, markets: str = "h2h,totals,btts") -> List[Dict[str, Any]]:
+def fetch_odds_for_sport_key(sport_key: str, markets: str = "h2h,totals") -> List[Dict[str, Any]]:
     """Fetch upcoming odds for a single The Odds API sport_key.
     
     Args:
         sport_key: API sport key (e.g. soccer_epl)
-        markets: Comma-separated markets (default: h2h,totals,btts)
+        markets: Comma-separated markets (default: h2h,totals)
                  - h2h = 1X2
                  - totals = Over/Under
-                 - btts = Both Teams To Score
     """
     sport_key = (sport_key or "").strip()
     if not sport_key:
