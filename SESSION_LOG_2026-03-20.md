@@ -106,5 +106,28 @@ Profit: +3,600 HUF (360%)
 
 ---
 
-**Mentes ideje:** 2026-03-20 08:25  
-**Token használat:** ~135k/200k (68%)
+## PROBLÉMA ÉSZLELVE (9:00)
+
+**Morning workflow (8:00):**
+- ❌ Még mindig Under 2.5 / TBA / ⭐⭐
+- ✅ 5,330 meccs betöltve
+- ❌ Team ID mismatch → fallback mode
+
+**OK:**
+- Historical: football-data.org team IDs
+- Mai meccsek: SofaScore team IDs
+- NEM egyeznek → nincs historical match
+
+**FIX holnapra:**
+- Team NAME alapú matching
+- Fuzzy search implementáció
+- Vagy ID mapping table
+
+**JAVASOLT:**
+- ⚠️ MA NE FOGADJ (fallback mode)
+- ✅ HOLNAP REGGEL 6:00 lesz profi
+
+---
+
+**Mentes ideje:** 2026-03-20 09:05  
+**Token használat:** ~138k/200k (69%)
