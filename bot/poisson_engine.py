@@ -211,8 +211,23 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         hid = m.get("home_team_id")
         aid = m.get("away_team_id")
         lid = m.get("league_id")
+        
+        # TEMPORARY: Allow matches without IDs (use defaults) while historical data backfills
+        # TODO: Remove this after backfill completes
         if hid is None or aid is None or lid is None:
-            continue
+            # Generate hash-based fake IDs from team/league names for fallback
+            import hashlib
+            home_name = m.get("home_team", "Unknown")
+            away_name = m.get("away_team", "Unknown")
+            league_name = m.get("league_name", "Unknown")
+            
+            hid = int(hashlib.md5(home_name.encode()).hexdigest()[:8], 16) % 1000000
+            aid = int(hashlib.md5(away_name.encode()).hexdigest()[:8], 16) % 1000000
+            lid = int(hashlib.md5(league_name.encode()).hexdigest()[:8], 16) % 1000
+            
+            m["home_team_id"] = hid
+            m["away_team_id"] = aid
+            m["league_id"] = lid
 
         # baselines from history
         base_raw = league_goal_baseline(int(lid), days=int(os.getenv("TIPPMIX_HIST_DAYS", "180")))
