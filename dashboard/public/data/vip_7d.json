@@ -1,14 +1,14 @@
 {
-  "total_bets": 109,
-  "wins": 8,
-  "losses": 13,
-  "pending": 88,
-  "hit_rate": 38.1,
-  "total_staked": 21000.0,
+  "total_bets": 6,
+  "wins": 0,
+  "losses": 0,
+  "pending": 6,
+  "hit_rate": 0,
+  "total_staked": 0.0,
   "total_returns": 0.0,
-  "roi": -100.0,
-  "profit": -21000.0,
+  "roi": 0,
+  "profit": 0.0,
   "avg_odds": 0,
-  "best_streak": 3,
-  "worst_streak": 6
+  "best_streak": 0,
+  "worst_streak": 0
 }
