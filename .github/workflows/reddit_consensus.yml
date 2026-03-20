@@ -1,0 +1,32 @@
+name: Reddit Consensus Alert
+
+on:
+  schedule:
+    # Once daily at 9:00 UTC (10:00 Budapest) - after morning picks
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reddit-consensus:
+    runs-on: ubuntu-latest
+    
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: pip install requests
+      
+      - name: Fetch Reddit consensus
+        run: python scripts/reddit_consensus_alert.py
