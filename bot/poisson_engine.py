@@ -625,16 +625,75 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         odds_dict = r.get("odds") or {}
         odds_estimate = None
         
-        # Calculate odds estimate based on pick
+        # Calculate odds estimate based on pick and market
         pick = r.get("pick", "")
-        if "Hazai" in pick or "Home" in pick:
+        market = r.get("market", "")
+        
+        # Try to get odds from TheOddsAPI for special markets
+        home_team = r.get("home_team", "")
+        away_team = r.get("away_team", "")
+        
+        if market == "OU" and ("felett" in pick.lower() or "over" in pick.lower()):
+            # Over/Under - Over
+            try:
+                from bot.providers.theoddsapi import get_over_under_for_match
+                from bot.matches import _theodds_sport_keys_for_matches
+                import os
+                
+                sport_keys_env = (os.getenv("ODDS_SPORT_KEYS") or "").strip()
+                if sport_keys_env:
+                    sport_keys = [x.strip() for x in sport_keys_env.split(",") if x.strip()]
+                else:
+                    sport_keys = []
+                
+                if sport_keys:
+                    line = r.get("line", 2.5)
+                    over_odds, under_odds = get_over_under_for_match(home_team, away_team, sport_keys, line)
+                    odds_estimate = over_odds
+            except:
+                pass
+        
+        elif market == "OU" and ("alatt" in pick.lower() or "under" in pick.lower()):
+            # Over/Under - Under
+            try:
+                from bot.providers.theoddsapi import get_over_under_for_match
+                import os
+                
+                sport_keys_env = (os.getenv("ODDS_SPORT_KEYS") or "").strip()
+                sport_keys = [x.strip() for x in sport_keys_env.split(",") if x.strip()] if sport_keys_env else []
+                
+                if sport_keys:
+                    line = r.get("line", 2.5)
+                    over_odds, under_odds = get_over_under_for_match(home_team, away_team, sport_keys, line)
+                    odds_estimate = under_odds
+            except:
+                pass
+        
+        elif market == "BTTS" or "mindkét csapat" in pick.lower() or "both teams" in pick.lower():
+            # Both Teams To Score
+            try:
+                from bot.providers.theoddsapi import get_btts_for_match
+                import os
+                
+                sport_keys_env = (os.getenv("ODDS_SPORT_KEYS") or "").strip()
+                sport_keys = [x.strip() for x in sport_keys_env.split(",") if x.strip()] if sport_keys_env else []
+                
+                if sport_keys:
+                    yes_odds, no_odds = get_btts_for_match(home_team, away_team, sport_keys)
+                    # BTTS usually means "Yes"
+                    if "nem" in pick.lower() or "no" in pick.lower():
+                        odds_estimate = no_odds
+                    else:
+                        odds_estimate = yes_odds
+            except:
+                pass
+        
+        elif "Hazai" in pick or "Home" in pick:
             odds_estimate = odds_dict.get("1")
         elif "Vendég" in pick or "Away" in pick:
             odds_estimate = odds_dict.get("2")
         elif "Döntetlen" in pick or "Draw" in pick:
             odds_estimate = odds_dict.get("X")
-        # For other markets (Over/Under, BTTS, DNB), we don't have specific odds
-        # Could use average or leave as None
         
         return {
             "fixture_id": r.get("fixture_id"),

@@ -82,13 +82,21 @@ def _extract_best_h2h(event: Dict[str, Any]) -> Tuple[Optional[float], Optional[
     return best_home, best_draw, best_away
 
 
-def fetch_odds_for_sport_key(sport_key: str) -> List[Dict[str, Any]]:
-    """Fetch upcoming H2H odds for a single The Odds API sport_key."""
+def fetch_odds_for_sport_key(sport_key: str, markets: str = "h2h,totals,btts") -> List[Dict[str, Any]]:
+    """Fetch upcoming odds for a single The Odds API sport_key.
+    
+    Args:
+        sport_key: API sport key (e.g. soccer_epl)
+        markets: Comma-separated markets (default: h2h,totals,btts)
+                 - h2h = 1X2
+                 - totals = Over/Under
+                 - btts = Both Teams To Score
+    """
     sport_key = (sport_key or "").strip()
     if not sport_key:
         return []
 
-    cache_key = (sport_key, _regions(), "h2h")
+    cache_key = (sport_key, _regions(), markets)
     if cache_key in _CACHE:
         return _CACHE[cache_key]
 
@@ -96,7 +104,7 @@ def fetch_odds_for_sport_key(sport_key: str) -> List[Dict[str, Any]]:
         f"/sports/{sport_key}/odds",
         {
             "regions": _regions(),
-            "markets": "h2h",
+            "markets": markets,
             "oddsFormat": "decimal",
             "dateFormat": "iso",
         },
@@ -151,3 +159,99 @@ def get_1x2_for_match(
             if match_event_to_fixture(ev, home_team, away_team):
                 return _extract_best_h2h(ev)
     return None, None, None
+
+
+def get_over_under_for_match(
+    home_team: str,
+    away_team: str,
+    sport_keys: List[str],
+    line: float = 2.5,
+) -> Tuple[Optional[float], Optional[float]]:
+    """Get Over/Under odds for a match.
+    
+    Returns:
+        (over_odds, under_odds) or (None, None)
+    """
+    for sk in sport_keys:
+        events = fetch_odds_for_sport_key(sk)
+        for ev in events:
+            if not match_event_to_fixture(ev, home_team, away_team):
+                continue
+            
+            # Find totals market
+            for bm in (ev.get("bookmakers") or []):
+                for mkt in (bm.get("markets") or []):
+                    if (mkt.get("key") or "").lower() != "totals":
+                        continue
+                    
+                    # Check if this is the right line
+                    mkt_line = mkt.get("line")
+                    if mkt_line is None or abs(float(mkt_line) - line) > 0.01:
+                        continue
+                    
+                    over_odds = None
+                    under_odds = None
+                    
+                    for out in (mkt.get("outcomes") or []):
+                        name = (out.get("name") or "").lower()
+                        try:
+                            price = float(out.get("price"))
+                        except:
+                            continue
+                        
+                        if "over" in name:
+                            over_odds = price if over_odds is None else max(over_odds, price)
+                        elif "under" in name:
+                            under_odds = price if under_odds is None else max(under_odds, price)
+                    
+                    if over_odds and under_odds:
+                        return over_odds, under_odds
+            
+            return None, None
+    
+    return None, None
+
+
+def get_btts_for_match(
+    home_team: str,
+    away_team: str,
+    sport_keys: List[str],
+) -> Tuple[Optional[float], Optional[float]]:
+    """Get Both Teams To Score odds.
+    
+    Returns:
+        (btts_yes_odds, btts_no_odds) or (None, None)
+    """
+    for sk in sport_keys:
+        events = fetch_odds_for_sport_key(sk)
+        for ev in events:
+            if not match_event_to_fixture(ev, home_team, away_team):
+                continue
+            
+            # Find btts market
+            for bm in (ev.get("bookmakers") or []):
+                for mkt in (bm.get("markets") or []):
+                    if (mkt.get("key") or "").lower() != "btts":
+                        continue
+                    
+                    yes_odds = None
+                    no_odds = None
+                    
+                    for out in (mkt.get("outcomes") or []):
+                        name = (out.get("name") or "").lower()
+                        try:
+                            price = float(out.get("price"))
+                        except:
+                            continue
+                        
+                        if "yes" in name:
+                            yes_odds = price if yes_odds is None else max(yes_odds, price)
+                        elif "no" in name:
+                            no_odds = price if no_odds is None else max(no_odds, price)
+                    
+                    if yes_odds and no_odds:
+                        return yes_odds, no_odds
+            
+            return None, None
+    
+    return None, None
