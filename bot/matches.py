@@ -347,6 +347,7 @@ def _enrich_odds_from_theoddsapi(matches: List[Dict[str, Any]]) -> None:
             continue
 
     enriched = 0
+    scraped = 0
     for m in matches:
         odds = m.get("odds") or {}
         if odds.get("1") and odds.get("X") and odds.get("2"):
@@ -359,10 +360,23 @@ def _enrich_odds_from_theoddsapi(matches: List[Dict[str, Any]]) -> None:
             print(f"[DEBUG] ENRICHED: {m.get('home_team')} vs {m.get('away_team')} → {o1}/{ox}/{o2}")
             enriched += 1
         else:
-            print(f"[DEBUG] NO MATCH: {m.get('home_team')} vs {m.get('away_team')}")
+            # Fallback: Try Tippmix.hu scraper
+            print(f"[DEBUG] NO MATCH from TheOddsAPI: {m.get('home_team')} vs {m.get('away_team')}, trying scraper...")
+            try:
+                from bot.odds_scraper import get_odds_with_fallback
+                scraper_odds = get_odds_with_fallback(m.get("home_team") or "", m.get("away_team") or "")
+                if scraper_odds and scraper_odds.get("1") and scraper_odds.get("X") and scraper_odds.get("2"):
+                    m["odds"] = scraper_odds
+                    m["odds_source"] = "tippmix_scraper"
+                    print(f"[DEBUG] SCRAPED: {m.get('home_team')} vs {m.get('away_team')} → {scraper_odds.get('1')}/{scraper_odds.get('X')}/{scraper_odds.get('2')}")
+                    scraped += 1
+                else:
+                    print(f"[DEBUG] SCRAPER FAILED: {m.get('home_team')} vs {m.get('away_team')}")
+            except Exception as e:
+                print(f"[DEBUG] SCRAPER ERROR: {repr(e)}")
 
-    if enriched:
-        print(f"[matches] theoddsapi enriched odds for {enriched} matches (sport_keys={len(sport_keys)})")
+    if enriched or scraped:
+        print(f"[matches] theoddsapi enriched odds for {enriched} matches, scraped {scraped} matches (sport_keys={len(sport_keys)})")
     else:
         print(f"[DEBUG] No odds enriched! (0/{len(matches)} matches)")
 
