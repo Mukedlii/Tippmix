@@ -1,0 +1,88 @@
+name: Backfill Historical Data (ONE-TIME)
+
+# This is a ONE-TIME manual workflow to populate historical match data
+# After running once, rename to .yml.disabled to prevent accidental re-runs
+
+on:
+  workflow_dispatch:
+    inputs:
+      competitions:
+        description: 'Competition codes (comma-separated, e.g., PL,PD,SA) or leave empty for --all'
+        required: false
+        default: ''
+      season:
+        description: 'Season year (e.g., 2023) or leave empty for --all (last 3 seasons)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    
+    env:
+      FOOTBALLDATA_API_KEY: ${{ secrets.FOOTBALLDATA_API_KEY }}
+      FOOTBALL_DATA_TOKEN: ${{ secrets.FOOTBALLDATA_API_KEY }}
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      
+      - name: Restore DB cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            data/tippmix.db*
+          key: tippmix-db-${{ github.run_id }}
+          restore-keys: |
+            tippmix-db-
+      
+      - name: Run backfill (all competitions, last 3 seasons)
+        if: ${{ github.event.inputs.competitions == '' }}
+        run: |
+          python scripts/backfill_historical_data.py --all
+      
+      - name: Run backfill (specific)
+        if: ${{ github.event.inputs.competitions != '' }}
+        run: |
+          python scripts/backfill_historical_data.py \
+            --season ${{ github.event.inputs.season }} \
+            --competitions ${{ github.event.inputs.competitions }}
+      
+      - name: Show DB stats
+        run: |
+          python - <<'PY'
+          import sqlite3
+          con = sqlite3.connect('data/tippmix.db')
+          c = con.cursor()
+          print('Total results:', c.execute('SELECT COUNT(*) FROM results').fetchone()[0])
+          print('With goals:', c.execute('SELECT COUNT(*) FROM results WHERE home_goals IS NOT NULL').fetchone()[0])
+          print('Leagues:', c.execute('SELECT COUNT(DISTINCT league_id) FROM results WHERE league_id IS NOT NULL').fetchone()[0])
+          print('Teams:', c.execute('SELECT COUNT(DISTINCT team_id) FROM (SELECT home_team_id team_id FROM results UNION SELECT away_team_id FROM results) WHERE team_id IS NOT NULL').fetchone()[0])
+          con.close()
+          PY
+      
+      - name: Commit updated DB
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add data/tippmix.db || true
+          
+          if git diff --cached --quiet; then
+            echo "No DB changes."
+          else
+            git commit -m "Backfill historical data (automated)" || true
+            git push
+          fi
