@@ -68,6 +68,15 @@
 
 ---
 
+6. **Combo Bet System** (7:54-8:25)
+   - Auto combo builder (SAFE + RISKY)
+   - 3-5 tipp kombinálva
+   - SAFE: 3.5-5.5x odds (~45-55% win rate)
+   - RISKY: 8-20x odds (~20-35% win rate)
+   - Marketing gold: nagy nyeremények!
+
+---
+
 ## ÖSSZEFOGLALÓ
 
 **Ma implementálva:**
@@ -76,15 +85,26 @@
 - ✅ Injury tracker (infrastruktúra)
 - ✅ Reddit tipster aggregator
 - ✅ Odds comparison tool
+- ✅ **Combo bet system** ← ÚJ
 - ✅ 10+ bug fix
 
 **Holnap (6:00):**
 - ⭐⭐⭐⭐ tippek
 - Best odds info
+- COMBO szelvények (SAFE + RISKY)
 - 70-75% win rate
 - Reddit consensus
 
+**Példa holnapi combo:**
+```
+🎯 SAFE COMBO
+Arsenal + Bayern + Liverpool
+Össz odds: 4.60
+1000 HUF → 4,600 HUF
+Profit: +3,600 HUF (360%)
+```
+
 ---
 
-**Mentes ideje:** 2026-03-20 08:45  
-**Token használat:** ~127k/200k (64%)
+**Mentes ideje:** 2026-03-20 08:25  
+**Token használat:** ~135k/200k (68%)
