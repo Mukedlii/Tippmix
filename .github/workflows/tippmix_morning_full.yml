@@ -61,8 +61,9 @@ jobs:
       # Full-day scan (no slot cut)
       TIPPMIX_SLOT: ALL
 
-      # Premium engine (OpenAI-based structuring + shelves + combos)
-      TIPPMIX_ENGINE: openai
+      # Engine: poisson (no API needed, works with historical data)
+      # Switch back to 'openai' after Anthropic credit top-up
+      TIPPMIX_ENGINE: poisson
 
       # Make sure we actually emit picks while history builds up
       TIPPMIX_SAFE_P_MIN: "0.58"
