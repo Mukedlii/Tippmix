@@ -25,7 +25,7 @@
   {
     "fixture_id": 1530178,
     "match": "Heracles vs Excelsior",
-    "tip": "Döntetlen",
+    "tip": "Vendég győzelem",
     "odds": null,
     "confidence": 3.0,
     "risk_level": "közepes",
@@ -48,7 +48,7 @@
   {
     "fixture_id": 1551735,
     "match": "CF Estrela da Amadora vs Casa Pia AC",
-    "tip": "Hazai győzelem",
+    "tip": "Vendég győzelem",
     "odds": null,
     "confidence": 3.0,
     "risk_level": "közepes",
@@ -94,7 +94,7 @@
   {
     "fixture_id": 1547757,
     "match": "Villarreal vs Real Sociedad",
-    "tip": "Vendég győzelem",
+    "tip": "Hazai győzelem",
     "odds": null,
     "confidence": 3.0,
     "risk_level": "közepes",
@@ -117,7 +117,7 @@
   {
     "fixture_id": 1536929,
     "match": "Preston North End vs Stoke City",
-    "tip": "Hazai győzelem",
+    "tip": "Vendég győzelem",
     "odds": null,
     "confidence": 3.0,
     "risk_level": "közepes",
