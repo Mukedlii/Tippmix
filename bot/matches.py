@@ -322,36 +322,49 @@ def _theodds_sport_keys_for_matches(matches: List[Dict[str, Any]]) -> List[str]:
 def _enrich_odds_from_theoddsapi(matches: List[Dict[str, Any]]) -> None:
     api_key = (os.getenv("ODDS_API_KEY") or "").strip()
     if not api_key:
+        print("[DEBUG] ODDS_API_KEY not found in environment!")
         return
+    print(f"[DEBUG] ODDS_API_KEY found: {api_key[:10]}...")
     try:
         max_req = int(os.getenv("ODDS_MAX_REQUESTS_PER_RUN", "6"))
     except Exception:
         max_req = 6
 
     sport_keys = _theodds_sport_keys_for_matches(matches)
+    print(f"[DEBUG] Sport keys detected: {sport_keys}")
     if not sport_keys:
+        print("[DEBUG] No sport keys found! Odds enrichment skipped.")
         return
     sport_keys = sport_keys[: max(0, max_req)]
+    print(f"[DEBUG] Using {len(sport_keys)} sport keys (max_req={max_req})")
 
     for sk in sport_keys:
         try:
-            theoddsapi.fetch_odds_for_sport_key(sk)
-        except Exception:
+            events = theoddsapi.fetch_odds_for_sport_key(sk)
+            print(f"[DEBUG] Fetched {len(events)} events for {sk}")
+        except Exception as e:
+            print(f"[DEBUG] Error fetching {sk}: {e}")
             continue
 
     enriched = 0
     for m in matches:
         odds = m.get("odds") or {}
         if odds.get("1") and odds.get("X") and odds.get("2"):
+            print(f"[DEBUG] {m.get('home_team')} vs {m.get('away_team')}: odds already exist")
             continue
         o1, ox, o2 = theoddsapi.get_1x2_for_match(m.get("home_team") or "", m.get("away_team") or "", sport_keys)
         if o1 and ox and o2:
             m["odds"] = {"1": float(o1), "X": float(ox), "2": float(o2)}
             m["odds_source"] = "theoddsapi"
+            print(f"[DEBUG] ENRICHED: {m.get('home_team')} vs {m.get('away_team')} → {o1}/{ox}/{o2}")
             enriched += 1
+        else:
+            print(f"[DEBUG] NO MATCH: {m.get('home_team')} vs {m.get('away_team')}")
 
     if enriched:
         print(f"[matches] theoddsapi enriched odds for {enriched} matches (sport_keys={len(sport_keys)})")
+    else:
+        print(f"[DEBUG] No odds enriched! (0/{len(matches)} matches)")
 
 
 # ─────────────────────────────────────────────
