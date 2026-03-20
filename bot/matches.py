@@ -620,7 +620,7 @@ def fetch_matches_for_today(slot: str = "DAY", date: Optional[str] = None) -> Li
             if odds_ok_full >= target_full_odds:
                 break
             fid = int(m["fixture_id"])
-            odds = fetch_api_football_1x2_odds(fid)
+            odds = fetch_api_football_1x2_odds(fid, m.get("home_team") or "", m.get("away_team") or "")
             looked += 1
             if odds and (odds.get("1") or odds.get("X") or odds.get("2")):
                 m["odds"] = odds
