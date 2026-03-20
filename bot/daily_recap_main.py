@@ -15,6 +15,7 @@ from bot.api_keys import (
 )
 from bot.tips_logger import read_tips
 from bot.providers import sportsdataio, sportmonks
+from bot.providers import free_fixtures
 from bot.storage.sqlite_store import upsert_result
 from bot.storage.poisson_stats import ensure_results_columns
 
@@ -129,6 +130,8 @@ def _detect_provider() -> Optional[str]:
 
     IMPORTANT: Recap should not silently run without any provider key; otherwise every match becomes
     '❓ nincs adat (API)' which is misleading.
+    
+    UPDATE: free_scraper is now supported (SofaScore) - no API key needed.
     """
     try:
         return resolve_sports_provider()
@@ -140,7 +143,8 @@ def _detect_provider() -> Optional[str]:
             return "sportmonks"
         if get_optional_sportsdataio_key():
             return "sportsdataio"
-        return None
+        # free_scraper as last resort (no key needed)
+        return "free_scraper"
 
 
 def _fetch_fixture(fixture_id: int) -> Tuple[Optional[Dict[str, Any]], str]:
@@ -198,6 +202,28 @@ def _fetch_fixture(fixture_id: int) -> Tuple[Optional[Dict[str, Any]], str]:
 
         return None, last_status
 
+    def _fetch_free_scraper(fid: int) -> Tuple[Optional[Dict[str, Any]], str]:
+        """Fetch result from SofaScore (free scraper)"""
+        try:
+            result = free_fixtures.fetch_sofascore_result(fid)
+            if not result:
+                return None, "NO_DATA"
+            
+            # Convert to api-sports compatible format
+            converted = {
+                "fixture": {
+                    "id": fid,
+                    "status": {"short": result.get("status", "NS")}
+                },
+                "goals": {
+                    "home": result.get("home_score"),
+                    "away": result.get("away_score")
+                }
+            }
+            return converted, "OK"
+        except Exception as e:
+            return None, f"ERROR_{str(e)[:20]}"
+
     provider = _detect_provider()
     if not provider:
         return None, "NO_PROVIDER_KEY"
@@ -205,6 +231,26 @@ def _fetch_fixture(fixture_id: int) -> Tuple[Optional[Dict[str, Any]], str]:
     has_api_sports = bool(get_optional_api_sports_key())
     has_sdio = bool(get_optional_sportsdataio_key())
     has_sm = bool(get_optional_sportmonks_token())
+
+    # free_scraper (SofaScore) - no API key needed
+    if provider == "free_scraper":
+        fx, st = _fetch_free_scraper(fixture_id)
+        if fx or st != "NO_DATA":
+            return fx, st
+        # fallback to paid providers if available
+        if has_api_sports:
+            fx2, st2 = _fetch_apisports(fixture_id)
+            if fx2:
+                return fx2, "FALLBACK_API_SPORTS"
+        if has_sm:
+            fx3, st3 = _fetch_sportmonks(fixture_id)
+            if fx3:
+                return fx3, "FALLBACK_SPORTMONKS"
+        if has_sdio:
+            fx4, st4 = _fetch_sportsdataio(fixture_id)
+            if fx4:
+                return fx4, "FALLBACK_SPORTSDATAIO"
+        return None, "NO_DATA_ALL"
 
     # primary + fallback chain
     if provider == "sportmonks":
