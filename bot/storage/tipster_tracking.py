@@ -183,6 +183,28 @@ def init_tipster_schema():
 
 # === TIPSTER FUNCTIONS ===
 
+def get_tipster_by_name(name: str, source: str, source_identifier: str = None) -> Optional[int]:
+    """
+    Get tipster ID by name and source
+    
+    Returns:
+        Tipster ID or None if not found
+    """
+    
+    conn = get_db()
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT id FROM tipsters 
+        WHERE name = ? AND source = ? AND (source_identifier = ? OR (source_identifier IS NULL AND ? IS NULL))
+    """, (name, source, source_identifier, source_identifier))
+    
+    row = c.fetchone()
+    conn.close()
+    
+    return row['id'] if row else None
+
+
 def register_tipster(name: str, source: str, source_identifier: str = None) -> int:
     """
     Register a new tipster or get existing ID
