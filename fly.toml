@@ -1,0 +1,20 @@
+# Fly.io configuration for Tippmix Reddit Alert Cron
+# Free tier: 3 shared-cpu VMs, 256MB RAM
+
+app = "tippmix-reddit-cron"
+primary_region = "fra"  # Frankfurt (EU Central)
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  # Environment variables (secrets set via: fly secrets set KEY=VALUE)
+  # TELEGRAM_BOT_TOKEN = set via fly secrets
+  # TELEGRAM_VIP_CHAT_ID = set via fly secrets
+
+[experimental]
+  auto_rollback = true
+
+# Simple cron: run daily at 14:00 UTC (15:00 CET)
+# The script runs once, then container exits
+# Use Fly Machines cron for scheduling
