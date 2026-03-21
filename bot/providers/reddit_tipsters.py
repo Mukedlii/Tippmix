@@ -30,6 +30,7 @@ def get_daily_picks_thread(subreddit: str = "SoccerBetting") -> Optional[str]:
     try:
         resp = requests.get(subreddit_url, headers=headers, timeout=15)
         if resp.status_code != 200:
+            print(f"[Reddit] HTTP {resp.status_code} for r/{subreddit}")
             return None
         
         data = resp.json()

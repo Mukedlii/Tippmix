@@ -67,6 +67,88 @@ def send_telegram(message: str):
         print(f"❌ Telegram failed: {e}")
 
 
+def send_top_reddit_picks():
+    """Send top Reddit picks when no consensus"""
+    from collections import defaultdict
+    
+    # Get Reddit picks
+    reddit_threads = get_all_picks_threads()
+    if not reddit_threads:
+        send_telegram("_No Reddit threads found_")
+        return
+    
+    all_picks = []
+    for sub, url in reddit_threads.items():
+        if url:
+            picks = parse_tipster_comments(url)
+            all_picks.extend(picks)
+    
+    if not all_picks:
+        send_telegram("_No Reddit picks found_")
+        return
+    
+    # Group by tipster
+    by_tipster = defaultdict(list)
+    for pick in all_picks:
+        tipster = pick.get('tipster', 'Unknown')
+        by_tipster[tipster].append(pick)
+    
+    # Find portfolios (3+ picks)
+    portfolios = {t: picks for t, picks in by_tipster.items() if len(picks) >= 3}
+    
+    # Build message
+    message = f"🎯 *REDDIT DAILY PICKS*\n"
+    message += f"_r/SoccerBetting - {len(all_picks)} tips from {len(by_tipster)} tipsters_\n\n"
+    
+    if portfolios:
+        message += "*📦 PORTFOLIOS (3+ picks)*\n\n"
+        for tipster, picks in list(portfolios.items())[:2]:  # Top 2
+            message += f"*{tipster}* ({len(picks)} picks)\n"
+            for pick in picks[:4]:  # Max 4 per portfolio
+                match = pick.get('match', 'Unknown')[:35]
+                pick_type = pick.get('pick', '?')
+                odds = pick.get('odds', 0)
+                message += f"├ {match}\n"
+                message += f"│ └ {pick_type}"
+                if odds and odds > 0:
+                    message += f" @ {odds:.2f}"
+                message += "\n"
+            message += "\n"
+    
+    # Top individual picks
+    message += "*⭐ TOP PICKS*\n\n"
+    top_picks = sorted([p for p in all_picks if p.get('confidence', 0) >= 4], 
+                       key=lambda x: x.get('confidence', 0), reverse=True)[:5]
+    
+    if top_picks:
+        for pick in top_picks:
+            match = pick.get('match', 'Unknown')[:35]
+            pick_type = pick.get('pick', '?')
+            odds = pick.get('odds', 0)
+            tipster = pick.get('tipster', '?')[:15]
+            conf = pick.get('confidence', 0)
+            
+            message += f"*{match}*\n"
+            message += f"└ {pick_type}"
+            if odds and odds > 0:
+                message += f" @ {odds:.2f}"
+            message += f" (★{conf}/5 by {tipster})\n\n"
+    else:
+        # If no high-confidence, show random 3
+        for pick in all_picks[:3]:
+            match = pick.get('match', 'Unknown')[:35]
+            pick_type = pick.get('pick', '?')
+            odds = pick.get('odds', 0)
+            message += f"• {match}: {pick_type}"
+            if odds and odds > 0:
+                message += f" @ {odds:.2f}"
+            message += "\n"
+    
+    message += f"\n_Source: r/SoccerBetting Daily Picks Thread_"
+    
+    send_telegram(message)
+
+
 def main():
     print("="*70)
     print("COMBINED TIPSTER CONSENSUS ALERT")
@@ -178,9 +260,9 @@ def main():
             lines.append("")
     
     if total_picks == 0:
-        msg = "_Tips found but no consensus (need 2+ sources per match)_"
-        print(msg)
-        send_telegram(msg)
+        # No consensus, but send TOP PICKS instead
+        print("No consensus, sending TOP PICKS instead...")
+        send_top_reddit_picks()
         return
     
     lines.append("---")
