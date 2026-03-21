@@ -31,6 +31,15 @@ def get_daily_picks_thread(subreddit: str = "SoccerBetting") -> Optional[str]:
         resp = requests.get(subreddit_url, headers=headers, timeout=15)
         if resp.status_code != 200:
             print(f"[Reddit] HTTP {resp.status_code} for r/{subreddit}")
+            
+            # Try alternative method if main fails
+            try:
+                from bot.providers.reddit_alternative import get_daily_picks_thread_alternative
+                print(f"[Reddit] Trying alternative method for r/{subreddit}...")
+                return get_daily_picks_thread_alternative(subreddit)
+            except Exception as alt_e:
+                print(f"[Reddit] Alternative method also failed: {alt_e}")
+            
             return None
         
         data = resp.json()
