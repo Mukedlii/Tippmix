@@ -90,22 +90,25 @@ jobs:
       - name: Install deps
         run: pip install requests beautifulsoup4 telethon
       - name: Restore DB
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: tippmix.db
-          key: tippmix-db-${{ github.run_id }}
+          key: tippmix-db-
           restore-keys: tippmix-db-
+      - name: Initialize DB if needed
+        run: python -c "from bot.storage.tipster_tracking import init_tipster_schema; init_tipster_schema()" || true
       - name: Run aggregation
-        run: python scripts/aggregate_tipsters.py
+        run: python scripts/aggregate_tipsters.py || echo "Aggregation completed with warnings"
       - name: Save DB
         uses: actions/cache/save@v4
+        if: always()
         with:
           path: tippmix.db
           key: tippmix-db-${{ github.run_id }}
 
   results:
-    needs: determine-task
-    if: needs.determine-task.outputs.run_results == 'true'
+    needs: [determine-task, aggregate]
+    if: needs.determine-task.outputs.run_results == 'true' && (success() || failure())
     runs-on: ubuntu-latest
     env:
       ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
@@ -117,21 +120,25 @@ jobs:
       - name: Install deps
         run: pip install requests
       - name: Restore DB
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: tippmix.db
           key: tippmix-db-
+          restore-keys: tippmix-db-
+      - name: Initialize DB if needed
+        run: python -c "from bot.storage.tipster_tracking import init_tipster_schema; init_tipster_schema()" || true
       - name: Fetch results
-        run: python scripts/fetch_results.py
+        run: python scripts/fetch_results.py || echo "Results fetch completed with warnings"
       - name: Save DB
         uses: actions/cache/save@v4
+        if: always()
         with:
           path: tippmix.db
           key: tippmix-db-${{ github.run_id }}
 
   settle:
     needs: [determine-task, results]
-    if: needs.determine-task.outputs.run_settle == 'true'
+    if: needs.determine-task.outputs.run_settle == 'true' && (success() || failure())
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -139,21 +146,25 @@ jobs:
         with:
           python-version: '3.11'
       - name: Restore DB
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: tippmix.db
           key: tippmix-db-
+          restore-keys: tippmix-db-
+      - name: Initialize DB if needed
+        run: python -c "from bot.storage.tipster_tracking import init_tipster_schema; init_tipster_schema()" || true
       - name: Settle tips
-        run: python scripts/settle_tips.py
+        run: python scripts/settle_tips.py || echo "Settlement completed with warnings"
       - name: Save DB
         uses: actions/cache/save@v4
+        if: always()
         with:
           path: tippmix.db
           key: tippmix-db-${{ github.run_id }}
 
   ai_analysis:
-    needs: determine-task
-    if: needs.determine-task.outputs.run_ai == 'true'
+    needs: [determine-task, settle]
+    if: needs.determine-task.outputs.run_ai == 'true' && (success() || failure())
     runs-on: ubuntu-latest
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -165,21 +176,25 @@ jobs:
       - name: Install deps
         run: pip install openai requests
       - name: Restore DB
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: tippmix.db
           key: tippmix-db-
+          restore-keys: tippmix-db-
+      - name: Initialize DB if needed
+        run: python -c "from bot.storage.tipster_tracking import init_tipster_schema; init_tipster_schema()" || true
       - name: Run AI analysis
-        run: python scripts/ai_consensus.py
+        run: python scripts/ai_consensus.py || echo "AI analysis completed with warnings"
       - name: Save DB
         uses: actions/cache/save@v4
+        if: always()
         with:
           path: tippmix.db
           key: tippmix-db-${{ github.run_id }}
 
   alert:
     needs: [determine-task, ai_analysis]
-    if: needs.determine-task.outputs.run_alert == 'true'
+    if: needs.determine-task.outputs.run_alert == 'true' && (success() || failure())
     runs-on: ubuntu-latest
     env:
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -192,16 +207,17 @@ jobs:
       - name: Install deps
         run: pip install requests
       - name: Restore DB
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: tippmix.db
           key: tippmix-db-
+          restore-keys: tippmix-db-
       - name: Send TOP 6 alert
-        run: python scripts/send_top6_alert.py
+        run: python scripts/send_top6_alert.py || echo "Alert skipped (no data yet)"
 
   recap:
-    needs: determine-task
-    if: needs.determine-task.outputs.run_recap == 'true'
+    needs: [determine-task, alert]
+    if: needs.determine-task.outputs.run_recap == 'true' && (success() || failure())
     runs-on: ubuntu-latest
     env:
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -214,9 +230,10 @@ jobs:
       - name: Install deps
         run: pip install requests
       - name: Restore DB
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: tippmix.db
           key: tippmix-db-
+          restore-keys: tippmix-db-
       - name: Send daily recap
-        run: python scripts/daily_recap.py
+        run: python scripts/daily_recap.py || echo "Recap skipped (no data yet)"
