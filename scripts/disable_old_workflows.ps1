@@ -1,8 +1,8 @@
 # Disable old GitHub workflows by renaming them
 # Keep only: ai_tipster_system.yml
 
-$workflowDir = ".github\workflows"
-$keep = @("ai_tipster_system.yml")
+$workflowDir = ".github/workflows"
+$keep = @("ai_tipster_system.yml", "update-dashboard-data.yml")
 
 $workflows = Get-ChildItem $workflowDir -Filter "*.yml"
 
@@ -15,10 +15,10 @@ foreach ($file in $workflows) {
         $newName = "$($file.BaseName).disabled.yml"
         $newPath = Join-Path $workflowDir $newName
         
-        Write-Host "🔴 Disable: $($file.Name) → $newName" -ForegroundColor Yellow
+        Write-Host "🔴 Disable: $($file.Name) -> $newName" -ForegroundColor Yellow
         
         Rename-Item $file.FullName $newPath -Force
     }
 }
 
-Write-Host "`n✅ Done! Only ai_tipster_system.yml is active.`n" -ForegroundColor Green
+Write-Host "`n✅ Done! Active workflows: ai_tipster_system.yml + update-dashboard-data.yml`n" -ForegroundColor Green
