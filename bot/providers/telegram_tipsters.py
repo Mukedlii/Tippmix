@@ -345,7 +345,7 @@ def format_telegram_summary(consensus: List[Dict], top_n: int = 10) -> str:
 
 
 # Sync wrapper for easier usage
-def scrape_telegram_tips_sync(
+def scrape_telegram_tipsters(
     channels: List[str] = None,
     hours_back: int = 24,
     max_messages: int = 50

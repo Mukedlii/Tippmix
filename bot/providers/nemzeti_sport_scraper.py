@@ -266,6 +266,28 @@ def parse_ai_response(response: str) -> Optional[Dict]:
     return None
 
 
+def scrape_nemzeti_sport() -> List[Dict]:
+    """
+    Scrape Nemzeti Sport expert predictions
+    
+    Returns:
+        List of predictions with expert, match, selection, odds, etc.
+    """
+    
+    articles = scrape_football_section()
+    
+    all_predictions = []
+    for article in articles:
+        predictions = extract_article_predictions(article['url'])
+        if predictions and predictions.get('predictions'):
+            for pred in predictions['predictions']:
+                pred['article_url'] = article['url']
+                pred['expert'] = article.get('author', 'Nemzeti Sport')
+                all_predictions.append(pred)
+    
+    return all_predictions
+
+
 # Example usage
 if __name__ == "__main__":
     print("🇭🇺 Nemzeti Sport Scraper Test\n")

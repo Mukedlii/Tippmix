@@ -343,6 +343,28 @@ def format_reddit_summary(consensus: List[Dict], top_n: int = 10) -> str:
     return "\n".join(lines)
 
 
+def scrape_reddit_tipsters() -> List[Dict]:
+    """
+    Scrape all Reddit tipster picks
+    
+    Returns:
+        List of picks with tipster, match, selection, odds, etc.
+    """
+    
+    threads = get_all_picks_threads()
+    
+    all_picks = []
+    for sub, thread_url in threads.items():
+        if thread_url:
+            picks = parse_tipster_comments(thread_url)
+            # Add source subreddit to each pick
+            for pick in picks:
+                pick['source'] = f"r/{sub}"
+            all_picks.extend(picks)
+    
+    return all_picks
+
+
 if __name__ == "__main__":
     # Test
     print("Testing Reddit scraper...\n")
