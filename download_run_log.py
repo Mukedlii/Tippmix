@@ -12,7 +12,7 @@ if sys.platform == 'win32':
 
 GITHUB_TOKEN = "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"
 REPO = "Mukedlii/Tippmix"
-RUN_ID = "23371762028"  # Run #2
+RUN_ID = "23371880964"  # Run #3
 
 headers = {
     "Authorization": f"Bearer {GITHUB_TOKEN}",

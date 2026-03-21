@@ -15,7 +15,7 @@ Setup:
 
 import os
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional
 
 try:
@@ -29,13 +29,12 @@ except ImportError:
 
 
 # Popular free football tipster channels
+# Note: These are EXAMPLE channel names - replace with actual working channels
 DEFAULT_CHANNELS = [
-    "@FreeSuperTips",           # Free tips
-    "@FootballPredictions24",   # Daily predictions
-    "@SoccerTipsters",          # Football tips
-    "@BettingTipsDaily",        # General betting
-    "@FootballTipsToday",       # Daily football
-    # Add more channels as needed
+    "@football",                # Telegram official football channel (test)
+    "@FootballPredictions24",   # Daily predictions (if exists)
+    # Add more VERIFIED channels after testing
+    # Check: https://t.me/<channel_name> before adding
 ]
 
 
@@ -104,8 +103,8 @@ async def scrape_telegram_channel(
         # Get channel entity
         channel = await client.get_entity(channel_username)
         
-        # Calculate time threshold
-        time_threshold = datetime.now() - timedelta(hours=hours_back)
+        # Calculate time threshold (use UTC with timezone)
+        time_threshold = datetime.now(timezone.utc) - timedelta(hours=hours_back)
         
         print(f"[Telegram] Scraping {channel_username} (last {hours_back}h)...")
         
