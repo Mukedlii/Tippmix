@@ -3,7 +3,7 @@
 **Cél:** Többforrásból gyűjtött tippek → AI elemzés → TOP 6 "biztos" meccs + kombináló
 
 **Időzítés:**
-- 01:00-03:00 - Adatgyűjtés
+- 01:00-03:00 - Adatgyűjtés (Reddit, Telegram, Nemzeti Sport, Poisson)
 - 14:00 - AI elemzés
 - 15:00 - Telegram alert
 
