@@ -67,6 +67,12 @@ def aggregate_all_sources():
     """
     Scrape all tipster sources and save to DB
     """
+    # Fix Windows console encoding
+    import sys
+    import io
+    if sys.platform == 'win32':
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    
     print(f"\n{'='*60}")
     print(f"🤖 TIPSTER AGGREGATOR - {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     print(f"{'='*60}\n")
@@ -107,15 +113,21 @@ def aggregate_all_sources():
             
             # Add tip to DB
             match_date = estimate_match_date(tip)
+            selection = tip.get('selection') or tip.get('pick')  # Reddit uses 'pick'
+            
+            if not selection:
+                print(f"  ⚠️  Skipped (no selection): {match_str}")
+                continue
+            
             add_tip(
                 tipster_id=tipster_id,
                 match_date=match_date,
                 home_team=home_team,
                 away_team=away_team,
-                selection=tip.get('selection'),
+                selection=selection,
                 odds=tip.get('odds'),
                 confidence=tip.get('confidence'),
-                raw_text=tip.get('reasoning'),
+                raw_text=tip.get('reasoning') or tip.get('raw_line'),
                 source_url=tip.get('url')
             )
             total_tips += 1
@@ -159,15 +171,21 @@ def aggregate_all_sources():
                 
                 # Add tip to DB
                 match_date = estimate_match_date(tip)
+                selection = tip.get('selection') or tip.get('pick')
+                
+                if not selection:
+                    print(f"  ⚠️  Skipped (no selection): {match_str}")
+                    continue
+                
                 add_tip(
                     tipster_id=tipster_id,
                     match_date=match_date,
                     home_team=home_team,
                     away_team=away_team,
-                    selection=tip.get('selection'),
+                    selection=selection,
                     odds=tip.get('odds'),
                     confidence=tip.get('confidence'),
-                    raw_text=tip.get('reasoning'),
+                    raw_text=tip.get('reasoning') or tip.get('raw_text'),
                     source_url=tip.get('message_link')
                 )
                 total_tips += 1
@@ -202,15 +220,21 @@ def aggregate_all_sources():
             
             # Add tip to DB
             match_date = estimate_match_date(tip)
+            selection = tip.get('selection') or tip.get('pick')
+            
+            if not selection:
+                print(f"  ⚠️  Skipped (no selection): {match_str}")
+                continue
+            
             add_tip(
                 tipster_id=tipster_id,
                 match_date=match_date,
                 home_team=home_team,
                 away_team=away_team,
-                selection=tip.get('selection'),
+                selection=selection,
                 odds=tip.get('odds'),
                 confidence=tip.get('confidence'),
-                raw_text=tip.get('reasoning'),
+                raw_text=tip.get('reasoning') or tip.get('analysis'),
                 source_url=tip.get('article_url')
             )
             total_tips += 1
