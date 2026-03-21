@@ -4,10 +4,9 @@ REM Run this via Windows Task Scheduler daily at 15:00 CET
 
 cd /d C:\Users\Muki\clawd\Tippmix
 
-REM Set Telegram credentials (get from GitHub Secrets or create new bot)
-REM REPLACE THESE WITH YOUR ACTUAL VALUES:
-set TELEGRAM_BOT_TOKEN=YOUR_BOT_TOKEN_HERE
-set TELEGRAM_VIP_CHAT_ID=YOUR_VIP_CHAT_ID_HERE
+REM Telegram credentials
+set TELEGRAM_BOT_TOKEN=8238287955:AAEo87ADOjZx6qcCW1eEYN6YV1klAzZ_8bs
+set TELEGRAM_VIP_CHAT_ID=-1003341312269
 
 REM Run the script
 python send_top_reddit_picks.py
