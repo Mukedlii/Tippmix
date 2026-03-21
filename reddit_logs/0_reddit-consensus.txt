@@ -1,0 +1,187 @@
+﻿2026-03-20T09:41:51.4639586Z Current runner version: '2.332.0'
+2026-03-20T09:41:51.4673568Z ##[group]Runner Image Provisioner
+2026-03-20T09:41:51.4675034Z Hosted Compute Agent
+2026-03-20T09:41:51.4676060Z Version: 20260213.493
+2026-03-20T09:41:51.4676924Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+2026-03-20T09:41:51.4677995Z Build Date: 2026-02-13T00:28:41Z
+2026-03-20T09:41:51.4679114Z Worker ID: {33ffe4e2-09cb-4463-9793-5f100574994d}
+2026-03-20T09:41:51.4680179Z Azure Region: northcentralus
+2026-03-20T09:41:51.4681022Z ##[endgroup]
+2026-03-20T09:41:51.4683756Z ##[group]Operating System
+2026-03-20T09:41:51.4685036Z Ubuntu
+2026-03-20T09:41:51.4685711Z 24.04.3
+2026-03-20T09:41:51.4686600Z LTS
+2026-03-20T09:41:51.4687389Z ##[endgroup]
+2026-03-20T09:41:51.4688093Z ##[group]Runner Image
+2026-03-20T09:41:51.4689104Z Image: ubuntu-24.04
+2026-03-20T09:41:51.4689907Z Version: 20260309.50.1
+2026-03-20T09:41:51.4694129Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260309.50/images/ubuntu/Ubuntu2404-Readme.md
+2026-03-20T09:41:51.4696882Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260309.50
+2026-03-20T09:41:51.4698522Z ##[endgroup]
+2026-03-20T09:41:51.4700099Z ##[group]GITHUB_TOKEN Permissions
+2026-03-20T09:41:51.4703091Z Contents: read
+2026-03-20T09:41:51.4703862Z Metadata: read
+2026-03-20T09:41:51.4705081Z ##[endgroup]
+2026-03-20T09:41:51.4708088Z Secret source: Actions
+2026-03-20T09:41:51.4709094Z Prepare workflow directory
+2026-03-20T09:41:51.6139437Z Prepare all required actions
+2026-03-20T09:41:51.6256346Z Getting action download info
+2026-03-20T09:41:51.9790849Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2026-03-20T09:41:52.1143862Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-03-20T09:41:52.3019314Z Complete job name: reddit-consensus
+2026-03-20T09:41:52.3638891Z ##[group]Run actions/checkout@v4
+2026-03-20T09:41:52.3639650Z with:
+2026-03-20T09:41:52.3640051Z   repository: Mukedlii/Tippmix
+2026-03-20T09:41:52.3640721Z   token: ***
+2026-03-20T09:41:52.3641128Z   ssh-strict: true
+2026-03-20T09:41:52.3641540Z   ssh-user: git
+2026-03-20T09:41:52.3641943Z   persist-credentials: true
+2026-03-20T09:41:52.3642403Z   clean: true
+2026-03-20T09:41:52.3642812Z   sparse-checkout-cone-mode: true
+2026-03-20T09:41:52.3643284Z   fetch-depth: 1
+2026-03-20T09:41:52.3643677Z   fetch-tags: false
+2026-03-20T09:41:52.3644082Z   show-progress: true
+2026-03-20T09:41:52.3644491Z   lfs: false
+2026-03-20T09:41:52.3645074Z   submodules: false
+2026-03-20T09:41:52.3645494Z   set-safe-directory: true
+2026-03-20T09:41:52.3646149Z env:
+2026-03-20T09:41:52.3646728Z   TELEGRAM_BOT_TOKEN: ***
+2026-03-20T09:41:52.3647230Z   TELEGRAM_VIP_CHAT_ID: ***
+2026-03-20T09:41:52.3647675Z ##[endgroup]
+2026-03-20T09:41:52.4947010Z Syncing repository: Mukedlii/Tippmix
+2026-03-20T09:41:52.4950751Z ##[group]Getting Git version info
+2026-03-20T09:41:52.4953241Z Working directory is '/home/runner/work/Tippmix/Tippmix'
+2026-03-20T09:41:52.4954968Z [command]/usr/bin/git version
+2026-03-20T09:41:52.4955662Z git version 2.53.0
+2026-03-20T09:41:52.4957920Z ##[endgroup]
+2026-03-20T09:41:52.4965654Z Temporarily overriding HOME='/home/runner/work/_temp/629829fb-2a18-4500-82b2-6e663f056459' before making global git config changes
+2026-03-20T09:41:52.4968132Z Adding repository directory to the temporary git global config as a safe directory
+2026-03-20T09:41:52.4974366Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Tippmix/Tippmix
+2026-03-20T09:41:52.5026200Z Deleting the contents of '/home/runner/work/Tippmix/Tippmix'
+2026-03-20T09:41:52.5030787Z ##[group]Initializing the repository
+2026-03-20T09:41:52.5036103Z [command]/usr/bin/git init /home/runner/work/Tippmix/Tippmix
+2026-03-20T09:41:52.5848877Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-03-20T09:41:52.5850331Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-03-20T09:41:52.5852285Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-03-20T09:41:52.5853382Z hint: call:
+2026-03-20T09:41:52.5854550Z hint:
+2026-03-20T09:41:52.5855520Z hint: 	git config --global init.defaultBranch <name>
+2026-03-20T09:41:52.5856446Z hint:
+2026-03-20T09:41:52.5857303Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-03-20T09:41:52.5859025Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-03-20T09:41:52.5860218Z hint:
+2026-03-20T09:41:52.5860786Z hint: 	git branch -m <name>
+2026-03-20T09:41:52.5861427Z hint:
+2026-03-20T09:41:52.5865737Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-03-20T09:41:52.5867297Z Initialized empty Git repository in /home/runner/work/Tippmix/Tippmix/.git/
+2026-03-20T09:41:52.5869730Z [command]/usr/bin/git remote add origin https://github.com/Mukedlii/Tippmix
+2026-03-20T09:41:52.5872087Z ##[endgroup]
+2026-03-20T09:41:52.5873123Z ##[group]Disabling automatic garbage collection
+2026-03-20T09:41:52.5874080Z [command]/usr/bin/git config --local gc.auto 0
+2026-03-20T09:41:52.5876350Z ##[endgroup]
+2026-03-20T09:41:52.5877309Z ##[group]Setting up auth
+2026-03-20T09:41:52.5878306Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-03-20T09:41:52.5881767Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-03-20T09:41:52.5898557Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-03-20T09:41:52.5915492Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-03-20T09:41:52.6191845Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-03-20T09:41:52.6229114Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-03-20T09:41:52.6513381Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-03-20T09:41:52.6647332Z ##[endgroup]
+2026-03-20T09:41:52.6649395Z ##[group]Fetching the repository
+2026-03-20T09:41:52.6651215Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +954b581dd69df0b6dde8df52d8b5940f707d7611:refs/remotes/origin/main
+2026-03-20T09:41:52.9736315Z From https://github.com/Mukedlii/Tippmix
+2026-03-20T09:41:52.9738238Z  * [new ref]         954b581dd69df0b6dde8df52d8b5940f707d7611 -> origin/main
+2026-03-20T09:41:52.9784258Z ##[endgroup]
+2026-03-20T09:41:52.9786424Z ##[group]Determining the checkout info
+2026-03-20T09:41:52.9796124Z ##[endgroup]
+2026-03-20T09:41:52.9797390Z [command]/usr/bin/git sparse-checkout disable
+2026-03-20T09:41:52.9856913Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-03-20T09:41:52.9901022Z ##[group]Checking out the ref
+2026-03-20T09:41:52.9906459Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-03-20T09:41:53.0097594Z Switched to a new branch 'main'
+2026-03-20T09:41:53.0103407Z branch 'main' set up to track 'origin/main'.
+2026-03-20T09:41:53.0122002Z ##[endgroup]
+2026-03-20T09:41:53.0160792Z [command]/usr/bin/git log -1 --format=%H
+2026-03-20T09:41:53.0188005Z 954b581dd69df0b6dde8df52d8b5940f707d7611
+2026-03-20T09:41:53.0498759Z ##[group]Run actions/setup-python@v5
+2026-03-20T09:41:53.0499835Z with:
+2026-03-20T09:41:53.0500556Z   python-version: 3.11
+2026-03-20T09:41:53.0501432Z   check-latest: false
+2026-03-20T09:41:53.0502550Z   token: ***
+2026-03-20T09:41:53.0503329Z   update-environment: true
+2026-03-20T09:41:53.0504256Z   allow-prereleases: false
+2026-03-20T09:41:53.0505344Z   freethreaded: false
+2026-03-20T09:41:53.0506149Z env:
+2026-03-20T09:41:53.0507485Z   TELEGRAM_BOT_TOKEN: ***
+2026-03-20T09:41:53.0508447Z   TELEGRAM_VIP_CHAT_ID: ***
+2026-03-20T09:41:53.0509340Z ##[endgroup]
+2026-03-20T09:41:53.2331217Z ##[group]Installed versions
+2026-03-20T09:41:53.2435366Z Successfully set up CPython (3.11.15)
+2026-03-20T09:41:53.2438568Z ##[endgroup]
+2026-03-20T09:41:53.2596246Z ##[group]Run pip install requests
+2026-03-20T09:41:53.2597579Z [36;1mpip install requests[0m
+2026-03-20T09:41:53.2664268Z shell: /usr/bin/bash -e {0}
+2026-03-20T09:41:53.2665503Z env:
+2026-03-20T09:41:53.2666817Z   TELEGRAM_BOT_TOKEN: ***
+2026-03-20T09:41:53.2667875Z   TELEGRAM_VIP_CHAT_ID: ***
+2026-03-20T09:41:53.2669100Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-03-20T09:41:53.2670845Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.15/x64/lib/pkgconfig
+2026-03-20T09:41:53.2672606Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-03-20T09:41:53.2674177Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-03-20T09:41:53.2676088Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-03-20T09:41:53.2677737Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.15/x64/lib
+2026-03-20T09:41:53.2679121Z ##[endgroup]
+2026-03-20T09:41:54.0549065Z Collecting requests
+2026-03-20T09:41:54.1557222Z   Downloading requests-2.32.5-py3-none-any.whl.metadata (4.9 kB)
+2026-03-20T09:41:54.2521661Z Collecting charset_normalizer<4,>=2 (from requests)
+2026-03-20T09:41:54.2728512Z   Downloading charset_normalizer-3.4.6-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (40 kB)
+2026-03-20T09:41:54.3114044Z Collecting idna<4,>=2.5 (from requests)
+2026-03-20T09:41:54.3325937Z   Downloading idna-3.11-py3-none-any.whl.metadata (8.4 kB)
+2026-03-20T09:41:54.3645790Z Collecting urllib3<3,>=1.21.1 (from requests)
+2026-03-20T09:41:54.3865707Z   Downloading urllib3-2.6.3-py3-none-any.whl.metadata (6.9 kB)
+2026-03-20T09:41:54.4113418Z Collecting certifi>=2017.4.17 (from requests)
+2026-03-20T09:41:54.4328932Z   Downloading certifi-2026.2.25-py3-none-any.whl.metadata (2.5 kB)
+2026-03-20T09:41:54.4600131Z Downloading requests-2.32.5-py3-none-any.whl (64 kB)
+2026-03-20T09:41:54.4917657Z Downloading charset_normalizer-3.4.6-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (204 kB)
+2026-03-20T09:41:54.5357579Z Downloading idna-3.11-py3-none-any.whl (71 kB)
+2026-03-20T09:41:54.5597593Z Downloading urllib3-2.6.3-py3-none-any.whl (131 kB)
+2026-03-20T09:41:54.5845757Z Downloading certifi-2026.2.25-py3-none-any.whl (153 kB)
+2026-03-20T09:41:54.6107029Z Installing collected packages: urllib3, idna, charset_normalizer, certifi, requests
+2026-03-20T09:41:54.8617114Z 
+2026-03-20T09:41:54.8629011Z Successfully installed certifi-2026.2.25 charset_normalizer-3.4.6 idna-3.11 requests-2.32.5 urllib3-2.6.3
+2026-03-20T09:41:55.0032947Z ##[group]Run python scripts/reddit_consensus_alert.py
+2026-03-20T09:41:55.0033398Z [36;1mpython scripts/reddit_consensus_alert.py[0m
+2026-03-20T09:41:55.0090086Z shell: /usr/bin/bash -e {0}
+2026-03-20T09:41:55.0090360Z env:
+2026-03-20T09:41:55.0090801Z   TELEGRAM_BOT_TOKEN: ***
+2026-03-20T09:41:55.0091070Z   TELEGRAM_VIP_CHAT_ID: ***
+2026-03-20T09:41:55.0091380Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-03-20T09:41:55.0091805Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.15/x64/lib/pkgconfig
+2026-03-20T09:41:55.0092212Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-03-20T09:41:55.0092587Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-03-20T09:41:55.0092944Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-03-20T09:41:55.0093313Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.15/x64/lib
+2026-03-20T09:41:55.0093622Z ##[endgroup]
+2026-03-20T09:41:56.1226231Z ============================================================
+2026-03-20T09:41:56.1227238Z REDDIT CONSENSUS ALERT
+2026-03-20T09:41:56.1229872Z ============================================================
+2026-03-20T09:41:56.1230496Z No Daily Picks Thread found
+2026-03-20T09:41:56.1231714Z Telegram alert sent
+2026-03-20T09:41:56.1568598Z Post job cleanup.
+2026-03-20T09:41:56.3321205Z Post job cleanup.
+2026-03-20T09:41:56.4307277Z [command]/usr/bin/git version
+2026-03-20T09:41:56.4351203Z git version 2.53.0
+2026-03-20T09:41:56.4397531Z Temporarily overriding HOME='/home/runner/work/_temp/5df19cc7-ff36-432f-b0bc-95f883a1e37f' before making global git config changes
+2026-03-20T09:41:56.4399155Z Adding repository directory to the temporary git global config as a safe directory
+2026-03-20T09:41:56.4405719Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Tippmix/Tippmix
+2026-03-20T09:41:56.4457224Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-03-20T09:41:56.4498413Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-03-20T09:41:56.4788018Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-03-20T09:41:56.4816672Z http.https://github.com/.extraheader
+2026-03-20T09:41:56.4830956Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-03-20T09:41:56.4869763Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-03-20T09:41:56.5144306Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-03-20T09:41:56.5182543Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-03-20T09:41:56.5575368Z Cleaning up orphan processes
+2026-03-20T09:41:56.5851510Z ##[warning]Node.js 20 actions are deprecated. The following actions are running on Node.js 20 and may not work as expected: actions/checkout@v4, actions/setup-python@v5. Actions will be forced to run with Node.js 24 by default starting June 2nd, 2026. Please check if updated versions of these actions are available that support Node.js 24. To opt into Node.js 24 now, set the FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true environment variable on the runner or in your workflow file. Once Node.js 24 becomes the default, you can temporarily opt out by setting ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

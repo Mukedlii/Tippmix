@@ -1,0 +1,279 @@
+﻿2026-03-20T20:20:13.2869782Z ##[group]Run pip install -r requirements.txt
+2026-03-20T20:20:13.2870606Z [36;1mpip install -r requirements.txt[0m
+2026-03-20T20:20:13.2934355Z shell: /usr/bin/bash -e {0}
+2026-03-20T20:20:13.2934665Z env:
+2026-03-20T20:20:13.2935085Z   TELEGRAM_BOT_TOKEN: ***
+2026-03-20T20:20:13.2935420Z   TELEGRAM_PUBLIC_CHAT_ID: ***
+2026-03-20T20:20:13.2935712Z   TELEGRAM_VIP_CHAT_ID: ***
+2026-03-20T20:20:13.2935990Z   TELEGRAM_EN_CHAT_ID: ***
+2026-03-20T20:20:13.2936956Z   OPENAI_API_KEY: ***
+2026-03-20T20:20:13.2937278Z   GEMINI_API_KEY: ***
+2026-03-20T20:20:13.2937530Z   ANTHROPIC_API_KEY: 
+2026-03-20T20:20:13.2937779Z   TIPPMIX_USE_ENSEMBLE: 0
+2026-03-20T20:20:13.2938085Z   SPORTS_API_KEY: ***
+2026-03-20T20:20:13.2938327Z   SPORTMONKS_API_TOKEN: 
+2026-03-20T20:20:13.2938575Z   SPORTSDATAIO_API: 
+2026-03-20T20:20:13.2938982Z   ALLSPORTSAPI_KEY: ***
+2026-03-20T20:20:13.2939299Z   FOOTBALLDATA_API_KEY: ***
+2026-03-20T20:20:13.2939613Z   ODDS_API_KEY: ***
+2026-03-20T20:20:13.2940102Z   TIPPMIX_SEND_PUBLIC: 1
+2026-03-20T20:20:13.2940521Z   TIPPMIX_SEND_VIP: 1
+2026-03-20T20:20:13.2940768Z   TIPPMIX_SEND_EN: 1
+2026-03-20T20:20:13.2941012Z   TIPPMIX_USE_MARKETING_FORMAT: 1
+2026-03-20T20:20:13.2941357Z   TIPPMIX_DASHBOARD_URL: https://tippmix.vercel.app
+2026-03-20T20:20:13.2941750Z   TIPPMIX_VIP_URL: https://tippmix.vercel.app/vip
+2026-03-20T20:20:13.2942098Z   TIPPMIX_BETTING_SITE: tippmix
+2026-03-20T20:20:13.2942371Z   TIPPMIX_ENABLE_MULTI_SPORT: 1
+2026-03-20T20:20:13.2942657Z   TIPPMIX_EXTRA_SPORTS: basketball,handball
+2026-03-20T20:20:13.2942967Z   ODDS_MAX_REQUESTS_PER_RUN: 20
+2026-03-20T20:20:13.2943719Z   ODDS_SPORT_KEYS: soccer_epl,soccer_germany_bundesliga,soccer_italy_serie_a,soccer_spain_la_liga,soccer_france_ligue_one,soccer_uefa_europa_league,soccer_uefa_europa_conference_league
+2026-03-20T20:20:13.2944504Z   SPORTS_DATA_PROVIDER: free_scraper
+2026-03-20T20:20:13.2944784Z   TIPPMIX_SLOT: ALL
+2026-03-20T20:20:13.2945019Z   TIPPMIX_ENGINE: poisson
+2026-03-20T20:20:13.2945282Z   TIPPMIX_SAFE_P_MIN: 0.58
+2026-03-20T20:20:13.2945536Z   TIPPMIX_RISK_P_MIN: 0.54
+2026-03-20T20:20:13.2945783Z   TIPPMIX_TEAM_MIN_N: 6
+2026-03-20T20:20:13.2946020Z   TIPPMIX_LEAGUE_MIN_N: 16
+2026-03-20T20:20:13.2946269Z   TIPPMIX_VIP_ALLOW_DEFAULTS: 1
+2026-03-20T20:20:13.2946543Z   TIPPMIX_VIP_ALLOW_PARTIAL_DEFAULTS: 1
+2026-03-20T20:20:13.2946843Z   TIPPMIX_VIP_MIN_REAL: 4
+2026-03-20T20:20:13.2947091Z   TIPPMIX_VIP_MAX_FALLBACK: 3
+2026-03-20T20:20:13.2947349Z   TIPPMIX_MIN_VIP: 6
+2026-03-20T20:20:13.2947578Z   TIPPMIX_MIN_FREE: 3
+2026-03-20T20:20:13.2947821Z   TIPPMIX_IMPORTANT_MIN: 6
+2026-03-20T20:20:13.2948080Z   TIPPMIX_VIP_MAIN1_COUNT: 6
+2026-03-20T20:20:13.2948335Z   TIPPMIX_VIP_MAIN2_COUNT: 6
+2026-03-20T20:20:13.2948591Z   TIPPMIX_FREE_SAFE_COUNT: 3
+2026-03-20T20:20:13.2948844Z   TIPPMIX_FREE_RISKY_COUNT: 3
+2026-03-20T20:20:13.2949101Z   TIPPMIX_MAX_VIP: 18
+2026-03-20T20:20:13.2949337Z   TIPPMIX_MAX_FREE: 12
+2026-03-20T20:20:13.2949576Z   TIPPMIX_VIP_ODDS_MIN: 1.30
+2026-03-20T20:20:13.2949987Z   TIPPMIX_VIP_ODDS_MAX: 2.05
+2026-03-20T20:20:13.2950249Z   TIPPMIX_VIP_REQUIRE_ODDS: 0
+2026-03-20T20:20:13.2950505Z   TIPPMIX_RELAX_IF_SHORT: 1
+2026-03-20T20:20:13.2950771Z   TIPPMIX_VIP_ODDS_MAX_RELAX: 2.40
+2026-03-20T20:20:13.2951056Z   TIPPMIX_FREE_ODDS_MAX_RELAX: 2.60
+2026-03-20T20:20:13.2951333Z   TIPPMIX_FREE_ODDS_MIN: 1.30
+2026-03-20T20:20:13.2951803Z   TIPPMIX_FREE_ODDS_MAX: 2.20
+2026-03-20T20:20:13.2952063Z   TIPPMIX_FREE_REQUIRE_ODDS: 0
+2026-03-20T20:20:13.2952329Z   TIPPMIX_VIP_BONUS_COUNT: 6
+2026-03-20T20:20:13.2952593Z   TIPPMIX_VIP_BONUS_ODDS_MIN: 1.85
+2026-03-20T20:20:13.2952873Z   TIPPMIX_VIP_BONUS_ODDS_MAX: 2.80
+2026-03-20T20:20:13.2953136Z   TIPPMIX_DAY_START_HOUR: 8
+2026-03-20T20:20:13.2953386Z   TIPPMIX_DAY_END_HOUR_EXCL: 19
+2026-03-20T20:20:13.2953646Z   TIPPMIX_BLOCK_COUNTRIES: 
+2026-03-20T20:20:13.2953900Z   TIPPMIX_BLOCK_LEAGUES: 
+2026-03-20T20:20:13.2954146Z   TIPPMIX_ALLOW_YOUTH: 0
+2026-03-20T20:20:13.2954398Z   TIPPMIX_MAX_DAYS_AHEAD: 0
+2026-03-20T20:20:13.2954649Z   TIPPMIX_MIN_POOL: 21
+2026-03-20T20:20:13.2954890Z   TIPPMIX_ALLOW_FRIENDLY: 0
+2026-03-20T20:20:13.2955334Z   TIPPMIX_ODDS_LOOKUP_LIMIT: 0
+2026-03-20T20:20:13.2955598Z   TIPPMIX_TARGET_FULL_ODDS: 0
+2026-03-20T20:20:13.2955923Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-03-20T20:20:13.2956399Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.15/x64/lib/pkgconfig
+2026-03-20T20:20:13.2956851Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-03-20T20:20:13.2957254Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-03-20T20:20:13.2957653Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-03-20T20:20:13.2958059Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.15/x64/lib
+2026-03-20T20:20:13.2958402Z ##[endgroup]
+2026-03-20T20:20:14.2178442Z Collecting python-telegram-bot==21.4 (from -r requirements.txt (line 1))
+2026-03-20T20:20:14.3065095Z   Downloading python_telegram_bot-21.4-py3-none-any.whl.metadata (17 kB)
+2026-03-20T20:20:14.3715896Z Collecting anthropic>=0.40.0 (from -r requirements.txt (line 2))
+2026-03-20T20:20:14.3776644Z   Downloading anthropic-0.86.0-py3-none-any.whl.metadata (3.0 kB)
+2026-03-20T20:20:14.4697188Z Collecting openai>=1.0.0 (from -r requirements.txt (line 3))
+2026-03-20T20:20:14.4739187Z   Downloading openai-2.29.0-py3-none-any.whl.metadata (29 kB)
+2026-03-20T20:20:14.4934591Z Collecting google-generativeai>=0.3.0 (from -r requirements.txt (line 4))
+2026-03-20T20:20:14.4977034Z   Downloading google_generativeai-0.8.6-py3-none-any.whl.metadata (3.9 kB)
+2026-03-20T20:20:14.5205242Z Collecting requests==2.32.3 (from -r requirements.txt (line 5))
+2026-03-20T20:20:14.5253605Z   Downloading requests-2.32.3-py3-none-any.whl.metadata (4.6 kB)
+2026-03-20T20:20:14.5415964Z Collecting python-dotenv==1.0.1 (from -r requirements.txt (line 6))
+2026-03-20T20:20:14.5461722Z   Downloading python_dotenv-1.0.1-py3-none-any.whl.metadata (23 kB)
+2026-03-20T20:20:14.5649127Z Collecting beautifulsoup4>=4.12.0 (from -r requirements.txt (line 7))
+2026-03-20T20:20:14.5687960Z   Downloading beautifulsoup4-4.14.3-py3-none-any.whl.metadata (3.8 kB)
+2026-03-20T20:20:14.7386122Z Collecting lxml>=5.0.0 (from -r requirements.txt (line 8))
+2026-03-20T20:20:14.7427795Z   Downloading lxml-6.0.2-cp311-cp311-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl.metadata (3.6 kB)
+2026-03-20T20:20:14.7592536Z Collecting flask>=3.0.0 (from -r requirements.txt (line 9))
+2026-03-20T20:20:14.7631469Z   Downloading flask-3.1.3-py3-none-any.whl.metadata (3.2 kB)
+2026-03-20T20:20:14.7824563Z Collecting flask-cors>=4.0.0 (from -r requirements.txt (line 10))
+2026-03-20T20:20:14.7862243Z   Downloading flask_cors-6.0.2-py3-none-any.whl.metadata (5.3 kB)
+2026-03-20T20:20:14.7991110Z Collecting feedparser>=6.0.0 (from -r requirements.txt (line 11))
+2026-03-20T20:20:14.8038245Z   Downloading feedparser-6.0.12-py3-none-any.whl.metadata (2.7 kB)
+2026-03-20T20:20:14.8221184Z Collecting httpx~=0.27 (from python-telegram-bot==21.4->-r requirements.txt (line 1))
+2026-03-20T20:20:14.8262107Z   Downloading httpx-0.28.1-py3-none-any.whl.metadata (7.1 kB)
+2026-03-20T20:20:14.9152813Z Collecting charset-normalizer<4,>=2 (from requests==2.32.3->-r requirements.txt (line 5))
+2026-03-20T20:20:14.9208332Z   Downloading charset_normalizer-3.4.6-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (40 kB)
+2026-03-20T20:20:14.9373464Z Collecting idna<4,>=2.5 (from requests==2.32.3->-r requirements.txt (line 5))
+2026-03-20T20:20:14.9416264Z   Downloading idna-3.11-py3-none-any.whl.metadata (8.4 kB)
+2026-03-20T20:20:14.9644917Z Collecting urllib3<3,>=1.21.1 (from requests==2.32.3->-r requirements.txt (line 5))
+2026-03-20T20:20:14.9685342Z   Downloading urllib3-2.6.3-py3-none-any.whl.metadata (6.9 kB)
+2026-03-20T20:20:14.9878399Z Collecting certifi>=2017.4.17 (from requests==2.32.3->-r requirements.txt (line 5))
+2026-03-20T20:20:14.9919314Z   Downloading certifi-2026.2.25-py3-none-any.whl.metadata (2.5 kB)
+2026-03-20T20:20:15.0108671Z Collecting anyio (from httpx~=0.27->python-telegram-bot==21.4->-r requirements.txt (line 1))
+2026-03-20T20:20:15.0152735Z   Downloading anyio-4.12.1-py3-none-any.whl.metadata (4.3 kB)
+2026-03-20T20:20:15.0329304Z Collecting httpcore==1.* (from httpx~=0.27->python-telegram-bot==21.4->-r requirements.txt (line 1))
+2026-03-20T20:20:15.0374836Z   Downloading httpcore-1.0.9-py3-none-any.whl.metadata (21 kB)
+2026-03-20T20:20:15.0528536Z Collecting h11>=0.16 (from httpcore==1.*->httpx~=0.27->python-telegram-bot==21.4->-r requirements.txt (line 1))
+2026-03-20T20:20:15.0568992Z   Downloading h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
+2026-03-20T20:20:15.0731851Z Collecting distro<2,>=1.7.0 (from anthropic>=0.40.0->-r requirements.txt (line 2))
+2026-03-20T20:20:15.0774555Z   Downloading distro-1.9.0-py3-none-any.whl.metadata (6.8 kB)
+2026-03-20T20:20:15.0901360Z Collecting docstring-parser<1,>=0.15 (from anthropic>=0.40.0->-r requirements.txt (line 2))
+2026-03-20T20:20:15.0939478Z   Downloading docstring_parser-0.17.0-py3-none-any.whl.metadata (3.5 kB)
+2026-03-20T20:20:15.1937450Z Collecting jiter<1,>=0.4.0 (from anthropic>=0.40.0->-r requirements.txt (line 2))
+2026-03-20T20:20:15.1981393Z   Downloading jiter-0.13.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (5.2 kB)
+2026-03-20T20:20:15.3056005Z Collecting pydantic<3,>=1.9.0 (from anthropic>=0.40.0->-r requirements.txt (line 2))
+2026-03-20T20:20:15.3103091Z   Downloading pydantic-2.12.5-py3-none-any.whl.metadata (90 kB)
+2026-03-20T20:20:15.3249109Z Collecting sniffio (from anthropic>=0.40.0->-r requirements.txt (line 2))
+2026-03-20T20:20:15.3288351Z   Downloading sniffio-1.3.1-py3-none-any.whl.metadata (3.9 kB)
+2026-03-20T20:20:15.3457649Z Collecting typing-extensions<5,>=4.14 (from anthropic>=0.40.0->-r requirements.txt (line 2))
+2026-03-20T20:20:15.3499002Z   Downloading typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+2026-03-20T20:20:15.3668899Z Collecting annotated-types>=0.6.0 (from pydantic<3,>=1.9.0->anthropic>=0.40.0->-r requirements.txt (line 2))
+2026-03-20T20:20:15.3726053Z   Downloading annotated_types-0.7.0-py3-none-any.whl.metadata (15 kB)
+2026-03-20T20:20:15.9847457Z Collecting pydantic-core==2.41.5 (from pydantic<3,>=1.9.0->anthropic>=0.40.0->-r requirements.txt (line 2))
+2026-03-20T20:20:15.9907018Z   Downloading pydantic_core-2.41.5-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (7.3 kB)
+2026-03-20T20:20:16.0034335Z Collecting typing-inspection>=0.4.2 (from pydantic<3,>=1.9.0->anthropic>=0.40.0->-r requirements.txt (line 2))
+2026-03-20T20:20:16.0076801Z   Downloading typing_inspection-0.4.2-py3-none-any.whl.metadata (2.6 kB)
+2026-03-20T20:20:16.0420935Z Collecting tqdm>4 (from openai>=1.0.0->-r requirements.txt (line 3))
+2026-03-20T20:20:16.0480170Z   Downloading tqdm-4.67.3-py3-none-any.whl.metadata (57 kB)
+2026-03-20T20:20:16.0713754Z Collecting google-ai-generativelanguage==0.6.15 (from google-generativeai>=0.3.0->-r requirements.txt (line 4))
+2026-03-20T20:20:16.0766267Z   Downloading google_ai_generativelanguage-0.6.15-py3-none-any.whl.metadata (5.7 kB)
+2026-03-20T20:20:16.1580164Z Collecting google-api-core (from google-generativeai>=0.3.0->-r requirements.txt (line 4))
+2026-03-20T20:20:16.1622299Z   Downloading google_api_core-2.30.0-py3-none-any.whl.metadata (3.1 kB)
+2026-03-20T20:20:16.2104872Z Collecting google-api-python-client (from google-generativeai>=0.3.0->-r requirements.txt (line 4))
+2026-03-20T20:20:16.2145602Z   Downloading google_api_python_client-2.193.0-py3-none-any.whl.metadata (7.0 kB)
+2026-03-20T20:20:16.2459569Z Collecting google-auth>=2.15.0 (from google-generativeai>=0.3.0->-r requirements.txt (line 4))
+2026-03-20T20:20:16.2507266Z   Downloading google_auth-2.49.1-py3-none-any.whl.metadata (6.2 kB)
+2026-03-20T20:20:16.4028015Z Collecting protobuf (from google-generativeai>=0.3.0->-r requirements.txt (line 4))
+2026-03-20T20:20:16.4070983Z   Downloading protobuf-7.34.1-cp310-abi3-manylinux2014_x86_64.whl.metadata (595 bytes)
+2026-03-20T20:20:16.4709402Z Collecting proto-plus<2.0.0dev,>=1.22.3 (from google-ai-generativelanguage==0.6.15->google-generativeai>=0.3.0->-r requirements.txt (line 4))
+2026-03-20T20:20:16.4752906Z   Downloading proto_plus-1.27.1-py3-none-any.whl.metadata (2.2 kB)
+2026-03-20T20:20:16.4919700Z Collecting protobuf (from google-generativeai>=0.3.0->-r requirements.txt (line 4))
+2026-03-20T20:20:16.4969124Z   Downloading protobuf-5.29.6-cp38-abi3-manylinux2014_x86_64.whl.metadata (592 bytes)
+2026-03-20T20:20:16.5146215Z Collecting googleapis-common-protos<2.0.0,>=1.56.3 (from google-api-core->google-generativeai>=0.3.0->-r requirements.txt (line 4))
+2026-03-20T20:20:16.5186931Z   Downloading googleapis_common_protos-1.73.0-py3-none-any.whl.metadata (9.4 kB)
+2026-03-20T20:20:17.0641866Z Collecting grpcio<2.0.0,>=1.33.2 (from google-api-core[grpc]!=2.0.*,!=2.1.*,!=2.10.*,!=2.2.*,!=2.3.*,!=2.4.*,!=2.5.*,!=2.6.*,!=2.7.*,!=2.8.*,!=2.9.*,<3.0.0dev,>=1.34.1->google-ai-generativelanguage==0.6.15->google-generativeai>=0.3.0->-r requirements.txt (line 4))
+2026-03-20T20:20:17.0694648Z   Downloading grpcio-1.78.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (3.8 kB)
+2026-03-20T20:20:17.1055660Z Collecting grpcio-status<2.0.0,>=1.33.2 (from google-api-core[grpc]!=2.0.*,!=2.1.*,!=2.10.*,!=2.2.*,!=2.3.*,!=2.4.*,!=2.5.*,!=2.6.*,!=2.7.*,!=2.8.*,!=2.9.*,<3.0.0dev,>=1.34.1->google-ai-generativelanguage==0.6.15->google-generativeai>=0.3.0->-r requirements.txt (line 4))
+2026-03-20T20:20:17.1095991Z   Downloading grpcio_status-1.78.0-py3-none-any.whl.metadata (1.3 kB)
+2026-03-20T20:20:17.1341117Z Collecting pyasn1-modules>=0.2.1 (from google-auth>=2.15.0->google-generativeai>=0.3.0->-r requirements.txt (line 4))
+2026-03-20T20:20:17.1387196Z   Downloading pyasn1_modules-0.4.2-py3-none-any.whl.metadata (3.5 kB)
+2026-03-20T20:20:17.3824701Z Collecting cryptography>=38.0.3 (from google-auth>=2.15.0->google-generativeai>=0.3.0->-r requirements.txt (line 4))
+2026-03-20T20:20:17.3868749Z   Downloading cryptography-46.0.5-cp311-abi3-manylinux_2_34_x86_64.whl.metadata (5.7 kB)
+2026-03-20T20:20:17.4011038Z INFO: pip is looking at multiple versions of grpcio-status to determine which version is compatible with other requirements. This could take a while.
+2026-03-20T20:20:17.4018594Z Collecting grpcio-status<2.0.0,>=1.33.2 (from google-api-core[grpc]!=2.0.*,!=2.1.*,!=2.10.*,!=2.2.*,!=2.3.*,!=2.4.*,!=2.5.*,!=2.6.*,!=2.7.*,!=2.8.*,!=2.9.*,<3.0.0dev,>=1.34.1->google-ai-generativelanguage==0.6.15->google-generativeai>=0.3.0->-r requirements.txt (line 4))
+2026-03-20T20:20:17.4059011Z   Downloading grpcio_status-1.76.0-py3-none-any.whl.metadata (1.1 kB)
+2026-03-20T20:20:17.4137545Z   Downloading grpcio_status-1.75.1-py3-none-any.whl.metadata (1.1 kB)
+2026-03-20T20:20:17.4217186Z   Downloading grpcio_status-1.75.0-py3-none-any.whl.metadata (1.1 kB)
+2026-03-20T20:20:17.4296608Z   Downloading grpcio_status-1.74.0-py3-none-any.whl.metadata (1.1 kB)
+2026-03-20T20:20:17.4374264Z   Downloading grpcio_status-1.73.1-py3-none-any.whl.metadata (1.1 kB)
+2026-03-20T20:20:17.4501972Z   Downloading grpcio_status-1.73.0-py3-none-any.whl.metadata (1.1 kB)
+2026-03-20T20:20:17.4585187Z   Downloading grpcio_status-1.72.2-py3-none-any.whl.metadata (1.1 kB)
+2026-03-20T20:20:17.4623411Z INFO: pip is still looking at multiple versions of grpcio-status to determine which version is compatible with other requirements. This could take a while.
+2026-03-20T20:20:17.4672869Z   Downloading grpcio_status-1.72.1-py3-none-any.whl.metadata (1.1 kB)
+2026-03-20T20:20:17.4754049Z   Downloading grpcio_status-1.71.2-py3-none-any.whl.metadata (1.1 kB)
+2026-03-20T20:20:17.5153804Z Collecting soupsieve>=1.6.1 (from beautifulsoup4>=4.12.0->-r requirements.txt (line 7))
+2026-03-20T20:20:17.5196994Z   Downloading soupsieve-2.8.3-py3-none-any.whl.metadata (4.6 kB)
+2026-03-20T20:20:17.5344001Z Collecting blinker>=1.9.0 (from flask>=3.0.0->-r requirements.txt (line 9))
+2026-03-20T20:20:17.5395582Z   Downloading blinker-1.9.0-py3-none-any.whl.metadata (1.6 kB)
+2026-03-20T20:20:17.5560532Z Collecting click>=8.1.3 (from flask>=3.0.0->-r requirements.txt (line 9))
+2026-03-20T20:20:17.5603226Z   Downloading click-8.3.1-py3-none-any.whl.metadata (2.6 kB)
+2026-03-20T20:20:17.5728995Z Collecting itsdangerous>=2.2.0 (from flask>=3.0.0->-r requirements.txt (line 9))
+2026-03-20T20:20:17.5785809Z   Downloading itsdangerous-2.2.0-py3-none-any.whl.metadata (1.9 kB)
+2026-03-20T20:20:17.5929639Z Collecting jinja2>=3.1.2 (from flask>=3.0.0->-r requirements.txt (line 9))
+2026-03-20T20:20:17.5995308Z   Downloading jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+2026-03-20T20:20:17.6492378Z Collecting markupsafe>=2.1.1 (from flask>=3.0.0->-r requirements.txt (line 9))
+2026-03-20T20:20:17.6535358Z   Downloading markupsafe-3.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.7 kB)
+2026-03-20T20:20:17.6723818Z Collecting werkzeug>=3.1.0 (from flask>=3.0.0->-r requirements.txt (line 9))
+2026-03-20T20:20:17.6762489Z   Downloading werkzeug-3.1.6-py3-none-any.whl.metadata (4.0 kB)
+2026-03-20T20:20:17.7040840Z Collecting sgmllib3k (from feedparser>=6.0.0->-r requirements.txt (line 11))
+2026-03-20T20:20:17.7096590Z   Downloading sgmllib3k-1.0.0.tar.gz (5.8 kB)
+2026-03-20T20:20:17.7161869Z   Installing build dependencies: started
+2026-03-20T20:20:18.5400672Z   Installing build dependencies: finished with status 'done'
+2026-03-20T20:20:18.5407895Z   Getting requirements to build wheel: started
+2026-03-20T20:20:18.9775222Z   Getting requirements to build wheel: finished with status 'done'
+2026-03-20T20:20:18.9786718Z   Preparing metadata (pyproject.toml): started
+2026-03-20T20:20:19.1819564Z   Preparing metadata (pyproject.toml): finished with status 'done'
+2026-03-20T20:20:19.2842484Z Collecting cffi>=2.0.0 (from cryptography>=38.0.3->google-auth>=2.15.0->google-generativeai>=0.3.0->-r requirements.txt (line 4))
+2026-03-20T20:20:19.2893699Z   Downloading cffi-2.0.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (2.6 kB)
+2026-03-20T20:20:19.3097240Z Collecting pycparser (from cffi>=2.0.0->cryptography>=38.0.3->google-auth>=2.15.0->google-generativeai>=0.3.0->-r requirements.txt (line 4))
+2026-03-20T20:20:19.3146606Z   Downloading pycparser-3.0-py3-none-any.whl.metadata (8.2 kB)
+2026-03-20T20:20:19.3407671Z Collecting pyasn1<0.7.0,>=0.6.1 (from pyasn1-modules>=0.2.1->google-auth>=2.15.0->google-generativeai>=0.3.0->-r requirements.txt (line 4))
+2026-03-20T20:20:19.3454144Z   Downloading pyasn1-0.6.3-py3-none-any.whl.metadata (8.4 kB)
+2026-03-20T20:20:19.3642797Z Collecting httplib2<1.0.0,>=0.19.0 (from google-api-python-client->google-generativeai>=0.3.0->-r requirements.txt (line 4))
+2026-03-20T20:20:19.3683084Z   Downloading httplib2-0.31.2-py3-none-any.whl.metadata (2.2 kB)
+2026-03-20T20:20:19.3869053Z Collecting google-auth-httplib2<1.0.0,>=0.2.0 (from google-api-python-client->google-generativeai>=0.3.0->-r requirements.txt (line 4))
+2026-03-20T20:20:19.3912133Z   Downloading google_auth_httplib2-0.3.0-py3-none-any.whl.metadata (3.1 kB)
+2026-03-20T20:20:19.4039100Z Collecting uritemplate<5,>=3.0.1 (from google-api-python-client->google-generativeai>=0.3.0->-r requirements.txt (line 4))
+2026-03-20T20:20:19.4078146Z   Downloading uritemplate-4.2.0-py3-none-any.whl.metadata (2.6 kB)
+2026-03-20T20:20:19.4313594Z Collecting pyparsing<4,>=3.1 (from httplib2<1.0.0,>=0.19.0->google-api-python-client->google-generativeai>=0.3.0->-r requirements.txt (line 4))
+2026-03-20T20:20:19.4365343Z   Downloading pyparsing-3.3.2-py3-none-any.whl.metadata (5.8 kB)
+2026-03-20T20:20:19.4518039Z Downloading python_telegram_bot-21.4-py3-none-any.whl (644 kB)
+2026-03-20T20:20:19.4632547Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 644.8/644.8 kB 67.0 MB/s  0:00:00
+2026-03-20T20:20:19.4683022Z Downloading requests-2.32.3-py3-none-any.whl (64 kB)
+2026-03-20T20:20:19.4758154Z Downloading python_dotenv-1.0.1-py3-none-any.whl (19 kB)
+2026-03-20T20:20:19.4826172Z Downloading charset_normalizer-3.4.6-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (204 kB)
+2026-03-20T20:20:19.4906017Z Downloading httpx-0.28.1-py3-none-any.whl (73 kB)
+2026-03-20T20:20:19.4974471Z Downloading httpcore-1.0.9-py3-none-any.whl (78 kB)
+2026-03-20T20:20:19.5046359Z Downloading idna-3.11-py3-none-any.whl (71 kB)
+2026-03-20T20:20:19.5118422Z Downloading urllib3-2.6.3-py3-none-any.whl (131 kB)
+2026-03-20T20:20:19.5211162Z Downloading anthropic-0.86.0-py3-none-any.whl (469 kB)
+2026-03-20T20:20:19.5301863Z Downloading anyio-4.12.1-py3-none-any.whl (113 kB)
+2026-03-20T20:20:19.5384776Z Downloading distro-1.9.0-py3-none-any.whl (20 kB)
+2026-03-20T20:20:19.5463923Z Downloading docstring_parser-0.17.0-py3-none-any.whl (36 kB)
+2026-03-20T20:20:19.5534901Z Downloading jiter-0.13.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (362 kB)
+2026-03-20T20:20:19.5628765Z Downloading pydantic-2.12.5-py3-none-any.whl (463 kB)
+2026-03-20T20:20:19.5721679Z Downloading pydantic_core-2.41.5-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.1 MB)
+2026-03-20T20:20:19.5916546Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 113.1 MB/s  0:00:00
+2026-03-20T20:20:19.5961059Z Downloading typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+2026-03-20T20:20:19.6032068Z Downloading openai-2.29.0-py3-none-any.whl (1.1 MB)
+2026-03-20T20:20:19.6141213Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.1/1.1 MB 110.4 MB/s  0:00:00
+2026-03-20T20:20:19.6193951Z Downloading google_generativeai-0.8.6-py3-none-any.whl (155 kB)
+2026-03-20T20:20:19.6277540Z Downloading google_ai_generativelanguage-0.6.15-py3-none-any.whl (1.3 MB)
+2026-03-20T20:20:19.6393249Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 125.2 MB/s  0:00:00
+2026-03-20T20:20:19.6456885Z Downloading google_api_core-2.30.0-py3-none-any.whl (173 kB)
+2026-03-20T20:20:19.6657614Z Downloading google_auth-2.49.1-py3-none-any.whl (240 kB)
+2026-03-20T20:20:19.6731665Z Downloading googleapis_common_protos-1.73.0-py3-none-any.whl (297 kB)
+2026-03-20T20:20:19.6820337Z Downloading grpcio-1.78.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (6.7 MB)
+2026-03-20T20:20:19.7278107Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.7/6.7 MB 152.6 MB/s  0:00:00
+2026-03-20T20:20:19.7326208Z Downloading grpcio_status-1.71.2-py3-none-any.whl (14 kB)
+2026-03-20T20:20:19.7400655Z Downloading proto_plus-1.27.1-py3-none-any.whl (50 kB)
+2026-03-20T20:20:19.7511878Z Downloading protobuf-5.29.6-cp38-abi3-manylinux2014_x86_64.whl (320 kB)
+2026-03-20T20:20:19.7601930Z Downloading beautifulsoup4-4.14.3-py3-none-any.whl (107 kB)
+2026-03-20T20:20:19.7680290Z Downloading lxml-6.0.2-cp311-cp311-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl (5.2 MB)
+2026-03-20T20:20:19.8044084Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.2/5.2 MB 149.6 MB/s  0:00:00
+2026-03-20T20:20:19.8091111Z Downloading flask-3.1.3-py3-none-any.whl (103 kB)
+2026-03-20T20:20:19.8166187Z Downloading flask_cors-6.0.2-py3-none-any.whl (13 kB)
+2026-03-20T20:20:19.8232435Z Downloading feedparser-6.0.12-py3-none-any.whl (81 kB)
+2026-03-20T20:20:19.8299097Z Downloading annotated_types-0.7.0-py3-none-any.whl (13 kB)
+2026-03-20T20:20:19.8372093Z Downloading blinker-1.9.0-py3-none-any.whl (8.5 kB)
+2026-03-20T20:20:19.8435637Z Downloading certifi-2026.2.25-py3-none-any.whl (153 kB)
+2026-03-20T20:20:19.8505223Z Downloading click-8.3.1-py3-none-any.whl (108 kB)
+2026-03-20T20:20:19.8576010Z Downloading cryptography-46.0.5-cp311-abi3-manylinux_2_34_x86_64.whl (4.5 MB)
+2026-03-20T20:20:19.8862648Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.5/4.5 MB 164.5 MB/s  0:00:00
+2026-03-20T20:20:19.8996945Z Downloading cffi-2.0.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (215 kB)
+2026-03-20T20:20:19.9086186Z Downloading h11-0.16.0-py3-none-any.whl (37 kB)
+2026-03-20T20:20:19.9254760Z Downloading itsdangerous-2.2.0-py3-none-any.whl (16 kB)
+2026-03-20T20:20:19.9329388Z Downloading jinja2-3.1.6-py3-none-any.whl (134 kB)
+2026-03-20T20:20:19.9424060Z Downloading markupsafe-3.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (22 kB)
+2026-03-20T20:20:19.9510764Z Downloading pyasn1_modules-0.4.2-py3-none-any.whl (181 kB)
+2026-03-20T20:20:19.9591248Z Downloading pyasn1-0.6.3-py3-none-any.whl (83 kB)
+2026-03-20T20:20:19.9663871Z Downloading soupsieve-2.8.3-py3-none-any.whl (37 kB)
+2026-03-20T20:20:19.9734925Z Downloading tqdm-4.67.3-py3-none-any.whl (78 kB)
+2026-03-20T20:20:19.9804531Z Downloading typing_inspection-0.4.2-py3-none-any.whl (14 kB)
+2026-03-20T20:20:19.9868687Z Downloading werkzeug-3.1.6-py3-none-any.whl (225 kB)
+2026-03-20T20:20:19.9940727Z Downloading google_api_python_client-2.193.0-py3-none-any.whl (14.9 MB)
+2026-03-20T20:20:20.0821736Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 14.9/14.9 MB 172.1 MB/s  0:00:00
+2026-03-20T20:20:20.0921723Z Downloading google_auth_httplib2-0.3.0-py3-none-any.whl (9.5 kB)
+2026-03-20T20:20:20.0995231Z Downloading httplib2-0.31.2-py3-none-any.whl (91 kB)
+2026-03-20T20:20:20.1071426Z Downloading pyparsing-3.3.2-py3-none-any.whl (122 kB)
+2026-03-20T20:20:20.1143564Z Downloading uritemplate-4.2.0-py3-none-any.whl (11 kB)
+2026-03-20T20:20:20.1208352Z Downloading pycparser-3.0-py3-none-any.whl (48 kB)
+2026-03-20T20:20:20.1268510Z Downloading sniffio-1.3.1-py3-none-any.whl (10 kB)
+2026-03-20T20:20:20.2082651Z Building wheels for collected packages: sgmllib3k
+2026-03-20T20:20:20.2091883Z   Building wheel for sgmllib3k (pyproject.toml): started
+2026-03-20T20:20:20.4177055Z   Building wheel for sgmllib3k (pyproject.toml): finished with status 'done'
+2026-03-20T20:20:20.4183925Z   Created wheel for sgmllib3k: filename=sgmllib3k-1.0.0-py3-none-any.whl size=6090 sha256=4a1137b65295eef4aecc4234da156ed1d9df66110c5347afab2778cd62635e5f
+2026-03-20T20:20:20.4186350Z   Stored in directory: /home/runner/.cache/pip/wheels/3b/25/2a/105d6a15df6914f4d15047691c6c28f9052cc1173e40285d03
+2026-03-20T20:20:20.4200689Z Successfully built sgmllib3k
+2026-03-20T20:20:20.5105515Z Installing collected packages: sgmllib3k, urllib3, uritemplate, typing-extensions, tqdm, soupsieve, sniffio, python-dotenv, pyparsing, pycparser, pyasn1, protobuf, markupsafe, lxml, jiter, itsdangerous, idna, h11, feedparser, docstring-parser, distro, click, charset-normalizer, certifi, blinker, annotated-types, werkzeug, typing-inspection, requests, pydantic-core, pyasn1-modules, proto-plus, jinja2, httplib2, httpcore, grpcio, googleapis-common-protos, cffi, beautifulsoup4, anyio, pydantic, httpx, grpcio-status, flask, cryptography, python-telegram-bot, openai, google-auth, flask-cors, anthropic, google-auth-httplib2, google-api-core, google-api-python-client, google-ai-generativelanguage, google-generativeai
+2026-03-20T20:20:25.6278709Z 
+2026-03-20T20:20:25.6310574Z Successfully installed annotated-types-0.7.0 anthropic-0.86.0 anyio-4.12.1 beautifulsoup4-4.14.3 blinker-1.9.0 certifi-2026.2.25 cffi-2.0.0 charset-normalizer-3.4.6 click-8.3.1 cryptography-46.0.5 distro-1.9.0 docstring-parser-0.17.0 feedparser-6.0.12 flask-3.1.3 flask-cors-6.0.2 google-ai-generativelanguage-0.6.15 google-api-core-2.30.0 google-api-python-client-2.193.0 google-auth-2.49.1 google-auth-httplib2-0.3.0 google-generativeai-0.8.6 googleapis-common-protos-1.73.0 grpcio-1.78.0 grpcio-status-1.71.2 h11-0.16.0 httpcore-1.0.9 httplib2-0.31.2 httpx-0.28.1 idna-3.11 itsdangerous-2.2.0 jinja2-3.1.6 jiter-0.13.0 lxml-6.0.2 markupsafe-3.0.3 openai-2.29.0 proto-plus-1.27.1 protobuf-5.29.6 pyasn1-0.6.3 pyasn1-modules-0.4.2 pycparser-3.0 pydantic-2.12.5 pydantic-core-2.41.5 pyparsing-3.3.2 python-dotenv-1.0.1 python-telegram-bot-21.4 requests-2.32.3 sgmllib3k-1.0.0 sniffio-1.3.1 soupsieve-2.8.3 tqdm-4.67.3 typing-extensions-4.15.0 typing-inspection-0.4.2 uritemplate-4.2.0 urllib3-2.6.3 werkzeug-3.1.6

@@ -1,0 +1,4 @@
+﻿2026-03-20T20:25:03.0035724Z Post job cleanup.
+2026-03-20T20:25:03.1658069Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/Tippmix/Tippmix --files-from manifest.txt --use-compress-program zstdmt
+2026-03-20T20:25:03.5555970Z Sent 287274 of 287274 (100.0%), 1.1 MBs/sec
+2026-03-20T20:25:03.6460778Z Cache saved with key: tippmix-db-23361162176

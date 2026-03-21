@@ -17,8 +17,8 @@ except ImportError:
 
 GITHUB_TOKEN = "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"
 REPO = "Mukedlii/Tippmix"
-SECRET_NAME = "ODDS_API_KEY"
-SECRET_VALUE = "acf78bce7a7976c2bc4d028528d4cb2f"
+SECRET_NAME = "TELEGRAM_API_HASH"
+SECRET_VALUE = "54620b16e0cd77b9180d5d8db79ec6f5"
 
 print(f"Setting GitHub secret: {SECRET_NAME}")
 

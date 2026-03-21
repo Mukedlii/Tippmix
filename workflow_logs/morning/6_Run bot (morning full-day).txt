@@ -1,0 +1,176 @@
+﻿2026-03-20T20:20:26.8859727Z ##[group]Run python -m bot.main
+2026-03-20T20:20:26.8860254Z [36;1mpython -m bot.main[0m
+2026-03-20T20:20:26.8910660Z shell: /usr/bin/bash -e {0}
+2026-03-20T20:20:26.8910949Z env:
+2026-03-20T20:20:26.8911348Z   TELEGRAM_BOT_TOKEN: ***
+2026-03-20T20:20:26.8911657Z   TELEGRAM_PUBLIC_CHAT_ID: ***
+2026-03-20T20:20:26.8911982Z   TELEGRAM_VIP_CHAT_ID: ***
+2026-03-20T20:20:26.8912272Z   TELEGRAM_EN_CHAT_ID: ***
+2026-03-20T20:20:26.8913324Z   OPENAI_API_KEY: ***
+2026-03-20T20:20:26.8913673Z   GEMINI_API_KEY: ***
+2026-03-20T20:20:26.8913925Z   ANTHROPIC_API_KEY: 
+2026-03-20T20:20:26.8914175Z   TIPPMIX_USE_ENSEMBLE: 0
+2026-03-20T20:20:26.8914486Z   SPORTS_API_KEY: ***
+2026-03-20T20:20:26.8914736Z   SPORTMONKS_API_TOKEN: 
+2026-03-20T20:20:26.8914996Z   SPORTSDATAIO_API: 
+2026-03-20T20:20:26.8915411Z   ALLSPORTSAPI_KEY: ***
+2026-03-20T20:20:26.8915730Z   FOOTBALLDATA_API_KEY: ***
+2026-03-20T20:20:26.8916041Z   ODDS_API_KEY: ***
+2026-03-20T20:20:26.8916284Z   TIPPMIX_SEND_PUBLIC: 1
+2026-03-20T20:20:26.8916542Z   TIPPMIX_SEND_VIP: 1
+2026-03-20T20:20:26.8916825Z   TIPPMIX_SEND_EN: 1
+2026-03-20T20:20:26.8917079Z   TIPPMIX_USE_MARKETING_FORMAT: 1
+2026-03-20T20:20:26.8917439Z   TIPPMIX_DASHBOARD_URL: https://tippmix.vercel.app
+2026-03-20T20:20:26.8917854Z   TIPPMIX_VIP_URL: https://tippmix.vercel.app/vip
+2026-03-20T20:20:26.8918219Z   TIPPMIX_BETTING_SITE: tippmix
+2026-03-20T20:20:26.8918516Z   TIPPMIX_ENABLE_MULTI_SPORT: 1
+2026-03-20T20:20:26.8918809Z   TIPPMIX_EXTRA_SPORTS: basketball,handball
+2026-03-20T20:20:26.8919119Z   ODDS_MAX_REQUESTS_PER_RUN: 20
+2026-03-20T20:20:26.8920466Z   ODDS_SPORT_KEYS: soccer_epl,soccer_germany_bundesliga,soccer_italy_serie_a,soccer_spain_la_liga,soccer_france_ligue_one,soccer_uefa_europa_league,soccer_uefa_europa_conference_league
+2026-03-20T20:20:26.8921291Z   SPORTS_DATA_PROVIDER: free_scraper
+2026-03-20T20:20:26.8921583Z   TIPPMIX_SLOT: ALL
+2026-03-20T20:20:26.8921818Z   TIPPMIX_ENGINE: poisson
+2026-03-20T20:20:26.8922073Z   TIPPMIX_SAFE_P_MIN: 0.58
+2026-03-20T20:20:26.8922327Z   TIPPMIX_RISK_P_MIN: 0.54
+2026-03-20T20:20:26.8922577Z   TIPPMIX_TEAM_MIN_N: 6
+2026-03-20T20:20:26.8922817Z   TIPPMIX_LEAGUE_MIN_N: 16
+2026-03-20T20:20:26.8923069Z   TIPPMIX_VIP_ALLOW_DEFAULTS: 1
+2026-03-20T20:20:26.8923345Z   TIPPMIX_VIP_ALLOW_PARTIAL_DEFAULTS: 1
+2026-03-20T20:20:26.8923637Z   TIPPMIX_VIP_MIN_REAL: 4
+2026-03-20T20:20:26.8924075Z   TIPPMIX_VIP_MAX_FALLBACK: 3
+2026-03-20T20:20:26.8924332Z   TIPPMIX_MIN_VIP: 6
+2026-03-20T20:20:26.8924566Z   TIPPMIX_MIN_FREE: 3
+2026-03-20T20:20:26.8924809Z   TIPPMIX_IMPORTANT_MIN: 6
+2026-03-20T20:20:26.8925064Z   TIPPMIX_VIP_MAIN1_COUNT: 6
+2026-03-20T20:20:26.8925328Z   TIPPMIX_VIP_MAIN2_COUNT: 6
+2026-03-20T20:20:26.8925590Z   TIPPMIX_FREE_SAFE_COUNT: 3
+2026-03-20T20:20:26.8925843Z   TIPPMIX_FREE_RISKY_COUNT: 3
+2026-03-20T20:20:26.8926095Z   TIPPMIX_MAX_VIP: 18
+2026-03-20T20:20:26.8926332Z   TIPPMIX_MAX_FREE: 12
+2026-03-20T20:20:26.8926586Z   TIPPMIX_VIP_ODDS_MIN: 1.30
+2026-03-20T20:20:26.8926846Z   TIPPMIX_VIP_ODDS_MAX: 2.05
+2026-03-20T20:20:26.8927100Z   TIPPMIX_VIP_REQUIRE_ODDS: 0
+2026-03-20T20:20:26.8927369Z   TIPPMIX_RELAX_IF_SHORT: 1
+2026-03-20T20:20:26.8927632Z   TIPPMIX_VIP_ODDS_MAX_RELAX: 2.40
+2026-03-20T20:20:26.8927927Z   TIPPMIX_FREE_ODDS_MAX_RELAX: 2.60
+2026-03-20T20:20:26.8928216Z   TIPPMIX_FREE_ODDS_MIN: 1.30
+2026-03-20T20:20:26.8928475Z   TIPPMIX_FREE_ODDS_MAX: 2.20
+2026-03-20T20:20:26.8928738Z   TIPPMIX_FREE_REQUIRE_ODDS: 0
+2026-03-20T20:20:26.8929007Z   TIPPMIX_VIP_BONUS_COUNT: 6
+2026-03-20T20:20:26.8929267Z   TIPPMIX_VIP_BONUS_ODDS_MIN: 1.85
+2026-03-20T20:20:26.8929543Z   TIPPMIX_VIP_BONUS_ODDS_MAX: 2.80
+2026-03-20T20:20:26.8929937Z   TIPPMIX_DAY_START_HOUR: 8
+2026-03-20T20:20:26.8930199Z   TIPPMIX_DAY_END_HOUR_EXCL: 19
+2026-03-20T20:20:26.8930462Z   TIPPMIX_BLOCK_COUNTRIES: 
+2026-03-20T20:20:26.8930723Z   TIPPMIX_BLOCK_LEAGUES: 
+2026-03-20T20:20:26.8930973Z   TIPPMIX_ALLOW_YOUTH: 0
+2026-03-20T20:20:26.8931222Z   TIPPMIX_MAX_DAYS_AHEAD: 0
+2026-03-20T20:20:26.8931475Z   TIPPMIX_MIN_POOL: 21
+2026-03-20T20:20:26.8931718Z   TIPPMIX_ALLOW_FRIENDLY: 0
+2026-03-20T20:20:26.8932223Z   TIPPMIX_ODDS_LOOKUP_LIMIT: 0
+2026-03-20T20:20:26.8932494Z   TIPPMIX_TARGET_FULL_ODDS: 0
+2026-03-20T20:20:26.8932813Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-03-20T20:20:26.8933268Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.15/x64/lib/pkgconfig
+2026-03-20T20:20:26.8933719Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-03-20T20:20:26.8934116Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-03-20T20:20:26.8934524Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-03-20T20:20:26.8934925Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.15/x64/lib
+2026-03-20T20:20:26.8935266Z ##[endgroup]
+2026-03-20T20:20:29.0479068Z [SofaScore] Nem sikerült lekérni a napi meccseket
+2026-03-20T20:20:58.1212867Z Meccsek lekérése erre a napra: 2026-03-20
+2026-03-20T20:20:58.1216299Z Aktuális idősáv (TIPPMIX_SLOT): ALL
+2026-03-20T20:20:58.1216677Z 
+2026-03-20T20:20:58.1220507Z === TELEGRAM BEÁLLÍTÁSOK ===
+2026-03-20T20:20:58.1221139Z TELEGRAM_BOT_TOKEN be van állítva: True
+2026-03-20T20:20:58.1221838Z PUBLIC_CHAT_ID (használt) = '***'
+2026-03-20T20:20:58.1222297Z VIP_CHAT_ID    = '***'
+2026-03-20T20:20:58.1222680Z EN_CHAT_ID     = '***'
+2026-03-20T20:20:58.1223196Z [matches] fixtures: date=2026-03-20 added=226 | slot=ALL now=69 total=226
+2026-03-20T20:20:58.1223860Z [matches] fixtures expanded total -> 226
+2026-03-20T20:20:58.1224330Z [matches] slot=ALL all -> 69
+2026-03-20T20:20:58.1224757Z [matches] youth filtered: 69->61
+2026-03-20T20:20:58.1225389Z [matches] pool built: 21 (target MIN_POOL=21) | top=7 adult_exotic=14 youth=0 friendly=0
+2026-03-20T20:20:58.1226102Z [DEBUG] ODDS_API_KEY found: acf78bce7a...
+2026-03-20T20:20:58.1227500Z [DEBUG] Sport keys detected: ['soccer_epl', 'soccer_germany_bundesliga', 'soccer_italy_serie_a', 'soccer_spain_la_liga', 'soccer_france_ligue_one', 'soccer_uefa_europa_league', 'soccer_uefa_europa_conference_league']
+2026-03-20T20:20:58.1228869Z [DEBUG] Using 7 sport keys (max_req=20)
+2026-03-20T20:20:58.1229358Z [DEBUG] Fetched 20 events for soccer_epl
+2026-03-20T20:20:58.1230073Z [DEBUG] Fetched 17 events for soccer_germany_bundesliga
+2026-03-20T20:20:58.1230677Z [DEBUG] Fetched 21 events for soccer_italy_serie_a
+2026-03-20T20:20:58.1231250Z [DEBUG] Fetched 21 events for soccer_spain_la_liga
+2026-03-20T20:20:58.1232259Z [DEBUG] Fetched 18 events for soccer_france_ligue_one
+2026-03-20T20:20:58.1232832Z [DEBUG] Fetched 4 events for soccer_uefa_europa_league
+2026-03-20T20:20:58.1233481Z [DEBUG] Fetched 4 events for soccer_uefa_europa_conference_league
+2026-03-20T20:20:58.1234324Z [DEBUG] ENRICHED: AFC Bournemouth vs Manchester United → 3.8/3.78/2.2
+2026-03-20T20:20:58.1235111Z [DEBUG] NO MATCH from TheOddsAPI: RB Leipzig vs Hoffenheim, trying scraper...
+2026-03-20T20:20:58.1236212Z Tippmix scraping error: HTTPError('404 Client Error: Not Found for url: https://www.tippmix.hu/sport/fogadas/labdarugas')
+2026-03-20T20:20:58.1237311Z [DEBUG] SCRAPED: RB Leipzig vs Hoffenheim → 1.85/3.4/4.2
+2026-03-20T20:20:58.1237995Z [DEBUG] ENRICHED: Genoa vs Udinese → 2.32/2.64/5.3
+2026-03-20T20:20:58.1238614Z [DEBUG] ENRICHED: Lens vs Angers → 1.23/48.0/270.0
+2026-03-20T20:20:58.1239265Z [DEBUG] NO MATCH from TheOddsAPI: Heracles vs Excelsior, trying scraper...
+2026-03-20T20:20:58.1240472Z Tippmix scraping error: HTTPError('404 Client Error: Not Found for url: https://www.tippmix.hu/sport/fogadas/labdarugas')
+2026-03-20T20:20:58.1241533Z [DEBUG] SCRAPED: Heracles vs Excelsior → 1.85/3.4/4.2
+2026-03-20T20:20:58.1242267Z [DEBUG] NO MATCH from TheOddsAPI: CF Estrela da Amadora vs Casa Pia AC, trying scraper...
+2026-03-20T20:20:58.1243362Z Tippmix scraping error: HTTPError('404 Client Error: Not Found for url: https://www.tippmix.hu/sport/fogadas/labdarugas')
+2026-03-20T20:20:58.1244470Z [DEBUG] SCRAPED: CF Estrela da Amadora vs Casa Pia AC → 1.85/3.4/4.2
+2026-03-20T20:20:58.1245265Z [DEBUG] NO MATCH from TheOddsAPI: Atletico Hidalgo vs Lobos ULMX, trying scraper...
+2026-03-20T20:20:58.1246351Z Tippmix scraping error: HTTPError('404 Client Error: Not Found for url: https://www.tippmix.hu/sport/fogadas/labdarugas')
+2026-03-20T20:20:58.1247699Z [DEBUG] SCRAPED: Atletico Hidalgo vs Lobos ULMX → 1.85/3.4/4.2
+2026-03-20T20:20:58.1248405Z [DEBUG] ENRICHED: Villarreal vs Real Sociedad → 1.91/9.2/21.0
+2026-03-20T20:20:58.1249141Z [DEBUG] NO MATCH from TheOddsAPI: Preston North End vs Stoke City, trying scraper...
+2026-03-20T20:20:58.1256410Z Tippmix scraping error: HTTPError('404 Client Error: Not Found for url: https://www.tippmix.hu/sport/fogadas/labdarugas')
+2026-03-20T20:20:58.1257551Z [DEBUG] SCRAPED: Preston North End vs Stoke City → 1.85/3.4/4.2
+2026-03-20T20:20:58.1258330Z [DEBUG] NO MATCH from TheOddsAPI: Partick Thistle vs St. Johnstone, trying scraper...
+2026-03-20T20:20:58.1259405Z Tippmix scraping error: HTTPError('404 Client Error: Not Found for url: https://www.tippmix.hu/sport/fogadas/labdarugas')
+2026-03-20T20:20:58.1260673Z [DEBUG] SCRAPED: Partick Thistle vs St. Johnstone → 1.85/3.4/4.2
+2026-03-20T20:20:58.1261382Z [DEBUG] NO MATCH from TheOddsAPI: SD Huesca vs Almeria, trying scraper...
+2026-03-20T20:20:58.1262395Z Tippmix scraping error: HTTPError('404 Client Error: Not Found for url: https://www.tippmix.hu/sport/fogadas/labdarugas')
+2026-03-20T20:20:58.1263384Z [DEBUG] SCRAPED: SD Huesca vs Almeria → 1.85/3.4/4.2
+2026-03-20T20:20:58.1264032Z [DEBUG] NO MATCH from TheOddsAPI: Amiens vs Le Mans, trying scraper...
+2026-03-20T20:20:58.1265006Z Tippmix scraping error: HTTPError('404 Client Error: Not Found for url: https://www.tippmix.hu/sport/fogadas/labdarugas')
+2026-03-20T20:20:58.1265987Z [DEBUG] SCRAPED: Amiens vs Le Mans → 1.85/3.4/4.2
+2026-03-20T20:20:58.1266603Z [DEBUG] NO MATCH from TheOddsAPI: Boulogne vs Nancy, trying scraper...
+2026-03-20T20:20:58.1267674Z Tippmix scraping error: HTTPError('404 Client Error: Not Found for url: https://www.tippmix.hu/sport/fogadas/labdarugas')
+2026-03-20T20:20:58.1268683Z [DEBUG] SCRAPED: Boulogne vs Nancy → 1.85/3.4/4.2
+2026-03-20T20:20:58.1269392Z [DEBUG] NO MATCH from TheOddsAPI: Clermont Foot 63 vs Red Star, trying scraper...
+2026-03-20T20:20:58.1270652Z Tippmix scraping error: HTTPError('404 Client Error: Not Found for url: https://www.tippmix.hu/sport/fogadas/labdarugas')
+2026-03-20T20:20:58.1271713Z [DEBUG] SCRAPED: Clermont Foot 63 vs Red Star → 1.85/3.4/4.2
+2026-03-20T20:20:58.1272698Z [DEBUG] NO MATCH from TheOddsAPI: Laval vs Grenoble, trying scraper...
+2026-03-20T20:20:58.1273703Z Tippmix scraping error: HTTPError('404 Client Error: Not Found for url: https://www.tippmix.hu/sport/fogadas/labdarugas')
+2026-03-20T20:20:58.1274695Z [DEBUG] SCRAPED: Laval vs Grenoble → 1.85/3.4/4.2
+2026-03-20T20:20:58.1275338Z [DEBUG] NO MATCH from TheOddsAPI: Pau vs Montpellier, trying scraper...
+2026-03-20T20:20:58.1276338Z Tippmix scraping error: HTTPError('404 Client Error: Not Found for url: https://www.tippmix.hu/sport/fogadas/labdarugas')
+2026-03-20T20:20:58.1277316Z [DEBUG] SCRAPED: Pau vs Montpellier → 1.85/3.4/4.2
+2026-03-20T20:20:58.1277948Z [DEBUG] NO MATCH from TheOddsAPI: Rodez vs SC Bastia, trying scraper...
+2026-03-20T20:20:58.1278952Z Tippmix scraping error: HTTPError('404 Client Error: Not Found for url: https://www.tippmix.hu/sport/fogadas/labdarugas')
+2026-03-20T20:20:58.1280115Z [DEBUG] SCRAPED: Rodez vs SC Bastia → 1.85/3.4/4.2
+2026-03-20T20:20:58.1280784Z [DEBUG] NO MATCH from TheOddsAPI: Cambuur vs Jong AZ Alkmaar, trying scraper...
+2026-03-20T20:20:58.1281792Z Tippmix scraping error: HTTPError('404 Client Error: Not Found for url: https://www.tippmix.hu/sport/fogadas/labdarugas')
+2026-03-20T20:20:58.1282827Z [DEBUG] SCRAPED: Cambuur vs Jong AZ Alkmaar → 1.85/3.4/4.2
+2026-03-20T20:20:58.1283516Z [DEBUG] NO MATCH from TheOddsAPI: FC Emmen vs VVV-Venlo, trying scraper...
+2026-03-20T20:20:58.1284524Z Tippmix scraping error: HTTPError('404 Client Error: Not Found for url: https://www.tippmix.hu/sport/fogadas/labdarugas')
+2026-03-20T20:20:58.1285563Z [DEBUG] SCRAPED: FC Emmen vs VVV-Venlo → 1.85/3.4/4.2
+2026-03-20T20:20:58.1286236Z [DEBUG] NO MATCH from TheOddsAPI: Jong Ajax vs Almere City FC, trying scraper...
+2026-03-20T20:20:58.1287506Z Tippmix scraping error: HTTPError('404 Client Error: Not Found for url: https://www.tippmix.hu/sport/fogadas/labdarugas')
+2026-03-20T20:20:58.1288551Z [DEBUG] SCRAPED: Jong Ajax vs Almere City FC → 1.85/3.4/4.2
+2026-03-20T20:20:58.1289285Z [DEBUG] NO MATCH from TheOddsAPI: Jong FC Utrecht vs FC Dordrecht, trying scraper...
+2026-03-20T20:20:58.1290534Z Tippmix scraping error: HTTPError('404 Client Error: Not Found for url: https://www.tippmix.hu/sport/fogadas/labdarugas')
+2026-03-20T20:20:58.1291575Z [DEBUG] SCRAPED: Jong FC Utrecht vs FC Dordrecht → 1.85/3.4/4.2
+2026-03-20T20:20:58.1292328Z [matches] theoddsapi enriched odds for 4 matches, scraped 17 matches (sport_keys=7)
+2026-03-20T20:20:58.1293041Z [matches] odds enriched (full 1X2): 0/0 (limit=0)
+2026-03-20T20:20:58.1293534Z [matches] RAW MATCH EXAMPLE:
+2026-03-20T20:20:58.1295311Z  {'sport': 'football', 'fixture_id': 1529128, 'league_name': 'England Premier League', 'country_name': 'England', 'kickoff_local': '2026-03-20T20:00:00+00:00', 'home_team': 'AFC Bournemouth', 'away_team': 'Manchester United', 'odds': {'1': 3.8, 'X': 3.78, '2': 2.2}, 'standings': {}, 'injuries': [], 'source': 'livescore', 'odds_source': 'theoddsapi'}
+2026-03-20T20:20:58.1297195Z Talált meccsek száma (összes): 21
+2026-03-20T20:20:58.1297715Z Idősávra szűrt meccsek száma: 21
+2026-03-20T20:20:58.1298274Z Napi tippek elmentve: public_bets_evening.json, vip_bets_evening.json
+2026-03-20T20:20:58.1299019Z Meta elmentve: public_bets_evening_meta.json, vip_bets_evening_meta.json
+2026-03-20T20:20:58.1299657Z [DB] Saved run_id=34 + fixtures + bets to SQLite.
+2026-03-20T20:20:58.1300152Z 
+2026-03-20T20:20:58.1300440Z [VIP_ALL] Telegram küldés indul... üzenet részek: 1
+2026-03-20T20:20:58.1300950Z [VIP_ALL] Part 1/1 sendMessage...
+2026-03-20T20:20:58.1301376Z [VIP_ALL] HTTP status: 200
+2026-03-20T20:20:58.1301858Z [VIP_ALL] Üzenet(ek) sikeresen elküldve.
+2026-03-20T20:20:58.1302168Z 
+2026-03-20T20:20:58.1302470Z [PUBLIC_ALL] Telegram küldés indul... üzenet részek: 1
+2026-03-20T20:20:58.1302997Z [PUBLIC_ALL] Part 1/1 sendMessage...
+2026-03-20T20:20:58.1303439Z [PUBLIC_ALL] HTTP status: 200
+2026-03-20T20:20:58.1303950Z [PUBLIC_ALL] Üzenet(ek) sikeresen elküldve.

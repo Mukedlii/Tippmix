@@ -1,0 +1,147 @@
+﻿2026-03-20T20:20:10.7498590Z ##[group]Run actions/checkout@v4
+2026-03-20T20:20:10.7500239Z with:
+2026-03-20T20:20:10.7501022Z   fetch-depth: 0
+2026-03-20T20:20:10.7501836Z   repository: Mukedlii/Tippmix
+2026-03-20T20:20:10.7503025Z   token: ***
+2026-03-20T20:20:10.7503751Z   ssh-strict: true
+2026-03-20T20:20:10.7504473Z   ssh-user: git
+2026-03-20T20:20:10.7505236Z   persist-credentials: true
+2026-03-20T20:20:10.7506077Z   clean: true
+2026-03-20T20:20:10.7506847Z   sparse-checkout-cone-mode: true
+2026-03-20T20:20:10.7507756Z   fetch-tags: false
+2026-03-20T20:20:10.7508511Z   show-progress: true
+2026-03-20T20:20:10.7509273Z   lfs: false
+2026-03-20T20:20:10.7510179Z   submodules: false
+2026-03-20T20:20:10.7511005Z   set-safe-directory: true
+2026-03-20T20:20:10.7512272Z env:
+2026-03-20T20:20:10.7513403Z   TELEGRAM_BOT_TOKEN: ***
+2026-03-20T20:20:10.7514342Z   TELEGRAM_PUBLIC_CHAT_ID: ***
+2026-03-20T20:20:10.7515275Z   TELEGRAM_VIP_CHAT_ID: ***
+2026-03-20T20:20:10.7516172Z   TELEGRAM_EN_CHAT_ID: ***
+2026-03-20T20:20:10.7519149Z   OPENAI_API_KEY: ***
+2026-03-20T20:20:10.7520507Z   GEMINI_API_KEY: ***
+2026-03-20T20:20:10.7521322Z   ANTHROPIC_API_KEY: 
+2026-03-20T20:20:10.7522124Z   TIPPMIX_USE_ENSEMBLE: 0
+2026-03-20T20:20:10.7523085Z   SPORTS_API_KEY: ***
+2026-03-20T20:20:10.7523891Z   SPORTMONKS_API_TOKEN: 
+2026-03-20T20:20:10.7524710Z   SPORTSDATAIO_API: 
+2026-03-20T20:20:10.7525966Z   ALLSPORTSAPI_KEY: ***
+2026-03-20T20:20:10.7526981Z   FOOTBALLDATA_API_KEY: ***
+2026-03-20T20:20:10.7527969Z   ODDS_API_KEY: ***
+2026-03-20T20:20:10.7528758Z   TIPPMIX_SEND_PUBLIC: 1
+2026-03-20T20:20:10.7529568Z   TIPPMIX_SEND_VIP: 1
+2026-03-20T20:20:10.7530723Z   TIPPMIX_SEND_EN: 1
+2026-03-20T20:20:10.7531564Z   TIPPMIX_USE_MARKETING_FORMAT: 1
+2026-03-20T20:20:10.7532611Z   TIPPMIX_DASHBOARD_URL: https://tippmix.vercel.app
+2026-03-20T20:20:10.7533823Z   TIPPMIX_VIP_URL: https://tippmix.vercel.app/vip
+2026-03-20T20:20:10.7534926Z   TIPPMIX_BETTING_SITE: tippmix
+2026-03-20T20:20:10.7535851Z   TIPPMIX_ENABLE_MULTI_SPORT: 1
+2026-03-20T20:20:10.7536790Z   TIPPMIX_EXTRA_SPORTS: basketball,handball
+2026-03-20T20:20:10.7538094Z   ODDS_MAX_REQUESTS_PER_RUN: 20
+2026-03-20T20:20:10.7540574Z   ODDS_SPORT_KEYS: soccer_epl,soccer_germany_bundesliga,soccer_italy_serie_a,soccer_spain_la_liga,soccer_france_ligue_one,soccer_uefa_europa_league,soccer_uefa_europa_conference_league
+2026-03-20T20:20:10.7543028Z   SPORTS_DATA_PROVIDER: free_scraper
+2026-03-20T20:20:10.7543955Z   TIPPMIX_SLOT: ALL
+2026-03-20T20:20:10.7544721Z   TIPPMIX_ENGINE: poisson
+2026-03-20T20:20:10.7545560Z   TIPPMIX_SAFE_P_MIN: 0.58
+2026-03-20T20:20:10.7546395Z   TIPPMIX_RISK_P_MIN: 0.54
+2026-03-20T20:20:10.7547244Z   TIPPMIX_TEAM_MIN_N: 6
+2026-03-20T20:20:10.7548056Z   TIPPMIX_LEAGUE_MIN_N: 16
+2026-03-20T20:20:10.7548901Z   TIPPMIX_VIP_ALLOW_DEFAULTS: 1
+2026-03-20T20:20:10.7549953Z   TIPPMIX_VIP_ALLOW_PARTIAL_DEFAULTS: 1
+2026-03-20T20:20:10.7550940Z   TIPPMIX_VIP_MIN_REAL: 4
+2026-03-20T20:20:10.7551787Z   TIPPMIX_VIP_MAX_FALLBACK: 3
+2026-03-20T20:20:10.7552644Z   TIPPMIX_MIN_VIP: 6
+2026-03-20T20:20:10.7553421Z   TIPPMIX_MIN_FREE: 3
+2026-03-20T20:20:10.7554244Z   TIPPMIX_IMPORTANT_MIN: 6
+2026-03-20T20:20:10.7555146Z   TIPPMIX_VIP_MAIN1_COUNT: 6
+2026-03-20T20:20:10.7556005Z   TIPPMIX_VIP_MAIN2_COUNT: 6
+2026-03-20T20:20:10.7556871Z   TIPPMIX_FREE_SAFE_COUNT: 3
+2026-03-20T20:20:10.7557732Z   TIPPMIX_FREE_RISKY_COUNT: 3
+2026-03-20T20:20:10.7558269Z   TIPPMIX_MAX_VIP: 18
+2026-03-20T20:20:10.7558771Z   TIPPMIX_MAX_FREE: 12
+2026-03-20T20:20:10.7559577Z   TIPPMIX_VIP_ODDS_MIN: 1.30
+2026-03-20T20:20:10.7560415Z   TIPPMIX_VIP_ODDS_MAX: 2.05
+2026-03-20T20:20:10.7561331Z   TIPPMIX_VIP_REQUIRE_ODDS: 0
+2026-03-20T20:20:10.7562230Z   TIPPMIX_RELAX_IF_SHORT: 1
+2026-03-20T20:20:10.7563094Z   TIPPMIX_VIP_ODDS_MAX_RELAX: 2.40
+2026-03-20T20:20:10.7564019Z   TIPPMIX_FREE_ODDS_MAX_RELAX: 2.60
+2026-03-20T20:20:10.7564936Z   TIPPMIX_FREE_ODDS_MIN: 1.30
+2026-03-20T20:20:10.7565788Z   TIPPMIX_FREE_ODDS_MAX: 2.20
+2026-03-20T20:20:10.7566644Z   TIPPMIX_FREE_REQUIRE_ODDS: 0
+2026-03-20T20:20:10.7567506Z   TIPPMIX_VIP_BONUS_COUNT: 6
+2026-03-20T20:20:10.7568678Z   TIPPMIX_VIP_BONUS_ODDS_MIN: 1.85
+2026-03-20T20:20:10.7569598Z   TIPPMIX_VIP_BONUS_ODDS_MAX: 2.80
+2026-03-20T20:20:10.7570721Z   TIPPMIX_DAY_START_HOUR: 8
+2026-03-20T20:20:10.7571583Z   TIPPMIX_DAY_END_HOUR_EXCL: 19
+2026-03-20T20:20:10.7572466Z   TIPPMIX_BLOCK_COUNTRIES: 
+2026-03-20T20:20:10.7573305Z   TIPPMIX_BLOCK_LEAGUES: 
+2026-03-20T20:20:10.7574131Z   TIPPMIX_ALLOW_YOUTH: 0
+2026-03-20T20:20:10.7574952Z   TIPPMIX_MAX_DAYS_AHEAD: 0
+2026-03-20T20:20:10.7575790Z   TIPPMIX_MIN_POOL: 21
+2026-03-20T20:20:10.7576587Z   TIPPMIX_ALLOW_FRIENDLY: 0
+2026-03-20T20:20:10.7577493Z   TIPPMIX_ODDS_LOOKUP_LIMIT: 0
+2026-03-20T20:20:10.7578366Z   TIPPMIX_TARGET_FULL_ODDS: 0
+2026-03-20T20:20:10.7579204Z ##[endgroup]
+2026-03-20T20:20:10.9496807Z Syncing repository: Mukedlii/Tippmix
+2026-03-20T20:20:10.9498666Z ##[group]Getting Git version info
+2026-03-20T20:20:10.9499440Z Working directory is '/home/runner/work/Tippmix/Tippmix'
+2026-03-20T20:20:10.9500904Z [command]/usr/bin/git version
+2026-03-20T20:20:11.6374455Z git version 2.53.0
+2026-03-20T20:20:11.6426262Z ##[endgroup]
+2026-03-20T20:20:11.6436649Z Temporarily overriding HOME='/home/runner/work/_temp/3bef8893-ea8f-4296-8b16-656e44aa3d21' before making global git config changes
+2026-03-20T20:20:11.6450917Z Adding repository directory to the temporary git global config as a safe directory
+2026-03-20T20:20:11.6454526Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Tippmix/Tippmix
+2026-03-20T20:20:11.6884437Z Deleting the contents of '/home/runner/work/Tippmix/Tippmix'
+2026-03-20T20:20:11.6902239Z ##[group]Initializing the repository
+2026-03-20T20:20:11.6904526Z [command]/usr/bin/git init /home/runner/work/Tippmix/Tippmix
+2026-03-20T20:20:11.7599320Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-03-20T20:20:11.7612285Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-03-20T20:20:11.7615327Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-03-20T20:20:11.7617901Z hint: call:
+2026-03-20T20:20:11.7619188Z hint:
+2026-03-20T20:20:11.7620881Z hint: 	git config --global init.defaultBranch <name>
+2026-03-20T20:20:11.7622692Z hint:
+2026-03-20T20:20:11.7624583Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-03-20T20:20:11.7627237Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-03-20T20:20:11.7629398Z hint:
+2026-03-20T20:20:11.7632732Z hint: 	git branch -m <name>
+2026-03-20T20:20:11.7634393Z hint:
+2026-03-20T20:20:11.7645638Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-03-20T20:20:11.7648259Z Initialized empty Git repository in /home/runner/work/Tippmix/Tippmix/.git/
+2026-03-20T20:20:11.7658506Z [command]/usr/bin/git remote add origin https://github.com/Mukedlii/Tippmix
+2026-03-20T20:20:11.7710418Z ##[endgroup]
+2026-03-20T20:20:11.7712880Z ##[group]Disabling automatic garbage collection
+2026-03-20T20:20:11.7721366Z [command]/usr/bin/git config --local gc.auto 0
+2026-03-20T20:20:11.7776206Z ##[endgroup]
+2026-03-20T20:20:11.7778964Z ##[group]Setting up auth
+2026-03-20T20:20:11.7784998Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-03-20T20:20:11.7827492Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-03-20T20:20:12.2455536Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-03-20T20:20:12.2509460Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-03-20T20:20:12.2792224Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-03-20T20:20:12.2876679Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-03-20T20:20:12.3180812Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-03-20T20:20:12.3380052Z ##[endgroup]
+2026-03-20T20:20:12.3388545Z ##[group]Fetching the repository
+2026-03-20T20:20:12.3408959Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+2026-03-20T20:20:12.9939441Z From https://github.com/Mukedlii/Tippmix
+2026-03-20T20:20:12.9942115Z  * [new branch]      codex/integrate-sportsdataio-api-for-betting-tips -> origin/codex/integrate-sportsdataio-api-for-betting-tips
+2026-03-20T20:20:12.9944609Z  * [new branch]      codex/integrate-sportsdataio_api-for-betting-tips -> origin/codex/integrate-sportsdataio_api-for-betting-tips
+2026-03-20T20:20:12.9947435Z  * [new branch]      codex/locate-tippmixes-github-repository -> origin/codex/locate-tippmixes-github-repository
+2026-03-20T20:20:12.9948724Z  * [new branch]      main       -> origin/main
+2026-03-20T20:20:12.9993003Z [command]/usr/bin/git branch --list --remote origin/main
+2026-03-20T20:20:13.0024234Z   origin/main
+2026-03-20T20:20:13.0036384Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+2026-03-20T20:20:13.0064351Z cfd6d204ad4ae78e721fbac622d84eec72cbb6b6
+2026-03-20T20:20:13.0072977Z ##[endgroup]
+2026-03-20T20:20:13.0073815Z ##[group]Determining the checkout info
+2026-03-20T20:20:13.0075316Z ##[endgroup]
+2026-03-20T20:20:13.0080283Z [command]/usr/bin/git sparse-checkout disable
+2026-03-20T20:20:13.0122577Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-03-20T20:20:13.0154447Z ##[group]Checking out the ref
+2026-03-20T20:20:13.0160563Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-03-20T20:20:13.0366800Z Switched to a new branch 'main'
+2026-03-20T20:20:13.0370282Z branch 'main' set up to track 'origin/main'.
+2026-03-20T20:20:13.0380740Z ##[endgroup]
+2026-03-20T20:20:13.0429797Z [command]/usr/bin/git log -1 --format=%H
+2026-03-20T20:20:13.0461167Z cfd6d204ad4ae78e721fbac622d84eec72cbb6b6
