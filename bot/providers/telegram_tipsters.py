@@ -21,6 +21,7 @@ from typing import List, Dict, Optional
 try:
     from telethon import TelegramClient
     from telethon.tl.types import Channel
+    from telethon.sessions import StringSession
     TELETHON_AVAILABLE = True
 except ImportError:
     TELETHON_AVAILABLE = False
@@ -43,14 +44,27 @@ async def get_telegram_api_credentials() -> tuple:
     Get Telegram API credentials from environment
     
     Returns:
-        (api_id, api_hash, session_name)
+        (api_id, api_hash, session_string)
     
     Raises:
         ValueError if credentials not set
     """
+    # Try session string first (for headless/GitHub Actions)
+    session_string = os.getenv("TELEGRAM_SESSION_STRING")
+    
+    if session_string:
+        # Session string includes auth - just need API ID/Hash for client init
+        api_id = os.getenv("TELEGRAM_API_ID")
+        api_hash = os.getenv("TELEGRAM_API_HASH")
+        
+        if not api_id or not api_hash:
+            raise ValueError("TELEGRAM_SESSION_STRING set but missing TELEGRAM_API_ID/HASH")
+        
+        return int(api_id), api_hash, session_string
+    
+    # Fallback to interactive login (local development)
     api_id = os.getenv("TELEGRAM_API_ID")
     api_hash = os.getenv("TELEGRAM_API_HASH")
-    session_name = os.getenv("TELEGRAM_SESSION_NAME", "tippmix_scraper")
     
     if not api_id or not api_hash:
         raise ValueError(
@@ -58,10 +72,11 @@ async def get_telegram_api_credentials() -> tuple:
             "Get them from: https://my.telegram.org/apps\n"
             "Then set:\n"
             "  TELEGRAM_API_ID=your_api_id\n"
-            "  TELEGRAM_API_HASH=your_api_hash"
+            "  TELEGRAM_API_HASH=your_api_hash\n"
+            "  TELEGRAM_SESSION_STRING=... (optional, for headless)"
         )
     
-    return int(api_id), api_hash, session_name
+    return int(api_id), api_hash, None
 
 
 async def scrape_telegram_channel(
@@ -216,15 +231,24 @@ async def scrape_all_telegram_channels(
         channels = DEFAULT_CHANNELS
     
     try:
-        api_id, api_hash, session_name = await get_telegram_api_credentials()
+        api_id, api_hash, session_data = await get_telegram_api_credentials()
     except ValueError as e:
         print(f"[TelegramTips] {e}")
         return []
     
     all_tips = []
     
-    # Create Telegram client
-    async with TelegramClient(session_name, api_id, api_hash) as client:
+    # Create Telegram client with StringSession if available
+    if session_data and isinstance(session_data, str) and session_data.startswith("1"):
+        # Use StringSession (headless mode)
+        session = StringSession(session_data)
+        print("[Telegram] Using session string (headless mode)")
+    else:
+        # Use file-based session (interactive mode)
+        session = session_data or "tippmix_scraper"
+        print("[Telegram] Using file-based session (interactive mode)")
+    
+    async with TelegramClient(session, api_id, api_hash) as client:
         print(f"[Telegram] Connected to Telegram")
         
         for channel in channels:
