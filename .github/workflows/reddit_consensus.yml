@@ -1,10 +1,10 @@
-name: Combined Tipster Consensus Alert
+name: Combined Tipster Consensus Alert (DISABLED - use Task Scheduler instead)
 
 on:
-  schedule:
-    # Once daily at 9:00 UTC (10:00 Budapest) - after morning picks
-    - cron: '0 9 * * *'
-  workflow_dispatch:
+  # Schedule disabled - Reddit blocks GitHub Actions IPs
+  # schedule:
+  #   - cron: '0 9 * * *'
+  workflow_dispatch:  # Manual trigger only
 
 permissions:
   contents: read
