@@ -13,10 +13,10 @@ jobs:
   generate-tips:
     runs-on: ubuntu-latest
     env:
-      TELEGRAM_BOT_TOKEN: ${{ vars.TELEGRAM_BOT_TOKEN }}
-      TELEGRAM_PUBLIC_CHAT_ID: ${{ vars.TELEGRAM_PUBLIC_CHAT_ID }}
-      TELEGRAM_VIP_CHAT_ID: ${{ vars.TELEGRAM_VIP_CHAT_ID }}
-      TELEGRAM_EN_CHAT_ID: ${{ vars.TELEGRAM_EN_CHAT_ID }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
+      TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
+      TELEGRAM_EN_CHAT_ID: ${{ secrets.TELEGRAM_EN_CHAT_ID }}
 
       OPENAI_API_KEY: ${{ vars.OPENAI_API_KEY }}
 
