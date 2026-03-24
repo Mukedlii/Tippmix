@@ -1,13 +1,13 @@
 “””
 bot/providers/playwright_odds_scraper.py
 
-Playwright-alapú odds scraper — JavaScript oldalakhoz.
-Működik: OddsPortal, BettingExpert, Flashscore
+Playwright-alapu odds scraper – JavaScript oldalakhoz.
+Mukodik: OddsPortal, BettingExpert, Flashscore
 
-Telepítés (requirements.txt-be add hozzá):
+Telepites (requirements.txt-be add hozza):
 playwright>=1.40.0
 
-GitHub Actions-ben a workflow-ba add hozzá:
+GitHub Actions-ben a workflow-ba add hozza:
 - name: Install Playwright browsers
 run: playwright install chromium –with-deps
 “””
@@ -24,7 +24,7 @@ log = logging.getLogger(**name**)
 
 # —————————————————————————
 
-# Lazy import — csak ha tényleg kell
+# Lazy import – csak ha tenyleg kell
 
 # —————————————————————————
 
@@ -33,12 +33,12 @@ try:
 from playwright.sync_api import sync_playwright
 return sync_playwright
 except ImportError:
-log.warning(“Playwright nincs telepítve! Futtasd: pip install playwright && playwright install chromium”)
+log.warning(“Playwright nincs telepitve! Futtasd: pip install playwright && playwright install chromium”)
 return None
 
 # —————————————————————————
 
-# Közös browser indítás
+# Kozos browser inditas
 
 # —————————————————————————
 
@@ -53,7 +53,7 @@ args=[
 ],
 )
 
-def _new_page(browser, timeout: int = 60000):  # ✅ JAVÍTVA: 30000 → 60000
+def _new_page(browser, timeout: int = 60000):  # ? JAV?TVA: 30000 ? 60000
 ctx = browser.new_context(
 user_agent=(
 “Mozilla/5.0 (Windows NT 10.0; Win64; x64) “
@@ -89,7 +89,7 @@ try:
         url = f"https://www.oddsportal.com/search/results/{query}/"
         log.info(f"[OddsPortal] Fetching: {url}")
 
-        page.goto(url, wait_until="domcontentloaded", timeout=60000)  # ✅ JAVÍTVA
+        page.goto(url, wait_until="domcontentloaded", timeout=60000)  # ? JAV?TVA
         page.wait_for_timeout(3000)
 
         rows = page.query_selector_all("div.eventRow, div[class*='eventRow']")
@@ -116,7 +116,7 @@ try:
                         "odds_2": odds_vals[2],
                     }
 
-        page.goto("https://www.oddsportal.com/football/", wait_until="domcontentloaded", timeout=60000)  # ✅ JAVÍTVA
+        page.goto("https://www.oddsportal.com/football/", wait_until="domcontentloaded", timeout=60000)  # ? JAV?TVA
         page.wait_for_timeout(3000)
 
         rows = page.query_selector_all("div.eventRow, div[class*='eventRow']")
@@ -152,12 +152,12 @@ return None
 
 # —————————————————————————
 
-# 2. BETTINGEXPERT  ✅ JAVÍTVA: networkidle → domcontentloaded + timeout
+# 2. BETTINGEXPERT  ? JAV?TVA: networkidle ? domcontentloaded + timeout
 
 # —————————————————————————
 
 def scrape_bettingexpert(home_team: str, away_team: str) -> Optional[dict]:
-“”“BettingExpert.com Playwright scraper — tipster consensus + odds.”””
+“”“BettingExpert.com Playwright scraper – tipster consensus + odds.”””
 sync_playwright = _get_playwright()
 if not sync_playwright:
 return None
@@ -166,12 +166,12 @@ return None
 try:
     with sync_playwright() as p:
         browser = _launch_browser(p)
-        page = _new_page(browser, timeout=60000)  # ✅ JAVÍTVA
+        page = _new_page(browser, timeout=60000)  # ? JAV?TVA
 
         url = "https://www.bettingexpert.com/tips/football"
         log.info(f"[BettingExpert] Fetching: {url}")
 
-        # ✅ JAVÍTVA: networkidle → domcontentloaded, timeout=60000
+        # ? JAV?TVA: networkidle ? domcontentloaded, timeout=60000
         page.goto(url, wait_until="domcontentloaded", timeout=60000)
         page.wait_for_timeout(4000)
 
@@ -228,7 +228,7 @@ try:
         search_url = f"https://www.flashscore.com/search/?q={home_team}"
         log.info(f"[Flashscore] Fetching: {search_url}")
 
-        page.goto(search_url, wait_until="domcontentloaded", timeout=60000)  # ✅ JAVÍTVA
+        page.goto(search_url, wait_until="domcontentloaded", timeout=60000)  # ? JAV?TVA
         page.wait_for_timeout(3000)
 
         results = page.query_selector_all("div.search__result, a[class*='searchResult']")
@@ -249,7 +249,7 @@ try:
             return None
 
         odds_url = match_url.rstrip("/") + "/#/odds-comparison/1x2-odds/full-time"
-        page.goto(odds_url, wait_until="domcontentloaded", timeout=60000)  # ✅ JAVÍTVA
+        page.goto(odds_url, wait_until="domcontentloaded", timeout=60000)  # ? JAV?TVA
         page.wait_for_timeout(4000)
 
         rows = page.query_selector_all("div[class*='oddsCell'], div[class*='oddsRow'], tr[class*='odd']")
@@ -291,13 +291,13 @@ return None
 
 # —————————————————————————
 
-# FŐ FÜGGVÉNY — összesített odds gyűjtés
+# F? F?GGV?NY – osszesitett odds gyujtes
 
 # —————————————————————————
 
 def get_best_odds_playwright(home_team: str, away_team: str) -> dict:
 “””
-Összesített odds gyűjtés Playwright-tal.
+?sszesitett odds gyujtes Playwright-tal.
 “””
 import statistics
 
@@ -323,7 +323,7 @@ try:
 except Exception as e:
     log.debug(f"Flashscore skip: {e}")
 
-# 3. BettingExpert (csak ha a többi nem adott eredményt)
+# 3. BettingExpert (csak ha a tobbi nem adott eredmenyt)
 if not results:
     try:
         be = scrape_bettingexpert(home_team, away_team)
@@ -333,7 +333,7 @@ if not results:
     except Exception as e:
         log.debug(f"BettingExpert skip: {e}")
 
-# Összesítés
+# ?sszesites
 all_1, all_x, all_2 = [], [], []
 
 for src, data in results.items():
