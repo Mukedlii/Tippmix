@@ -1,9 +1,5 @@
 # bot/providers/playwright_odds_scraper.py
 
-# Playwright-based odds scraper for JavaScript-rendered pages
-
-# Works with: OddsPortal, BettingExpert, Flashscore
-
 from **future** import annotations
 import logging
 import re
@@ -17,7 +13,7 @@ try:
 from playwright.sync_api import sync_playwright
 return sync_playwright
 except ImportError:
-log.warning(“Playwright not installed! Run: pip install playwright && playwright install chromium”)
+log.warning(“Playwright not installed”)
 return None
 
 def _launch_browser(playwright):
@@ -94,7 +90,6 @@ browser = _launch_browser(p)
 page = _new_page(browser, timeout=60000)
 url = “https://www.bettingexpert.com/tips/football”
 log.info(”[BettingExpert] Fetching: “ + url)
-# FIXED: domcontentloaded instead of networkidle, timeout=60000
 page.goto(url, wait_until=“domcontentloaded”, timeout=60000)
 page.wait_for_timeout(4000)
 page.evaluate(“window.scrollTo(0, document.body.scrollHeight / 2)”)
@@ -111,10 +106,7 @@ try:
 val = float(el.inner_text().strip())
 if 1.01 <= val <= 25:
 browser.close()
-return {
-“source”: “bettingexpert”,
-“odds_tip”: val,
-}
+return {“source”: “bettingexpert”, “odds_tip”: val}
 except Exception:
 continue
 browser.close()
@@ -131,7 +123,6 @@ with sync_playwright() as p:
 browser = _launch_browser(p)
 page = _new_page(browser)
 search_url = “https://www.flashscore.com/search/?q=” + home_team
-log.info(”[Flashscore] Fetching: “ + search_url)
 page.goto(search_url, wait_until=“domcontentloaded”, timeout=60000)
 page.wait_for_timeout(3000)
 results = page.query_selector_all(“div.search__result, a[class*=‘searchResult’]”)
