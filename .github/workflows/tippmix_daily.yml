@@ -1,0 +1,70 @@
+name: Tippmix Daily Tips
+
+on:
+  schedule:
+    - cron: "0 7 * * *"
+    - cron: "0 14 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate-tips:
+    runs-on: ubuntu-latest
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ vars.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_PUBLIC_CHAT_ID: ${{ vars.TELEGRAM_PUBLIC_CHAT_ID }}
+      TELEGRAM_VIP_CHAT_ID: ${{ vars.TELEGRAM_VIP_CHAT_ID }}
+      TELEGRAM_EN_CHAT_ID: ${{ vars.TELEGRAM_EN_CHAT_ID }}
+
+      OPENAI_API_KEY: ${{ vars.OPENAI_API_KEY }}
+
+      SPORTS_API_KEY: ${{ vars.SPORTS_API_KEY }}
+      SPORTMONKS_API_TOKEN: ${{ vars.SPORTMONKS_API_TOKEN }}
+      SPORTSDATAIO_API: ${{ vars.SPORTSDATAIO_API }}
+      ALLSPORTSAPI_KEY: ${{ vars.ALLSPORTSAPI_KEY }}
+      ODDS_API_KEY: ${{ vars.ODDS_API_KEY }}
+      FOOTBALLDATA_API_KEY: ${{ vars.FOOTBALLDATA_API_KEY }}
+
+      SPORTS_DATA_PROVIDER: ${{ vars.SPORTS_DATA_PROVIDER }}
+      TIPPMIX_SLOT: DAY
+      TIPPMIX_MODEL: "gpt-4o-mini"
+
+      TIPPMIX_SEND_PUBLIC: "1"
+      TIPPMIX_SEND_VIP: "1"
+      TIPPMIX_SEND_EN: "1"
+
+      TIPPMIX_MIN_VIP: "6"
+      TIPPMIX_MIN_FREE: "3"
+      TIPPMIX_USE_VALIDATOR: "1"
+      TIPPMIX_USE_ENSEMBLE: "0"
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tip generation
+        run: python -m bot.main
+
+      - name: Commit bet JSONs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add *.json data/ || true
+          if git diff --cached --quiet; then
+            echo "Nincs változás."
+          else
+            git commit -m "🎯 Daily tips generated"
+            git push
+          fi
