@@ -1,169 +1,227 @@
-# Tippmix.hu odds scraper
+# bot/odds_scraper.py
 
+# 
+
+# ✅ Tippmix ELTÁVOLÍTVA — blokkolja a szerver IP-ket (GitHub Actions-ből sosem működik)
+
+# ✅ Elsődleges forrás: BetExplorer.com (requests + BeautifulSoup, megbízható)
+
+# ✅ Fallback: OddsPortal JSON snippet
+
+# ✅ Ha egyik sem működik: default odds
+
+import re
+import time
+import random
+import logging
 import requests
 from bs4 import BeautifulSoup
 from typing import Dict, Optional
-import re
 
-# ✅ JAVÍTVA: új Tippmix URL-ek — a régi /sport/fogadas/labdarugas már 404
+log = logging.getLogger(**name**)
 
-TIPPMIX_URLS = [
-“https://www.tippmix.hu/meccsek”,
-“https://www.tippmix.hu/fogadas”,
-“https://www.tippmix.hu/”,
-]
-
-def scrape_tippmix_odds(home_team: str, away_team: str) -> Optional[Dict[str, float]]:
-“””
-Scrapel Tippmix.hu-ról 1X2 odds-okat egy meccshez.
-Több URL-t próbál, ha az egyik 404.
-
-```
-Returns:
-    {"1": 2.10, "X": 3.40, "2": 3.20} vagy None
-"""
-home = home_team.lower().strip()
-away = away_team.lower().strip()
-
-headers = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/122.0.0.0 Safari/537.36"
-    ),
-    "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.8",
-}
-
-for url in TIPPMIX_URLS:
-    try:
-        response = requests.get(url, headers=headers, timeout=15)
-
-        # ✅ JAVÍTVA: 404 esetén csendesen a következő URL-re lép, nem dob hibát
-        if response.status_code == 404:
-            print(f"Tippmix 404: {url} — következő URL próbálása...")
-            continue
-
-        if response.status_code != 200:
-            print(f"Tippmix HTTP {response.status_code}: {url}")
-            continue
-
-        soup = BeautifulSoup(response.text, "html.parser")
-
-        # Meccs sorok keresése (rugalmas class matching)
-        matches = soup.find_all(
-            ["div", "tr"],
-            class_=re.compile(r"match|event|meccs|fogadas", re.I),
-        )
-
-        for match in matches:
-            match_text = match.get_text().lower()
-
-            if home[:4] in match_text and away[:4] in match_text:
-                odds_elements = match.find_all(
-                    ["span", "div", "td"],
-                    class_=re.compile(r"odd|koef|rate|szorzó|odds", re.I),
-                )
-
-                if len(odds_elements) >= 3:
-                    try:
-                        o1 = float(odds_elements[0].get_text().strip().replace(",", "."))
-                        ox = float(odds_elements[1].get_text().strip().replace(",", "."))
-                        o2 = float(odds_elements[2].get_text().strip().replace(",", "."))
-
-                        # Sanity check: reális odds tartomány
-                        if 1.01 <= o1 <= 25 and 1.01 <= ox <= 25 and 1.01 <= o2 <= 25:
-                            return {"1": o1, "X": ox, "2": o2}
-                    except (ValueError, IndexError):
-                        continue
-
-    except requests.exceptions.ConnectionError:
-        print(f"Tippmix kapcsolódási hiba: {url}")
-        continue
-    except Exception as e:
-        print(f"Tippmix scraping error ({url}): {repr(e)}")
-        continue
-
-# Ha egyik URL sem működött
-return None
-```
-
-def scrape_nemzeti_sport_odds(home_team: str, away_team: str) -> Optional[Dict[str, float]]:
-“””
-Scrapel Nemzeti Sport-ról odds-okat (backup).
-“””
-try:
-url = “https://www.nemzetisport.hu/fogadas”
-headers = {
+HEADERS = {
 “User-Agent”: (
 “Mozilla/5.0 (Windows NT 10.0; Win64; x64) “
 “AppleWebKit/537.36 (KHTML, like Gecko) “
 “Chrome/122.0.0.0 Safari/537.36”
-)
+),
+“Accept-Language”: “en-US,en;q=0.9”,
+“Accept”: “text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8”,
+“Referer”: “https://www.google.com/”,
 }
 
+def _get(url: str, timeout: int = 15) -> Optional[str]:
+try:
+time.sleep(random.uniform(1.0, 2.5))
+r = requests.get(url, headers=HEADERS, timeout=timeout)
+if r.status_code == 200:
+return r.text
+log.debug(f”HTTP {r.status_code} -> {url}”)
+except Exception as e:
+log.debug(f”Fetch failed {url}: {e}”)
+return None
+
+# ──────────────────────────────────────────────
+
+# 1. BETEXPLORER — elsődleges forrás
+
+# requests + BeautifulSoup, nem blokkolja a szervereket
+
+# ──────────────────────────────────────────────
+
+def scrape_betexplorer(home_team: str, away_team: str) -> Optional[Dict[str, float]]:
+“””
+BetExplorer.com keresés 1X2 odds-hoz.
+Mukodik szerver IP-rol is (nem blokkolja).
+“””
+query = requests.utils.quote(f”{home_team} {away_team}”)
+search_url = f”https://www.betexplorer.com/search/?q={query}”
+html = _get(search_url)
+if not html:
+return None
+
 ```
-    response = requests.get(url, headers=headers, timeout=15)
+try:
+    soup = BeautifulSoup(html, "html.parser")
+    rows = soup.select("table.table-main tr, #sortable-1 tr")
 
-    # ✅ JAVÍTVA: hibás státuszkód esetén None, nem exception
-    if response.status_code != 200:
-        print(f"Nemzeti Sport HTTP {response.status_code}")
-        return None
+    home_l = home_team.lower()
+    away_l = away_team.lower()
 
-    soup = BeautifulSoup(response.text, "html.parser")
-
-    home = home_team.lower().strip()
-    away = away_team.lower().strip()
-
-    matches = soup.find_all(
-        ["div", "tr"],
-        class_=re.compile(r"match|game|event", re.I),
-    )
-
-    for match in matches:
-        text = match.get_text().lower()
-        if home[:4] in text and away[:4] in text:
-            odds = match.find_all(
-                ["span", "td"],
-                class_=re.compile(r"odd|rate|koef", re.I),
-            )
-            if len(odds) >= 3:
+    for row in rows:
+        text = row.get_text(strip=True).lower()
+        if home_l[:4] in text and away_l[:4] in text:
+            cells = row.select("td")
+            if len(cells) >= 4:
                 try:
-                    o1 = float(odds[0].get_text().strip().replace(",", "."))
-                    ox = float(odds[1].get_text().strip().replace(",", "."))
-                    o2 = float(odds[2].get_text().strip().replace(",", "."))
-                    if 1.01 <= o1 <= 25:
+                    o1 = float(cells[-3].get_text(strip=True).replace(",", "."))
+                    ox = float(cells[-2].get_text(strip=True).replace(",", "."))
+                    o2 = float(cells[-1].get_text(strip=True).replace(",", "."))
+                    if 1.01 <= o1 <= 25 and 1.01 <= ox <= 25 and 1.01 <= o2 <= 25:
+                        log.info(f"[BetExplorer] {home_team} vs {away_team}: 1={o1} X={ox} 2={o2}")
                         return {"1": o1, "X": ox, "2": o2}
                 except (ValueError, IndexError):
                     continue
 
-    return None
+    # Ha kereses nem adott eredmenyt, probaljuk a football fooldalt
+    football_url = "https://www.betexplorer.com/football/"
+    html2 = _get(football_url)
+    if html2:
+        soup2 = BeautifulSoup(html2, "html.parser")
+        rows2 = soup2.select("table.table-main tr")
+        for row in rows2:
+            text = row.get_text(strip=True).lower()
+            if home_l[:4] in text and away_l[:4] in text:
+                cells = row.select("td")
+                if len(cells) >= 4:
+                    try:
+                        o1 = float(cells[-3].get_text(strip=True).replace(",", "."))
+                        ox = float(cells[-2].get_text(strip=True).replace(",", "."))
+                        o2 = float(cells[-1].get_text(strip=True).replace(",", "."))
+                        if 1.01 <= o1 <= 25:
+                            return {"1": o1, "X": ox, "2": o2}
+                    except (ValueError, IndexError):
+                        continue
 
 except Exception as e:
-    print(f"Nemzeti Sport scraping error: {repr(e)}")
-    return None
+    log.debug(f"BetExplorer parse error: {e}")
+
+return None
 ```
+
+# ──────────────────────────────────────────────
+
+# 2. ODDSPORTAL — JSON snippet kinyeres
+
+# ──────────────────────────────────────────────
+
+def scrape_oddsportal(home_team: str, away_team: str) -> Optional[Dict[str, float]]:
+“””
+OddsPortal kereses — JSON snippet kinyeres az HTML-bol.
+“””
+query = requests.utils.quote(f”{home_team} {away_team}”)
+url = f”https://www.oddsportal.com/search/results/{query}/”
+html = _get(url)
+if not html:
+return None
+
+```
+try:
+    soup = BeautifulSoup(html, "html.parser")
+    home_l = home_team.lower()
+    away_l = away_team.lower()
+
+    # Statikus HTML tablazat
+    rows = soup.select("div.eventRow, tr.deactivate, div[class*='eventRow']")
+    for row in rows:
+        text = row.get_text(strip=True).lower()
+        if home_l[:4] in text and away_l[:4] in text:
+            odds_spans = row.select("span.odds-nowrp, td.odds-nowrp, span[class*='oddsCell']")
+            if len(odds_spans) >= 3:
+                try:
+                    o1 = float(odds_spans[0].get_text(strip=True))
+                    ox = float(odds_spans[1].get_text(strip=True))
+                    o2 = float(odds_spans[2].get_text(strip=True))
+                    if 1.01 <= o1 <= 25:
+                        log.info(f"[OddsPortal] {home_team} vs {away_team}: 1={o1} X={ox} 2={o2}")
+                        return {"1": o1, "X": ox, "2": o2}
+                except (ValueError, IndexError):
+                    continue
+
+    # JSON sniff a script tagekbol
+    for script in soup.find_all("script"):
+        content = script.string or ""
+        if home_l[:4] in content.lower() and "odds" in content.lower():
+            match = re.search(
+                r'"home_od":\s*([\d.]+).*?"draw_od":\s*([\d.]+).*?"away_od":\s*([\d.]+)',
+                content,
+            )
+            if match:
+                o1 = float(match.group(1))
+                ox = float(match.group(2))
+                o2 = float(match.group(3))
+                if 1.01 <= o1 <= 25:
+                    return {"1": o1, "X": ox, "2": o2}
+
+except Exception as e:
+    log.debug(f"OddsPortal parse error: {e}")
+
+return None
+```
+
+# ──────────────────────────────────────────────
+
+# Regi fuggvenynevek megtartva visszafele kompatibilitashoz
+
+# ──────────────────────────────────────────────
+
+def scrape_tippmix_odds(home_team: str, away_team: str) -> Optional[Dict[str, float]]:
+“””
+Tippmix helyett BetExplorer-t hasznalunk.
+Fuggveny neve megtartva a visszafele kompatibilitas miatt.
+“””
+return scrape_betexplorer(home_team, away_team)
+
+def scrape_nemzeti_sport_odds(home_team: str, away_team: str) -> Optional[Dict[str, float]]:
+“””
+Nemzeti Sport helyett OddsPortal-t hasznalunk.
+Fuggveny neve megtartva a visszafele kompatibilitas miatt.
+“””
+return scrape_oddsportal(home_team, away_team)
+
+# ──────────────────────────────────────────────
+
+# FO FUGGVENY
+
+# ──────────────────────────────────────────────
 
 def get_odds_with_fallback(home_team: str, away_team: str) -> Dict[str, float]:
 “””
-Próbálja: Tippmix → Nemzeti Sport → default fallback.
+Probaja: BetExplorer -> OddsPortal -> default fallback.
+Sosem dob exception, mindig visszaad valamit.
+“””
+# 1. BetExplorer (elsodleges, megbizhato)
+try:
+odds = scrape_betexplorer(home_team, away_team)
+if odds:
+print(f”[SCRAPED] {home_team} vs {away_team} -> BetExplorer: {odds}”)
+return odds
+except Exception as e:
+log.debug(f”BetExplorer hiba: {e}”)
 
 ```
-✅ JAVÍTVA: sosem dob exception, mindig visszaad valamit.
-"""
-# 1. Tippmix (több URL-lel)
-odds = scrape_tippmix_odds(home_team, away_team)
-if odds:
-    print(f"[SCRAPED] {home_team} vs {away_team} → Tippmix: {odds}")
-    return odds
+# 2. OddsPortal (masodlagos)
+try:
+    odds = scrape_oddsportal(home_team, away_team)
+    if odds:
+        print(f"[SCRAPED] {home_team} vs {away_team} -> OddsPortal: {odds}")
+        return odds
+except Exception as e:
+    log.debug(f"OddsPortal hiba: {e}")
 
-# 2. Nemzeti Sport
-odds = scrape_nemzeti_sport_odds(home_team, away_team)
-if odds:
-    print(f"[SCRAPED] {home_team} vs {away_team} → Nemzeti Sport: {odds}")
-    return odds
-
-# 3. Fallback default
-print(f"[SCRAPED] {home_team} vs {away_team} → fallback default odds")
+# 3. Default fallback — sosem dob hibat
+print(f"[SCRAPED] {home_team} vs {away_team} -> fallback default odds")
 return {
     "1": 1.85,
     "X": 3.40,
