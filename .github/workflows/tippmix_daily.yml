@@ -24,7 +24,7 @@ jobs:
       SPORTMONKS_API_TOKEN: ${{ vars.SPORTMONKS_API_TOKEN }}
       SPORTSDATAIO_API: ${{ vars.SPORTSDATAIO_API }}
       ALLSPORTSAPI_KEY: ${{ vars.ALLSPORTSAPI_KEY }}
-      ODDS_API_KEY: ${{ vars.ODDS_API_KEY }}
+      ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
       FOOTBALLDATA_API_KEY: ${{ vars.FOOTBALLDATA_API_KEY }}
 
       SPORTS_DATA_PROVIDER: ${{ vars.SPORTS_DATA_PROVIDER }}
@@ -53,6 +53,9 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+
+      - name: Install Playwright browsers
+        run: playwright install chromium --with-deps
 
       - name: Run tip generation
         run: python -m bot.main
