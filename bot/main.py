@@ -14,7 +14,8 @@ from bot.matches import fetch_matches_for_today
 from bot.openai_logic import generate_tips
 from bot.poisson_engine import generate_poisson_tips
 from bot.providers.web_context import build_match_context, format_context_for_prompt
-from bot.providers.odds_scraper import get_best_odds, format_odds_for_prompt
+from bot.providers.playwright_odds_scraper import get_best_odds_playwright as get_best_odds
+from bot.providers.odds_scraper import format_odds_for_prompt
 from bot.providers.sports_news import get_match_news, format_news_for_prompt
 from bot.providers.multi_sport import fetch_multi_sport_matches, format_match_with_sport
 from bot.telegram_marketing import (
