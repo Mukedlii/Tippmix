@@ -1,0 +1,323 @@
+#!/usr/bin/env python3
+"""
+Poisson Fallback System
+When no tipster consensus available, use Poisson engine for predictions
+"""
+
+import os
+import sys
+import io
+import requests
+from datetime import datetime, timedelta
+
+# Fix Windows encoding
+if sys.platform == 'win32':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+
+# Add project root to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from bot.poisson_engine import generate_poisson_tips
+from bot.storage.tipster_tracking import save_ai_consensus
+
+
+def fetch_upcoming_matches(hours_ahead=24):
+    """
+    Fetch upcoming matches from TheOddsAPI
+    
+    Args:
+        hours_ahead: How many hours ahead to look for matches
+    
+    Returns:
+        List of matches
+    """
+    
+    api_key = os.getenv('ODDS_API_KEY', 'acf78bce7a7976c2bc4d028528d4cb2f')
+    
+    # Major soccer leagues
+    sports = [
+        'soccer_epl',              # Premier League
+        'soccer_spain_la_liga',    # La Liga
+        'soccer_germany_bundesliga', # Bundesliga
+        'soccer_italy_serie_a',    # Serie A
+        'soccer_france_ligue_one', # Ligue 1
+    ]
+    
+    all_matches = []
+    from datetime import timezone
+    cutoff_time = datetime.now(timezone.utc) + timedelta(hours=hours_ahead)
+    
+    for sport in sports:
+        url = f"https://api.the-odds-api.com/v4/sports/{sport}/odds/"
+        
+        params = {
+            'apiKey': api_key,
+            'regions': 'eu',
+            'markets': 'h2h',
+            'oddsFormat': 'decimal',
+            'dateFormat': 'iso'
+        }
+        
+        try:
+            print(f"📊 Fetching {sport}...")
+            response = requests.get(url, params=params, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                for match in data:
+                    # Parse commence time
+                    try:
+                        commence = datetime.fromisoformat(match['commence_time'].replace('Z', '+00:00'))
+                        
+                        # Only include matches within time window
+                        if commence <= cutoff_time:
+                            all_matches.append({
+                                'sport': sport,
+                                'league': sport.replace('soccer_', '').replace('_', ' ').title(),
+                                'home_team': match['home_team'],
+                                'away_team': match['away_team'],
+                                'commence_time': match['commence_time'],
+                                'bookmakers': match.get('bookmakers', [])
+                            })
+                    except Exception as e:
+                        print(f"  ⚠️  Error parsing match: {e}")
+                        continue
+                
+                print(f"  ✅ {len([m for m in data if datetime.fromisoformat(m['commence_time'].replace('Z', '+00:00')) <= cutoff_time])} matches")
+            else:
+                print(f"  ❌ HTTP {response.status_code}")
+        
+        except Exception as e:
+            print(f"  ❌ Error: {e}")
+    
+    return all_matches
+
+
+def get_bookmaker_odds(match):
+    """Extract odds from bookmakers"""
+    
+    if not match.get('bookmakers'):
+        return None, None, None
+    
+    # Use first bookmaker with h2h market
+    for bookmaker in match['bookmakers']:
+        for market in bookmaker.get('markets', []):
+            if market['key'] == 'h2h':
+                outcomes = market.get('outcomes', [])
+                
+                odds_map = {}
+                for outcome in outcomes:
+                    odds_map[outcome['name']] = outcome['price']
+                
+                home_odds = odds_map.get(match['home_team'])
+                away_odds = odds_map.get(match['away_team'])
+                draw_odds = odds_map.get('Draw')
+                
+                return home_odds, draw_odds, away_odds
+    
+    return None, None, None
+
+
+def run_poisson_predictions(matches):
+    """
+    Run Poisson predictions on matches using generate_poisson_tips
+    
+    Returns:
+        List of predictions with probabilities
+    """
+    
+    print(f"\n🔮 Running Poisson predictions on {len(matches)} matches...\n")
+    
+    # Prepare matches for Poisson engine
+    poisson_matches = []
+    for m in matches:
+        poisson_matches.append({
+            'home_team': m['home_team'],
+            'away_team': m['away_team'],
+            'league_name': m['league'],
+            'sport': m['sport'],
+            'match_date': m['commence_time']
+        })
+    
+    # Run Poisson engine
+    try:
+        result = generate_poisson_tips(poisson_matches)
+        vip_bets = result.get('vip_bets', [])
+        
+        if not vip_bets:
+            print("⚠️  No VIP bets generated by Poisson engine\n")
+            return []
+        
+        print(f"✅ Generated {len(vip_bets)} VIP bets\n")
+        
+        # Convert to our format
+        predictions = []
+        for bet in vip_bets:
+            # Find original match
+            home = bet.get('home_team')
+            away = bet.get('away_team')
+            
+            original_match = next((m for m in matches if m['home_team'] == home and m['away_team'] == away), None)
+            
+            if original_match:
+                home_odds, draw_odds, away_odds = get_bookmaker_odds(original_match)
+                
+                predictions.append({
+                    'match': original_match,
+                    'bet': bet,
+                    'home_odds': home_odds,
+                    'draw_odds': draw_odds,
+                    'away_odds': away_odds
+                })
+                
+                print(f"✅ {home} vs {away}")
+                print(f"   Tip: {bet.get('tip')} (confidence: {bet.get('confidence', 0):.1f}/5)")
+        
+        return predictions
+    
+    except Exception as e:
+        print(f"❌ Error running Poisson engine: {e}")
+        import traceback
+        traceback.print_exc()
+        return []
+
+
+def select_top6(predictions):
+    """
+    Select TOP 6 predictions based on:
+    - Highest confidence
+    - Variety (different matches)
+    """
+    
+    # Sort by confidence descending
+    sorted_preds = sorted(predictions, key=lambda x: x['bet'].get('confidence', 0), reverse=True)
+    
+    # Take top 6
+    top6 = sorted_preds[:6]
+    
+    return top6
+
+
+def save_to_db(top6):
+    """Save TOP 6 to ai_consensus table"""
+    
+    today = datetime.now().strftime("%Y-%m-%d")
+    
+    for i, pred in enumerate(top6, 1):
+        match = pred['match']
+        bet = pred['bet']
+        
+        # Parse match date
+        try:
+            commence = datetime.fromisoformat(match['commence_time'].replace('Z', '+00:00'))
+            match_date = commence.strftime("%Y-%m-%d")
+            match_time = commence.strftime("%H:%M")
+        except:
+            match_date = today
+            match_time = None
+        
+        # Get selection and odds
+        selection = bet.get('selection') or bet.get('tip', 'Unknown')
+        
+        # Map selection to odds (simplified - get from bet if available)
+        recommended_odds = bet.get('odds_estimate')
+        if not recommended_odds:
+            # Try to match from bookmaker odds
+            if 'Hazai' in selection or 'Home' in selection:
+                recommended_odds = pred.get('home_odds')
+            elif 'Vendég' in selection or 'Away' in selection:
+                recommended_odds = pred.get('away_odds')
+            elif 'Döntetlen' in selection or 'Draw' in selection:
+                recommended_odds = pred.get('draw_odds')
+        
+        # Confidence (scale from 0-5 to 0-1)
+        confidence = bet.get('confidence', 0) / 5.0
+        
+        # AI reasoning
+        risk_level = bet.get('risk_level', 'unknown')
+        reasoning = f"Poisson fallback: {selection} (confidence: {confidence*100:.1f}%). "
+        reasoning += f"Risk level: {risk_level}."
+        
+        save_ai_consensus(
+            match_date=match_date,
+            home_team=match['home_team'],
+            away_team=match['away_team'],
+            selection=selection,
+            ai_confidence=confidence,
+            analysis_date=today,
+            match_time=match_time,
+            league=match['league'],
+            recommended_odds=recommended_odds,
+            tipster_count=0,  # Poisson fallback = no tipsters
+            qualified_tipster_count=0,
+            avg_tipster_roi=None,
+            avg_tipster_winrate=None,
+            consensus_strength=0.0,
+            ai_reasoning=reasoning,
+            is_top6=True,
+            rank_position=i
+        )
+    
+    print(f"\n✅ Saved {len(top6)} Poisson predictions to DB as TOP 6\n")
+
+
+def main():
+    print("\n" + "="*60)
+    print(f"🔮 POISSON FALLBACK - {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    print("="*60 + "\n")
+    
+    print("🎯 Fallback mode: No tipster consensus → using Poisson engine\n")
+    
+    # Fetch matches
+    print("📥 Fetching upcoming matches from TheOddsAPI...\n")
+    matches = fetch_upcoming_matches(hours_ahead=24)
+    
+    if not matches:
+        print("⚠️  No upcoming matches found\n")
+        return
+    
+    print(f"\n✅ Found {len(matches)} upcoming matches\n")
+    
+    # Run Poisson predictions
+    predictions = run_poisson_predictions(matches)
+    
+    if not predictions:
+        print("⚠️  No SAFE predictions available\n")
+        return
+    
+    print(f"\n✅ {len(predictions)} SAFE predictions generated\n")
+    
+    # Select TOP 6
+    print("🏆 Selecting TOP 6 by highest probability...\n")
+    top6 = select_top6(predictions)
+    
+    # Display
+    print("="*60)
+    print("🎯 TOP 6 POISSON PREDICTIONS")
+    print("="*60 + "\n")
+    
+    for i, pred in enumerate(top6, 1):
+        match = pred['match']
+        bet = pred['bet']
+        
+        print(f"{i}. {match['home_team']} vs {match['away_team']}")
+        print(f"   League: {match['league']}")
+        print(f"   Tip: {bet.get('tip', bet.get('selection', 'Unknown'))}")
+        print(f"   Confidence: {bet.get('confidence', 0):.1f}/5")
+        print(f"   Risk: {bet.get('risk_level', 'unknown')}")
+        if pred.get('home_odds'):
+            print(f"   Odds: Home @{pred['home_odds']:.2f}, Draw @{pred.get('draw_odds', 0):.2f}, Away @{pred.get('away_odds', 0):.2f}")
+        print()
+    
+    # Save to DB
+    print("💾 Saving to database...\n")
+    save_to_db(top6)
+    
+    print("="*60)
+    print("✅ POISSON FALLBACK COMPLETE!")
+    print("="*60 + "\n")
+
+
+if __name__ == '__main__':
+    main()

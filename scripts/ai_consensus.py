@@ -8,6 +8,7 @@ import os
 import sys
 import io
 import json
+import subprocess
 from datetime import datetime
 from collections import defaultdict
 
@@ -294,8 +295,23 @@ def main():
     
     print(f"✅ {len(filtered)} picks meet minimum criteria (2+ tipsters OR 1+ qualified)\n")
     
-    if not filtered:
-        print("⚠️  No picks meet criteria for AI analysis\n")
+    if not filtered or len(filtered) < 6:
+        print("⚠️  Insufficient tipster consensus for AI analysis\n")
+        print("🔮 SWITCHING TO POISSON FALLBACK MODE\n")
+        print("="*60 + "\n")
+        
+        # Import and run Poisson fallback
+        import subprocess
+        result = subprocess.run(
+            [sys.executable, os.path.join(os.path.dirname(__file__), 'poisson_fallback.py')],
+            capture_output=False
+        )
+        
+        if result.returncode == 0:
+            print("\n✅ Poisson fallback completed successfully!")
+        else:
+            print("\n❌ Poisson fallback failed")
+        
         return
     
     # AI Analysis
