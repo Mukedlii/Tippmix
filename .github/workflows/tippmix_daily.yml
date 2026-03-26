@@ -39,6 +39,11 @@ jobs:
       TIPPMIX_MIN_FREE: "3"
       TIPPMIX_USE_VALIDATOR: "1"
       TIPPMIX_USE_ENSEMBLE: "0"
+      
+      # Odds enrichment
+      TIPPMIX_VIP_REQUIRE_ODDS: "0"
+      TIPPMIX_FREE_REQUIRE_ODDS: "0"
+      ODDS_MAX_REQUESTS_PER_RUN: "12"
 
     steps:
       - name: Checkout repo
