@@ -1,6 +1,6 @@
 # bot/odds_scraper.py
-# 
-# ✅ Tippmix ELTÁVOLÍTVA — blokkolja a szerver IP-ket (GitHub Actions-ből sosem működik)
+#
+# ✅ Tippmix ELTÁVOLÍTVA - blokkolja a szerver IP-ket (GitHub Actions-ből sosem működik)
 # ✅ Elsődleges forrás: BetExplorer.com (requests + BeautifulSoup, megbízható)
 # ✅ Fallback: OddsPortal JSON snippet
 # ✅ Ha egyik sem működik: default odds
@@ -44,7 +44,7 @@ def _get(url: str, timeout: int = 15) -> Optional[str]:
 
 
 # ──────────────────────────────────────────────
-# 0. THEODDSAPI — legális JSON API (nem HTML scraping!)
+# 0. THEODDSAPI - legális JSON API (nem HTML scraping!)
 # ──────────────────────────────────────────────
 
 def scrape_theoddsapi(home_team: str, away_team: str, sport: str = "soccer_germany_bundesliga") -> Optional[Dict[str, float]]:
@@ -59,29 +59,29 @@ def scrape_theoddsapi(home_team: str, away_team: str, sport: str = "soccer_germa
         "markets": "h2h",  # 1X2
         "oddsFormat": "decimal",
     }
-    
+
     try:
         r = requests.get(url, params=params, timeout=10)
         if r.status_code != 200:
             log.debug(f"TheOddsAPI HTTP {r.status_code}")
             return None
-        
+
         data = r.json()
         home_l = home_team.lower().replace(".", "")
         away_l = away_team.lower().replace(".", "")
-        
+
         for event in data:
             event_home = event.get("home_team", "").lower().replace(".", "")
             event_away = event.get("away_team", "").lower().replace(".", "")
-            
+
             # Fuzzy match (min 4 karakter)
             if (home_l[:4] in event_home or event_home[:4] in home_l) and \
                (away_l[:4] in event_away or event_away[:4] in away_l):
-                
+
                 bookmakers = event.get("bookmakers", [])
                 if not bookmakers:
                     continue
-                
+
                 # Használjuk az első bookmaker odds-át
                 markets = bookmakers[0].get("markets", [])
                 for market in markets:
@@ -93,25 +93,25 @@ def scrape_theoddsapi(home_team: str, away_team: str, sport: str = "soccer_germa
                             for outcome in outcomes:
                                 name_l = outcome["name"].lower().replace(".", "")
                                 price = outcome["price"]
-                                
+
                                 if home_l[:4] in name_l or name_l[:4] in home_l:
                                     o1 = price
                                 elif away_l[:4] in name_l or name_l[:4] in away_l:
                                     o2 = price
                                 elif "draw" in name_l:
                                     ox = price
-                            
+
                             if o1 and o2 and ox:
                                 log.info(f"[TheOddsAPI] {home_team} vs {away_team}: 1={o1} X={ox} 2={o2}")
                                 return {"1": o1, "X": ox, "2": o2}
     except Exception as e:
         log.debug(f"TheOddsAPI hiba: {e}")
-    
+
     return None
 
 
 # ──────────────────────────────────────────────
-# 1. BETEXPLORER — elsődleges forrás
+# 1. BETEXPLORER - elsődleges forrás
 # requests + BeautifulSoup, nem blokkolja a szervereket
 # ──────────────────────────────────────────────
 
@@ -175,12 +175,12 @@ def scrape_betexplorer(home_team: str, away_team: str) -> Optional[Dict[str, flo
 
 
 # ──────────────────────────────────────────────
-# 2. ODDSPORTAL — JSON snippet kinyerés
+# 2. ODDSPORTAL - JSON snippet kinyerés
 # ──────────────────────────────────────────────
 
 def scrape_oddsportal(home_team: str, away_team: str) -> Optional[Dict[str, float]]:
     """
-    OddsPortal keresés — JSON snippet kinyerés az HTML-ból.
+    OddsPortal keresés - JSON snippet kinyerés az HTML-ból.
     """
     query = requests.utils.quote(f"{home_team} {away_team}")
     url = f"https://www.oddsportal.com/search/results/{query}/"
@@ -287,13 +287,9 @@ def get_odds_with_fallback(home_team: str, away_team: str, sport: str = "soccer_
     except Exception as e:
         log.debug(f"OddsPortal hiba: {e}")
 
-    # 4. Default fallback — sosem dob hibát
-    print(f"[SCRAPED] {home_team} vs {away_team} -> fallback default odds")
-    return {
-        "1": 1.85,
-        "X": 3.40,
-        "2": 4.20,
-    }
+    # 4. No odds found - return None instead of fake defaults
+    print(f"[SCRAPED] {home_team} vs {away_team} -> NO ODDS FOUND")
+    return {}
 
 
 if __name__ == "__main__":
