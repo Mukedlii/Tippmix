@@ -7,6 +7,7 @@ from bot.storage.poisson_stats import (
     team_goal_rates,
     league_goal_baseline,
 )
+from bot.deduplication import deduplicate_tips
 
 
 def _defaults_base() -> Dict[str, float]:
@@ -727,7 +728,11 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             return True
         return False
 
+    # DEDUPLICATE: 1 tip per match (highest confidence)
     vip_rows_for_bets = [r for r in (safe + risk) if _is_allowed_vip_row_for_bets(r)]
+    vip_rows_for_bets = deduplicate_tips(vip_rows_for_bets)
+    free = deduplicate_tips(free)
+    
     vip_bets = [to_bet(r, "VIP") for r in vip_rows_for_bets]
     public_bets = [to_bet(r, "FREE") for r in free]
 
