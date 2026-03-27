@@ -60,7 +60,7 @@ def generate_all_data():
     # 6. Recent bets
     import sqlite3
     
-    db_path = os.getenv("TIPPMIX_DB_PATH", os.path.join("data", "tippmix.db"))
+    db_path = os.getenv("TIPPMIX_DB_PATH", "tippmix.db")
     
     recent_bets = []
     
@@ -68,60 +68,108 @@ def generate_all_data():
         con = sqlite3.connect(db_path)
         con.row_factory = sqlite3.Row
         
-        rows = con.execute("""
-            SELECT
-                b.id,
-                b.tier,
-                b.home_team,
-                b.away_team,
-                b.league_name,
-                b.tip,
-                b.confidence,
-                b.risk_level,
-                b.odds_pick,
-                b.kickoff_local,
-                r.result_1x2,
-                r.final_score
-            FROM bets b
-            LEFT JOIN results r ON b.fixture_id = r.fixture_id
-            JOIN runs ru ON b.run_id = ru.id
-            ORDER BY b.kickoff_local DESC
-            LIMIT 20
-        """).fetchall()
+        # Check if bets table exists (new schema)
+        tables = [row[0] for row in con.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
+        
+        if 'bets' in tables:
+            # New schema (bot/main.py workflow)
+            rows = con.execute("""
+                SELECT
+                    b.id,
+                    b.tier,
+                    b.home_team,
+                    b.away_team,
+                    b.league_name,
+                    b.tip,
+                    b.confidence,
+                    b.risk_level,
+                    b.odds_pick,
+                    b.kickoff_local,
+                    r.result_1x2,
+                    r.final_score
+                FROM bets b
+                LEFT JOIN results r ON b.fixture_id = r.fixture_id
+                JOIN runs ru ON b.run_id = ru.id
+                ORDER BY b.kickoff_local DESC
+                LIMIT 20
+            """).fetchall()
+            
+            for row in rows:
+                # Determine outcome
+                outcome = None
+                if row['result_1x2']:
+                    tip_lower = (row['tip'] or '').lower()
+                    result = row['result_1x2']
+                    
+                    if ('hazai' in tip_lower or 'home' in tip_lower) and result == '1':
+                        outcome = 'won'
+                    elif ('döntetlen' in tip_lower or 'draw' in tip_lower) and result == 'X':
+                        outcome = 'won'
+                    elif ('vendég' in tip_lower or 'away' in tip_lower) and result == '2':
+                        outcome = 'won'
+                    else:
+                        outcome = 'lost'
+                else:
+                    outcome = 'pending'
+                
+                recent_bets.append({
+                    'id': row['id'],
+                    'tier': row['tier'],
+                    'match': f"{row['home_team']} vs {row['away_team']}",
+                    'league': row['league_name'],
+                    'tip': row['tip'],
+                    'confidence': row['confidence'],
+                    'risk': row['risk_level'],
+                    'odds': row['odds_pick'],
+                    'kickoff': row['kickoff_local'],
+                    'result': row['final_score'],
+                    'outcome': outcome,
+                })
+        
+        elif 'tipster_tips' in tables:
+            # Tipster aggregator schema
+            rows = con.execute("""
+                SELECT
+                    t.id,
+                    'VIP' as tier,
+                    t.home_team,
+                    t.away_team,
+                    t.league,
+                    t.selection_display,
+                    t.confidence,
+                    'medium' as risk_level,
+                    t.odds,
+                    datetime(t.match_date || ' ' || t.match_time) as kickoff_local,
+                    t.won,
+                    t.actual_score
+                FROM tipster_tips t
+                WHERE t.home_team IS NOT NULL AND t.away_team IS NOT NULL
+                ORDER BY t.scraped_at DESC
+                LIMIT 20
+            """).fetchall()
+            
+            for row in rows:
+                # Determine outcome
+                if row['won'] is not None:
+                    outcome = 'won' if row['won'] else 'lost'
+                else:
+                    outcome = 'pending'
+                
+                recent_bets.append({
+                    'id': row['id'],
+                    'tier': row['tier'],
+                    'match': f"{row['home_team']} vs {row['away_team']}",
+                    'league': row['league'] or 'Unknown',
+                    'tip': row['selection_display'] or 'N/A',
+                    'confidence': row['confidence'] or 0,
+                    'risk': row['risk_level'],
+                    'odds': row['odds'],
+                    'kickoff': row['kickoff_local'],
+                    'result': row['actual_score'],
+                    'outcome': outcome,
+                })
         
         con.close()
-        
-        for row in rows:
-            # Determine outcome
-            outcome = None
-            if row['result_1x2']:
-                tip_lower = (row['tip'] or '').lower()
-                result = row['result_1x2']
-                
-                if ('hazai' in tip_lower or 'home' in tip_lower) and result == '1':
-                    outcome = 'won'
-                elif ('döntetlen' in tip_lower or 'draw' in tip_lower) and result == 'X':
-                    outcome = 'won'
-                elif ('vendég' in tip_lower or 'away' in tip_lower) and result == '2':
-                    outcome = 'won'
-                else:
-                    outcome = 'lost'
-            else:
-                outcome = 'pending'
-            
-            recent_bets.append({
-                'id': row['id'],
-                'tier': row['tier'],
-                'match': f"{row['home_team']} vs {row['away_team']}",
-                'league': row['league_name'],
-                'tip': row['tip'],
-                'confidence': row['confidence'],
-                'risk': row['risk_level'],
-                'odds': row['odds_pick'],
-                'kickoff': row['kickoff_local'],
-                'result': row['final_score'],
-                'outcome': outcome,
-            })
     
     with open(os.path.join(output_dir, "recent_bets.json"), "w") as f:
         json.dump(recent_bets, f, indent=2)
