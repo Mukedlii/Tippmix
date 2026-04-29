@@ -4,7 +4,7 @@
     "match": "Hapoel Tel Aviv vs Maccabi Haifa",
     "tip": "Hazai győzelem",
     "odds": null,
-    "confidence": 3.8,
+    "confidence": 3.7,
     "risk_level": "magas",
     "is_highlighted": false,
     "shelf": "STANDARD",
@@ -25,7 +25,7 @@
   {
     "fixture_id": 1753833,
     "match": "El Gounah vs Haras El Hodood",
-    "tip": "Hazai győzelem",
+    "tip": "Vendég győzelem",
     "odds": null,
     "confidence": 3.0,
     "risk_level": "közepes",
@@ -48,7 +48,7 @@
   {
     "fixture_id": 1753835,
     "match": "Modern Sport FC vs El Geish",
-    "tip": "Hazai győzelem",
+    "tip": "Döntetlen",
     "odds": null,
     "confidence": 3.0,
     "risk_level": "közepes",
