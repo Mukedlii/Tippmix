@@ -26,6 +26,9 @@ on:
           - quick
           - full
 
+permissions:
+  contents: write
+
 jobs:
   build-database:
     name: "Adatbázis feltöltés (${{ github.event.inputs.mode }})"
