@@ -1,0 +1,102 @@
+# .github/workflows/build_database_manual.yml
+#
+# HOGYAN FUTTASD GITHUBBÓL (telefonon is!):
+#   1. GitHub repó → Actions fül
+#   2. Bal oldal: "Adatbázis Feltöltő"
+#   3. Jobb oldal: "Run workflow" gomb
+#   4. Válaszd: quick (~15 perc) vagy full (~60 perc)
+#   5. Zöld "Run workflow" → kész!
+#
+# ELŐTTE (egyszer kell):
+#   GitHub repo → Settings → Secrets and variables → Actions → New secret
+#   Név:  FOOTBALL_DATA_API_KEY
+#   Érték: ingyenes regisztráció: https://www.football-data.org/client/register
+
+name: Adatbázis Feltöltő
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "quick = ~15 perc | full = ~60 perc (ajánlott)"
+        required: true
+        default: "quick"
+        type: choice
+        options:
+          - quick
+          - full
+
+jobs:
+  build-database:
+    name: "Adatbázis feltöltés (${{ github.event.inputs.mode }})"
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Repo letöltése
+        uses: actions/checkout@v4
+
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Függőségek
+        run: pip install -r requirements.txt
+
+      - name: Meglévő DB visszaállítása
+        uses: actions/cache@v4
+        with:
+          path: data/tippmix.db
+          key: tippmix-db-${{ runner.os }}-${{ github.run_number }}
+          restore-keys: tippmix-db-${{ runner.os }}-
+
+      - name: Állapot futtatás ELŐTT
+        env:
+          TIPPMIX_DB_PATH: data/tippmix.db
+        run: python scripts/build_database.py --check || echo "(Üres DB - normális első futtatásnál)"
+
+      - name: Historikus adatok (football-data.org)
+        env:
+          TIPPMIX_DB_PATH: data/tippmix.db
+          FOOTBALL_DATA_API_KEY: ${{ secrets.FOOTBALL_DATA_API_KEY }}
+        run: |
+          if [ "${{ github.event.inputs.mode }}" = "quick" ]; then
+            python scripts/build_database.py --quick --source football-data
+          else
+            python scripts/build_database.py --seasons 3 --source football-data
+          fi
+
+      - name: Understat xG adatok
+        continue-on-error: true
+        env:
+          TIPPMIX_DB_PATH: data/tippmix.db
+        run: |
+          if [ "${{ github.event.inputs.mode }}" = "quick" ]; then
+            python scripts/build_database.py --quick --source understat
+          else
+            python scripts/build_database.py --seasons 2 --source understat
+          fi
+
+      - name: Végeredmény ellenőrzés
+        env:
+          TIPPMIX_DB_PATH: data/tippmix.db
+        run: python scripts/build_database.py --check
+
+      - name: DB mentése a repóba
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Adatbázis feltöltve [${{ github.event.inputs.mode }}] [skip ci]"
+          file_pattern: "data/tippmix.db"
+          commit_user_name: "Tippmix Bot"
+          commit_user_email: "bot@tippmix.local"
+
+      - name: Kész!
+        if: always()
+        run: |
+          echo "================================================"
+          echo "  KÉSZ! DB merete:"
+          ls -lh data/tippmix.db 2>/dev/null || echo "  (nincs DB)"
+          echo "  A bot a kovetkezo futasnal mar valo adatokat"
+          echo "  hasznal a Poisson modellhez!"
+          echo "================================================"
