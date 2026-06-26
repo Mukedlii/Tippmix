@@ -92,6 +92,13 @@ BLOCKED_KEYWORDS = [
     "youth", "u17", "u19", "u21", "u23", "reserve", "b team",
     "women", "feminine", "femmes", "frauen", "femenino",
     "friendly", "club friendly", "international friendly",
+    # Magyar Zs-kategóriás (amatőr / területi) ligák kizárása
+    "zs kategória", "zs-kategória", "zs osztály", "zs-osztály",
+    "zs liga", "zs-liga",
+    "amatőr bajnokság", "amatőr liga", "amatőr kupa",
+    "területi bajnokság", "területi liga",
+    "városi bajnokság", "járási bajnokság",
+    "county league", "district league", "regional amateur",
 ]
 
 

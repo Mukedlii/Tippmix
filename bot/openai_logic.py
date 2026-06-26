@@ -56,6 +56,9 @@ else:
 MIN_VIP = int(os.getenv("TIPPMIX_MIN_VIP", "6"))
 MIN_FREE = int(os.getenv("TIPPMIX_MIN_FREE", "3"))
 
+# Per-league cap: max tips from the same league in a single output (0 = no cap)
+MAX_TIPS_PER_LEAGUE = int(os.getenv("TIPPMIX_MAX_TIPS_PER_LEAGUE", "2"))
+
 # Presentation / structuring
 VIP_MAIN1_COUNT = int(os.getenv("TIPPMIX_VIP_MAIN1_COUNT", "6"))
 VIP_MAIN2_COUNT = int(os.getenv("TIPPMIX_VIP_MAIN2_COUNT", "6"))
@@ -616,6 +619,35 @@ def _enforce_vip_high_odds_cap(vip: List[Dict[str, Any]]) -> List[Dict[str, Any]
     return [t for t in vip if t["fixture_id"] not in to_remove]
 
 
+def _cap_per_league(
+    tips: List[Dict[str, Any]],
+    id_to_match: Dict[int, Dict[str, Any]],
+    max_per_league: int,
+) -> List[Dict[str, Any]]:
+    """Enforce a per-league cap to prevent over-concentration.
+
+    Tips are kept in their original order; excess tips from the same league
+    are dropped (lowest-priority first, i.e., tail of the list).
+    Set max_per_league=0 to disable.
+    """
+    if max_per_league <= 0:
+        return tips
+    counts: Dict[str, int] = {}
+    out: List[Dict[str, Any]] = []
+    for t in tips:
+        try:
+            fid = int(t.get("fixture_id"))
+        except Exception:
+            out.append(t)
+            continue
+        m = id_to_match.get(fid) or {}
+        league = (m.get("league") or "Unknown").strip()
+        if counts.get(league, 0) < max_per_league:
+            out.append(t)
+            counts[league] = counts.get(league, 0) + 1
+    return out
+
+
 def _pick_bonus(matches_norm: List[Dict[str, Any]], used: set) -> List[Dict[str, Any]]:
     """Build an extra VIP bonus list (count=VIP_BONUS_COUNT) from remaining matches.
 
@@ -779,14 +811,20 @@ def _fill_minimum(matches_norm: List[Dict[str, Any]], vip: List[Dict[str, Any]],
 def generate_tips(matches: List[Dict[str, Any]], slot: str = "DAY", web_context: str = "") -> Dict[str, Any]:
     if not matches:
         provider = (os.getenv("SPORTS_DATA_PROVIDER") or "auto").strip()
-        msg = (
-            "⚠️ Ma nem jött vissza meccs az API-ból. "
-            f"Provider: {provider}. "
-            "Ellenőrizd a providerhez tartozó kulcsot + limitet: "
-            "SPORTS_API_KEY (api-sports) / SPORTMONKS_API_TOKEN / ALLSPORTSAPI_KEY / SPORTSDATAIO_API. "
-            "Ha rossz provider van beállítva: állítsd a GitHub Actions Variable-ben: SPORTS_DATA_PROVIDER=allsportsapi (vagy api-sports)."
+        # User-friendly public message
+        public_msg = (
+            "⚽ Ma sajnos nem találtunk értékelhető mérkőzést.\n"
+            "🔄 Az adatok frissítése folyamatban — kérlek próbáld újra néhány óra múlva.\n"
+            "📌 Ha ez ismétlődik, értesítsd az adminisztrátort."
         )
-        return {"telegram_public_text": msg, "telegram_vip_text": msg, "public_bets": [], "vip_bets": []}
+        # Technical message for VIP/admin channel
+        vip_msg = (
+            f"{public_msg}\n\n"
+            f"🛠 Provider: {provider} | "
+            "Kulcsok: SPORTS_API_KEY / SPORTMONKS_API_TOKEN / ALLSPORTSAPI_KEY / SPORTSDATAIO_API\n"
+            "Beállítás: SPORTS_DATA_PROVIDER=allsportsapi (vagy api-sports) a GitHub Actions Variable-ben."
+        )
+        return {"telegram_public_text": public_msg, "telegram_vip_text": vip_msg, "public_bets": [], "vip_bets": []}
 
     matches_norm = [_normalize_match(m) for m in matches]
     id_to_match = {m["fixture_id"]: m for m in matches_norm}
@@ -894,6 +932,12 @@ def generate_tips(matches: List[Dict[str, Any]], slot: str = "DAY", web_context:
     used: set = set()
     vip = _clean_list(vip_raw, id_to_match, used, tier="VIP")
     free = _clean_list(free_raw, id_to_match, used, tier="FREE")
+
+    # Per-league cap: remove over-concentrated tips before filling minimum
+    # so that _fill_minimum can use freed slots for diverse leagues.
+    if MAX_TIPS_PER_LEAGUE > 0:
+        vip = _cap_per_league(vip, id_to_match, MAX_TIPS_PER_LEAGUE)
+        free = _cap_per_league(free, id_to_match, MAX_TIPS_PER_LEAGUE)
 
     vip, free = _fill_minimum(matches_norm, vip, free)
 

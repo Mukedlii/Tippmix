@@ -2,7 +2,9 @@ import unittest
 
 from bot.combo_builder import build_marketing_combos
 from bot.filters import apply_tiered_score_filter
+from bot.providers.league_filter import is_allowed_league
 from bot.telegram_marketing import format_marketing_free, format_marketing_vip
+from bot.openai_logic import _cap_per_league
 
 
 class MarketingAndFiltersTests(unittest.TestCase):
@@ -51,6 +53,72 @@ class MarketingAndFiltersTests(unittest.TestCase):
         self.assertIn("Pick: Hazai győzelem | 2.10 (Bet365)", vip_text)
         self.assertIn("⚽ FREE TIPPEK", free_text)
         self.assertIn("🔗 KETTŐS", free_text)
+
+    # ── Új tesztek: Zs kategória szűrés ─────────────────────────────────────
+
+    def test_zs_kategoria_is_blocked(self):
+        """Zs kategóriás (Hungarian amateur/regional) leagues must be rejected."""
+        blocked_cases = [
+            ("Zs kategória A csoport", "Hungary"),
+            ("zs-kategória B", "Hungary"),
+            ("Zs osztály", "Hungary"),
+            ("Amatőr bajnokság Budapest", "Hungary"),
+            ("Területi bajnokság Pest megye", "Hungary"),
+            ("Városi bajnokság Győr", "Hungary"),
+        ]
+        for league, country in blocked_cases:
+            with self.subTest(league=league):
+                self.assertFalse(
+                    is_allowed_league(league, country),
+                    f"'{league}' should be blocked as a low-tier amateur league",
+                )
+
+    def test_top_leagues_still_allowed(self):
+        """Top leagues must not be accidentally blocked."""
+        allowed_cases = [
+            ("Premier League", "England"),
+            ("Bundesliga", "Germany"),
+            ("La Liga", "Spain"),
+            ("Serie A", "Italy"),
+            ("Champions League", "Europe"),
+            ("OTP Bank Liga", "Hungary"),
+        ]
+        for league, country in allowed_cases:
+            with self.subTest(league=league):
+                self.assertTrue(
+                    is_allowed_league(league, country),
+                    f"'{league}' should be allowed as a reputable league",
+                )
+
+    # ── Új teszt: per-liga korlát ─────────────────────────────────────────────
+
+    def test_cap_per_league_limits_concentration(self):
+        """_cap_per_league should drop tips exceeding the per-league limit."""
+        id_to_match = {
+            1: {"league": "Premier League"},
+            2: {"league": "Premier League"},
+            3: {"league": "Premier League"},
+            4: {"league": "Bundesliga"},
+            5: {"league": "Bundesliga"},
+        }
+        tips = [
+            {"fixture_id": 1, "selection": "Hazai győzelem"},
+            {"fixture_id": 2, "selection": "Hazai győzelem"},
+            {"fixture_id": 3, "selection": "Döntetlen"},   # 3rd Premier League → should be dropped
+            {"fixture_id": 4, "selection": "Hazai győzelem"},
+            {"fixture_id": 5, "selection": "Vendég győzelem"},
+        ]
+        capped = _cap_per_league(tips, id_to_match, max_per_league=2)
+        self.assertEqual(len(capped), 4)
+        pl_tips = [t for t in capped if id_to_match[t["fixture_id"]]["league"] == "Premier League"]
+        self.assertEqual(len(pl_tips), 2)
+
+    def test_cap_per_league_zero_disables_cap(self):
+        """max_per_league=0 should disable the cap and return all tips unchanged."""
+        id_to_match = {i: {"league": "Premier League"} for i in range(1, 6)}
+        tips = [{"fixture_id": i, "selection": "Hazai győzelem"} for i in range(1, 6)]
+        capped = _cap_per_league(tips, id_to_match, max_per_league=0)
+        self.assertEqual(len(capped), 5)
 
 
 if __name__ == "__main__":
