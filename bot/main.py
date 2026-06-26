@@ -27,6 +27,13 @@ from bot.telegram_marketing import (
 from bot.self_learning import build_learning_context
 from bot.api_keys import resolve_sports_provider
 from bot.storage.sqlite_store import insert_run, insert_bets, insert_fixtures
+
+# ── ÚJ modulok: minőség szűrés, meccs pontozás, torna detektálás, tanulás ──
+from bot.filters import apply_quality_filters, get_filter_stats
+from bot.match_scoring import score_and_filter
+from bot.match_context import build_context_for_prompt_batch
+from bot.tournament_detector import enrich_with_tournament_info, sort_by_tournament_priority
+from bot.match_learner import apply_learning_scores, build_enhanced_learning_context
 from bot.storage.stats import dynamic_block_leagues, overall_hitrate
 
 
@@ -665,6 +672,47 @@ def main() -> None:
             if before != after:
                 print(f"[DYN_BLOCK] Blocked leagues: {len(bad_leagues)} | matches {before} -> {after}")
 
+    # ── ÚJ PIPELINE: minőség szűrés → torna detektálás → elemzésen alapú pontozás ──
+
+    # 1. Minőség szűrés: csak top/közepes ligák, kizárja az egzotikusokat
+    enable_quality_filter = (os.getenv("TIPPMIX_QUALITY_FILTER") or "1").strip() == "1"
+    if enable_quality_filter:
+        before_qf = len(slot_matches)
+        slot_matches = apply_quality_filters(slot_matches, allow_odds_missing=True)
+        after_qf = len(slot_matches)
+        stats = get_filter_stats(slot_matches)
+        print(
+            f"[QualityFilter] {after_qf}/{before_qf} meccs maradt | "
+            f"tier1={stats['tier1']} tier2={stats['tier2']} tier3={stats['tier3']} "
+            f"ismeretlen={stats['unknown']}"
+        )
+
+    # 2. Torna detektálás (VB/EB/CL stb.) — extra prioritás + alacsonyabb küszöb
+    slot_matches = enrich_with_tournament_info(slot_matches)
+    tournament_count = sum(1 for m in slot_matches if m.get("is_tournament"))
+    if tournament_count:
+        print(f"[TournamentDetector] {tournament_count} torna meccs detektálva")
+
+    # 3. Elemzésen alapú meccs pontozás (xG, forma, liga, torna)
+    enable_scoring = (os.getenv("TIPPMIX_MATCH_SCORING") or "1").strip() == "1"
+    if enable_scoring:
+        slot_matches = score_and_filter(slot_matches, min_score=None)
+        avg_score = (
+            sum(m.get("match_score", 0) for m in slot_matches) / len(slot_matches)
+            if slot_matches else 0
+        )
+        print(f"[MatchScoring] Pool: {len(slot_matches)} meccs | átlag pontszám: {avg_score:.1f}/10")
+
+    # 4. Tanulás alapú pontszám módosítás (liga megbízhatóság)
+    enable_learning_scores = (os.getenv("TIPPMIX_LEARNING_SCORES") or "1").strip() == "1"
+    if enable_learning_scores:
+        slot_matches = apply_learning_scores(slot_matches)
+
+    # 5. Rendezés: torna meccsek előre, majd pontszám szerinti sorrend
+    slot_matches = sort_by_tournament_priority(slot_matches)
+
+    print(f"[Pipeline] Végleges meccs pool: {len(slot_matches)} meccs")
+
     engine = (os.getenv("TIPPMIX_ENGINE") or "openai").strip().lower()
     if engine in ("poisson", "stats", "pro"):
         tips_data = generate_poisson_tips(slot_matches)
@@ -732,29 +780,45 @@ def main() -> None:
                 except Exception as e:
                     print(f"[ODDS] Hiba ({home} vs {away}): {e}")
 
-        # Önjavító tanulságok
+        # ── Gazdagított tanulságok (match_learner kibővíti a self_learning-et) ──
         learning_context = ""
         try:
-            learning_context = build_learning_context(days=30)
+            learning_context = build_enhanced_learning_context(days=30)
             if learning_context:
-                print(f"[LEARN] Tanulságok betöltve ({len(learning_context)} chars)")
+                print(f"[LEARN] Kibővített tanulságok betöltve ({len(learning_context)} chars)")
         except Exception as e:
-            print(f"[LEARN] Hiba: {e}")
+            # Fallback az alap tanulságokra
+            print(f"[LEARN] Kibővített tanulságok hiba: {e}, alap tanulságokra visszaesés")
+            try:
+                learning_context = build_learning_context(days=30)
+                if learning_context:
+                    print(f"[LEARN] Alap tanulságok betöltve ({len(learning_context)} chars)")
+            except Exception as e2:
+                print(f"[LEARN] Hiba: {e2}")
 
-        combined_web = "\n\n".join(
-            f"Meccs [{fid}]:\n{ctx}" for fid, ctx in web_contexts.items() if ctx
-        )
+        # ── Gazdagított meccs kontextus (match_context + web_context) ──
+        try:
+            enhanced_context_str = build_context_for_prompt_batch(
+                matches=slot_matches,
+                web_contexts=web_contexts,
+                max_matches=max(WEB_CONTEXT_MAX, ODDS_MAX),
+            )
+            print(f"[ENHANCED_CTX] Gazdagított kontextus: {len(enhanced_context_str)} chars")
+        except Exception as e:
+            print(f"[ENHANCED_CTX] Hiba: {e}")
+            enhanced_context_str = ""
+
         combined_odds = "\n\n".join(
             f"Meccs [{fid}]:\n{o}" for fid, o in odds_data.items() if o
         )
 
-        full_context = "\n\n".join([x for x in [learning_context, combined_web, combined_odds] if x])
+        full_context = "\n\n".join([x for x in [learning_context, enhanced_context_str, combined_odds] if x])
 
         # AI engine selection
         engine = os.getenv("TIPPMIX_ENGINE", "openai").lower()
         openai_key = os.getenv("OPENAI_API_KEY", "").strip()
         anthropic_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
-        
+
         # Fallback to Poisson if no AI keys available
         if engine == "poisson" or (not openai_key and not anthropic_key):
             print("[ENGINE] Using Poisson (statistical model - no API needed)")
