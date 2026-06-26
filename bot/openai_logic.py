@@ -637,7 +637,7 @@ def _cap_per_league(
     for t in tips:
         try:
             fid = int(t.get("fixture_id"))
-        except Exception:
+        except (TypeError, ValueError):
             out.append(t)
             continue
         m = id_to_match.get(fid) or {}

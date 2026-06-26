@@ -104,7 +104,7 @@ class MarketingAndFiltersTests(unittest.TestCase):
         tips = [
             {"fixture_id": 1, "selection": "Hazai győzelem"},
             {"fixture_id": 2, "selection": "Hazai győzelem"},
-            {"fixture_id": 3, "selection": "Döntetlen"},   # 3rd Premier League → should be dropped
+            {"fixture_id": 3, "selection": "Döntetlen"},   # 3rd Premier League - should be dropped
             {"fixture_id": 4, "selection": "Hazai győzelem"},
             {"fixture_id": 5, "selection": "Vendég győzelem"},
         ]
