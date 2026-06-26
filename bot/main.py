@@ -707,7 +707,9 @@ def main() -> None:
     # 3. Elemzésen alapú meccs pontozás (xG, forma, liga, torna)
     enable_scoring = (os.getenv("TIPPMIX_MATCH_SCORING") or "1").strip() == "1"
     if enable_scoring:
-        slot_matches = score_and_filter(slot_matches, min_score=0.0)
+        # Tiered küszöböt külön alkalmazzuk (t1/t2/t3), ezért itt az alap szűrés lehet laza.
+        base_min_score = float(os.getenv("TIPPMIX_BASE_MIN_SCORE", "0.0"))
+        slot_matches = score_and_filter(slot_matches, min_score=base_min_score)
         slot_matches = apply_tiered_score_filter(slot_matches)
         avg_score = (
             sum(m.get("match_score", 0) for m in slot_matches) / len(slot_matches)

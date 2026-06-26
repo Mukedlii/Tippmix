@@ -11,6 +11,8 @@ Marketing gold: big wins from small stakes!
 from typing import List, Dict, Optional, Any, Set
 import random
 
+MIN_COMBO_ODDS = 1.2
+
 
 def calculate_combo_odds(picks: List[Dict]) -> float:
     """
@@ -194,7 +196,14 @@ def _pick_confidence(pick: Dict[str, Any]) -> float:
 
 
 def _pick_id(pick: Dict[str, Any]) -> Any:
-    return pick.get("fixture_id") or pick.get("match") or f"{pick.get('home_team')}-{pick.get('away_team')}-{pick.get('tip')}"
+    if pick.get("fixture_id") is not None:
+        return pick.get("fixture_id")
+    if pick.get("match"):
+        return pick.get("match")
+    home = pick.get("home_team") or "unknown-home"
+    away = pick.get("away_team") or "unknown-away"
+    tip = pick.get("tip") or pick.get("selection") or "unknown-tip"
+    return f"{home}-{away}-{tip}"
 
 
 def _build_combo_group(
@@ -205,7 +214,7 @@ def _build_combo_group(
 ) -> List[List[Dict[str, Any]]]:
     used_ids = used_ids or set()
     ranked = sorted(
-        [p for p in picks if _pick_odds(p) >= 1.2],
+        [p for p in picks if _pick_odds(p) >= MIN_COMBO_ODDS],
         key=lambda p: (_pick_confidence(p), _pick_odds(p)),
         reverse=True,
     )

@@ -57,12 +57,19 @@ def _scrape_odds_com(home_team: str, away_team: str) -> Optional[Dict[str, Any]]
             return None
         soup = BeautifulSoup(r.text, "html.parser")
         page_text = soup.get_text(" ", strip=True)
-        if home_team.lower()[:4] not in page_text.lower() and away_team.lower()[:4] not in page_text.lower():
+        page_text_l = page_text.lower()
+        home_l = (home_team or "").strip().lower()
+        away_l = (away_team or "").strip().lower()
+        if not home_l or not away_l:
+            return None
+        home_ok = home_l in page_text_l or all(part in page_text_l for part in home_l.split()[:2])
+        away_ok = away_l in page_text_l or all(part in page_text_l for part in away_l.split()[:2])
+        if not (home_ok and away_ok):
             return None
 
         import re
 
-        nums = [float(x) for x in re.findall(r"\b(?:[1-9]|[1-2]\d)\.\d{1,2}\b", page_text)]
+        nums = [float(x) for x in re.findall(r"\b\d{1,2}\.\d{1,2}\b", page_text)]
         if len(nums) < 3:
             return None
         return {

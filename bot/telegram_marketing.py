@@ -8,6 +8,8 @@ Hasonló formátum mint a profi tippmix botoknál.
 from typing import List, Dict, Any, Optional, Tuple
 import os
 
+MAX_FORM_RESULTS = 3
+
 
 def create_inline_buttons(
     dashboard_url: str = "https://tippmix.vercel.app",
@@ -167,9 +169,9 @@ def _compact_form(raw_form: Any) -> str:
     if not raw_form:
         return "➖➖➖"
     if isinstance(raw_form, str):
-        vals = list(raw_form[:3])
+        vals = list(raw_form[:MAX_FORM_RESULTS])
     elif isinstance(raw_form, list):
-        vals = [str(v)[:1] for v in raw_form[:3]]
+        vals = [str(v)[:1] for v in raw_form[:MAX_FORM_RESULTS]]
     else:
         return "➖➖➖"
     out = []
@@ -181,7 +183,7 @@ def _compact_form(raw_form: Any) -> str:
             out.append("❌")
         else:
             out.append("➖")
-    while len(out) < 3:
+    while len(out) < MAX_FORM_RESULTS:
         out.append("➖")
     return "".join(out)
 
