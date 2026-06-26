@@ -2,7 +2,7 @@
   {
     "fixture_id": 1748890,
     "match": "Arsenal Dzerzhinsk vs Gomel",
-    "tip": "Hazai győzelem",
+    "tip": "Vendég győzelem",
     "odds": null,
     "confidence": 4.5,
     "risk_level": "közepes",
@@ -19,15 +19,16 @@
     "away_team": "Gomel",
     "odds_1x2": {},
     "odds_pick": null,
+    "bookmaker": "N/A",
     "run_date": "2026-06-26",
     "slot": "DAY"
   },
   {
     "fixture_id": 1748895,
     "match": "FC Baranovichi vs Slavia Mozyr",
-    "tip": "Döntetlen",
+    "tip": "Hazai győzelem",
     "odds": null,
-    "confidence": 4.2,
+    "confidence": 4.0,
     "risk_level": "közepes",
     "is_highlighted": true,
     "shelf": "STANDARD",
@@ -42,6 +43,7 @@
     "away_team": "Slavia Mozyr",
     "odds_1x2": {},
     "odds_pick": null,
+    "bookmaker": "N/A",
     "run_date": "2026-06-26",
     "slot": "DAY"
   }
