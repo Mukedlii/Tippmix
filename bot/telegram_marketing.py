@@ -5,8 +5,10 @@ Marketing-optimalizált Telegram üzenetek + inline gombok.
 Hasonló formátum mint a profi tippmix botoknál.
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 import os
+
+MAX_FORM_RESULTS = 3
 
 
 def create_inline_buttons(
@@ -66,92 +68,40 @@ def format_marketing_vip(
         (message_text, inline_buttons)
     """
     
-    # Header
-    lines = [
-        "👑⚽️ *SZELVÉNYKIRÁLY VIP*",
-        f"📅 {date_str}",
-        "",
-    ]
-    
-    # Stats (if available)
+    lines = ["⚽ VIP TIPPEK", "━━━━━━━━━━━━━━━━━━━━━━━━━"]
+    if date_str:
+        lines.append(f"Dátum: {date_str}")
     if stats:
-        win_rate = stats.get("win_rate", 0)
-        roi = stats.get("roi", 0)
-        lines.append(f"📊 *Teljesítmény:* {win_rate:.0f}% találat | ROI: {roi:+.1f}%")
+        try:
+            lines.append(f"Forma: {float(stats.get('win_rate', 0)):.0f}% | ROI {float(stats.get('roi', 0)):+.1f}%")
+        except Exception:
+            pass
+
+    for i, tip in enumerate(tips, 1):
+        home = tip.get("home_team") or ""
+        away = tip.get("away_team") or ""
+        selection = tip.get("selection") or tip.get("tip") or ""
+        odds_txt, bookmaker = _best_odds_and_bookmaker(tip)
+        conf = _safe_confidence(tip.get("confidence"))
+        home_form = _compact_form(tip.get("home_form"))
+        away_form = _compact_form(tip.get("away_form"))
+
         lines.append("")
-    
-    lines.append("━━━━━━━━━━━━━━━━━━━━")
-    lines.append("🏆 *MAI KIEMELT TIPPEK*")
-    lines.append("")
-    
-    # Tips
-    for i, tip in enumerate(tips[:6], 1):  # Max 6 kiemelt
-        home = tip.get("home_team", "")
-        away = tip.get("away_team", "")
-        selection = tip.get("selection", "")
-        odds = tip.get("odds_estimate")
-        odds_txt = f"{odds:.2f}" if odds else "TBA"
-        confidence = tip.get("confidence", 3.0)
-        
-        # Confidence stars
-        stars = "⭐" * min(5, max(1, int(confidence)))
-        
-        # Risk emoji
-        risk = (tip.get("risk_level") or "").lower()
-        if "alacsony" in risk or "low" in risk:
-            risk_emoji = "🟢"
-        elif "közepes" in risk or "medium" in risk:
-            risk_emoji = "🟡"
-        else:
-            risk_emoji = "🔴"
-        
-        lines.append(f"*{i}. {home} vs {away}*")
-        lines.append(f"   🎯 Tipp: *{selection}*")
-        lines.append(f"   📊 Odds: *{odds_txt}* | {risk_emoji} | {stars}")
-        
-        # Liga info (if available)
-        league = tip.get("league_name", "")
-        time = tip.get("kickoff_local", "")
-        if league:
-            time_short = time.split("T")[1][:5] if "T" in time else ""
-            lines.append(f"   🏆 {league} | ⏰ {time_short}")
-        
-        lines.append("")
-    
-    # Combos
+        lines.append(f"{i}. {home} vs {away}")
+        lines.append(f"   Pick: {selection} | {odds_txt} ({bookmaker})")
+        lines.append(f"   Form: {home_form} vs {away_form} | Conf: {conf:.1f}/5")
+
     if combos:
-        lines.append("━━━━━━━━━━━━━━━━━━━━")
-        lines.append("🎫 *AJÁNLOTT KOMBÓK*")
         lines.append("")
-        
-        for j, combo in enumerate(combos[:2], 1):  # Max 2 kombó
-            picks = combo.get("picks", [])
+        lines.append("💎 KOMBINÁCIÓK")
+        lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━")
+        for j, combo in enumerate(combos[:2], 1):
             total_odds = combo.get("total_odds")
-            if not total_odds or not picks:
+            picks = combo.get("picks") or []
+            if not picks or not total_odds:
                 continue
-            
-            stake = 1000  # Ft
-            payout = int(stake * total_odds)
-            profit = payout - stake
-            
-            lines.append(f"*KOMBÓ #{j}* ({len(picks)} meccs)")
-            lines.append(f"💰 Odds: *{total_odds:.2f}x*")
-            lines.append(f"💵 1000 Ft tét → *{payout} Ft* kifizetés (*+{profit} Ft*)")
-            
-            # Pick refs
-            pick_refs = ", ".join([f"#{p['index']}" for p in picks if 'index' in p])
-            if pick_refs:
-                lines.append(f"📌 Meccsek: {pick_refs}")
-            
-            lines.append("")
-    
-    # Footer
-    lines.append("━━━━━━━━━━━━━━━━━━━━")
-    lines.append("💡 *Fontos:*")
-    lines.append("• Felelősségteljesen fogadj!")
-    lines.append("• Csak olyan pénzt használj, amit megengedhetsz magadnak!")
-    lines.append("")
-    lines.append("🎁 _7 nap INGYEN próba → utána 3.990 Ft/hó_")
+            label = combo.get("label") or _combo_label(picks)
+            lines.append(f"Kombi {j}: {label} | {float(total_odds):.2f} odds")
     
     message = "\n".join(lines)
     buttons = create_inline_buttons()
@@ -161,53 +111,96 @@ def format_marketing_vip(
 
 def format_marketing_free(
     tips: List[Dict[str, Any]],
+    combos: List[Dict[str, Any]],
     date_str: str,
 ) -> tuple[str, List[List[Dict[str, str]]]]:
     """
     Marketing-optimalizált FREE üzenet.
     """
     
-    lines = [
-        "⚽️ *SZELVÉNYKIRÁLY - Napi Tippek*",
-        f"📅 {date_str}",
-        "",
-        "━━━━━━━━━━━━━━━━━━━━",
-        "🆓 *INGYENES TIPPEK*",
-        "",
-    ]
-    
-    # Tips (max 3)
-    for i, tip in enumerate(tips[:3], 1):
-        home = tip.get("home_team", "")
-        away = tip.get("away_team", "")
-        selection = tip.get("selection", "")
-        odds = tip.get("odds_estimate")
-        odds_txt = f"{odds:.2f}" if odds else "TBA"
-        
-        lines.append(f"*{i}. {home} vs {away}*")
-        lines.append(f"   🎯 {selection}")
-        lines.append(f"   📊 Odds: *{odds_txt}*")
+    lines = ["⚽ FREE TIPPEK", "━━━━━━━━━━━━━━━━━━━━━━━━━"]
+    if date_str:
+        lines.append(f"Dátum: {date_str}")
+
+    for i, tip in enumerate(tips, 1):
+        home = tip.get("home_team") or ""
+        away = tip.get("away_team") or ""
+        selection = tip.get("selection") or tip.get("tip") or ""
+        odds_txt, bookmaker = _best_odds_and_bookmaker(tip)
         lines.append("")
-    
-    # CTA
-    lines.append("━━━━━━━━━━━━━━━━━━━━")
-    lines.append("💎 *Több tipp kell?*")
-    lines.append("")
-    lines.append("🎯 VIP tagjaink *naponta 6-12 kiemelt tippet* kapnak")
-    lines.append("📊 Élő statisztikák + ROI tracking")
-    lines.append("🏆 Profi elemzések sérülésekkel, formával")
-    lines.append("")
-    lines.append("🎁 *7 nap INGYEN* kipróbálás!")
+        lines.append(f"{i}. {home} vs {away}")
+        lines.append(f"   Pick: {selection} | {odds_txt} ({bookmaker})")
+
+    if combos:
+        lines.append("")
+        lines.append("🔗 KETTŐS")
+        lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━")
+        for combo in combos[:2]:
+            total_odds = combo.get("total_odds")
+            picks = combo.get("picks") or []
+            if not picks or not total_odds:
+                continue
+            label = combo.get("label") or _combo_label(picks)
+            lines.append(f"{label} | {float(total_odds):.2f} odds")
     
     message = "\n".join(lines)
     buttons = create_inline_buttons()
     
-    # Add VIP CTA button to top row
-    buttons.insert(0, [
-        {"text": "💎 VIP előfizetés (7 nap ingyen)", "url": os.getenv("TIPPMIX_VIP_URL", "https://tippmix.vercel.app/vip")}
-    ])
-    
     return message, buttons
+
+
+def _safe_confidence(raw: Any) -> float:
+    try:
+        return float(raw)
+    except Exception:
+        return 0.0
+
+
+def _best_odds_and_bookmaker(tip: Dict[str, Any]) -> Tuple[str, str]:
+    odds = tip.get("best_odds") or tip.get("odds_pick") or tip.get("odds_estimate")
+    bookmaker = tip.get("bookmaker") or tip.get("best_bookmaker") or "N/A"
+    try:
+        return f"{float(odds):.2f}", str(bookmaker)
+    except Exception:
+        return "TBA", str(bookmaker)
+
+
+def _compact_form(raw_form: Any) -> str:
+    if not raw_form:
+        return "➖➖➖"
+    if isinstance(raw_form, str):
+        vals = list(raw_form[:MAX_FORM_RESULTS])
+    elif isinstance(raw_form, list):
+        vals = [str(v)[:1] for v in raw_form[:MAX_FORM_RESULTS]]
+    else:
+        return "➖➖➖"
+    out = []
+    for v in vals:
+        u = str(v).upper()
+        if u == "W":
+            out.append("✅")
+        elif u == "L":
+            out.append("❌")
+        else:
+            out.append("➖")
+    while len(out) < MAX_FORM_RESULTS:
+        out.append("➖")
+    return "".join(out)
+
+
+def _combo_label(picks: List[Dict[str, Any]]) -> str:
+    bits = []
+    for p in picks:
+        team = p.get("home_team") or p.get("match") or "Tip"
+        sel = p.get("selection") or p.get("tip") or ""
+        if sel == "Hazai győzelem":
+            sel = "H"
+        elif sel == "Vendég győzelem":
+            sel = "V"
+        elif sel == "Döntetlen":
+            sel = "X"
+        bits.append(f"{team} {sel}".strip())
+    return " + ".join(bits)
 
 
 def format_alert_message(

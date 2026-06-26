@@ -181,9 +181,11 @@ await context.bot.send_message(
 from bot.telegram_marketing import format_marketing_free
 
 tips = [...]  # list of tip dicts
+combos = [...]  # optional combo dicts
 
 message_text, inline_buttons = format_marketing_free(
     tips=tips,
+    combos=combos,
     date_str="2026.03.19."
 )
 ```
