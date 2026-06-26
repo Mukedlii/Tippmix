@@ -14,7 +14,7 @@ from bot.matches import fetch_matches_for_today
 from bot.openai_logic import generate_tips
 from bot.poisson_engine import generate_poisson_tips
 from bot.providers.web_context import build_match_context, format_context_for_prompt
-from bot.providers.playwright_odds_scraper import get_best_odds_playwright as get_best_odds
+from bot.providers.odds_free_scraper import get_best_odds_free as get_best_odds
 from bot.providers.odds_scraper import format_odds_for_prompt
 from bot.providers.sports_news import get_match_news, format_news_for_prompt
 from bot.providers.multi_sport import fetch_multi_sport_matches, format_match_with_sport
@@ -27,9 +27,10 @@ from bot.telegram_marketing import (
 from bot.self_learning import build_learning_context
 from bot.api_keys import resolve_sports_provider
 from bot.storage.sqlite_store import insert_run, insert_bets, insert_fixtures
+from bot.combo_builder import build_marketing_combos
 
 # ── ÚJ modulok: minőség szűrés, meccs pontozás, torna detektálás, tanulás ──
-from bot.filters import apply_quality_filters, get_filter_stats
+from bot.filters import apply_quality_filters, get_filter_stats, apply_tiered_score_filter
 from bot.match_scoring import score_and_filter
 from bot.match_context import build_context_for_prompt_batch
 from bot.tournament_detector import enrich_with_tournament_info, sort_by_tournament_priority
@@ -525,6 +526,11 @@ def _odds_pick_from_1x2(tip: str, odds: Dict[str, Any]) -> Optional[float]:
         return None
 
 
+def _outcome_key_for_tip(tip: str) -> Optional[str]:
+    mapping = {"Hazai győzelem": "1", "Döntetlen": "X", "Vendég győzelem": "2"}
+    return mapping.get(tip)
+
+
 def _enrich_bets_for_storage(
     bets: List[Dict[str, Any]],
     slot_matches: List[Dict[str, Any]],
@@ -554,8 +560,13 @@ def _enrich_bets_for_storage(
             bb["kickoff_local"] = m.get("kickoff_local")
             bb["home_team"] = m.get("home_team")
             bb["away_team"] = m.get("away_team")
-            bb["odds_1x2"] = m.get("odds") or {}
+            bb["odds_1x2"] = m.get("scraped_odds") or m.get("odds") or {}
             bb["odds_pick"] = _odds_pick_from_1x2(str(tip), bb["odds_1x2"])
+            if bb["odds_pick"] is None:
+                bb["odds_pick"] = _odds_pick_from_1x2(str(tip), m.get("odds") or {})
+            outcome_key = _outcome_key_for_tip(str(tip))
+            best_bookmakers = m.get("best_bookmakers") or {}
+            bb["bookmaker"] = best_bookmakers.get(outcome_key) or ("Predicted" if m.get("used_predicted_odds") else "N/A")
         else:
             bb.setdefault("match_key", f"fid:{fid}" if fid is not None else None)
             bb.setdefault("odds_1x2", bb.get("odds_1x2") or {})
@@ -696,7 +707,8 @@ def main() -> None:
     # 3. Elemzésen alapú meccs pontozás (xG, forma, liga, torna)
     enable_scoring = (os.getenv("TIPPMIX_MATCH_SCORING") or "1").strip() == "1"
     if enable_scoring:
-        slot_matches = score_and_filter(slot_matches, min_score=None)
+        slot_matches = score_and_filter(slot_matches, min_score=0.0)
+        slot_matches = apply_tiered_score_filter(slot_matches)
         avg_score = (
             sum(m.get("match_score", 0) for m in slot_matches) / len(slot_matches)
             if slot_matches else 0
@@ -768,15 +780,17 @@ def main() -> None:
             # Odds scraping
             if len(odds_data) < ODDS_MAX:
                 try:
-                    odds = get_best_odds(home, away)
+                    odds = get_best_odds(home, away, predicted_odds=m.get("odds"))
                     if odds.get("found"):
                         odds_data[fid] = format_odds_for_prompt(odds)
                         # Odds-ot visszaírjuk a meccs adatába (Poisson engine / későbbi logika)
                         m["scraped_odds"] = {
-                            "1": odds.get("odds_1_avg"),
-                            "X": odds.get("odds_x_avg"),
-                            "2": odds.get("odds_2_avg"),
+                            "1": odds.get("odds_1_best") or odds.get("odds_1_avg"),
+                            "X": odds.get("odds_x_best") or odds.get("odds_x_avg"),
+                            "2": odds.get("odds_2_best") or odds.get("odds_2_avg"),
                         }
+                        m["best_bookmakers"] = odds.get("best_bookmakers") or {}
+                        m["used_predicted_odds"] = bool(odds.get("used_fallback"))
                 except Exception as e:
                     print(f"[ODDS] Hiba ({home} vs {away}): {e}")
 
@@ -1059,14 +1073,16 @@ def main() -> None:
 
                 if len(odds_data) < ODDS_MAX:
                     try:
-                        odds = get_best_odds(home, away)
+                        odds = get_best_odds(home, away, predicted_odds=m.get("odds"))
                         if odds.get("found"):
                             odds_data[fid] = format_odds_for_prompt(odds)
                             m["scraped_odds"] = {
-                                "1": odds.get("odds_1_avg"),
-                                "X": odds.get("odds_x_avg"),
-                                "2": odds.get("odds_2_avg"),
+                                "1": odds.get("odds_1_best") or odds.get("odds_1_avg"),
+                                "X": odds.get("odds_x_best") or odds.get("odds_x_avg"),
+                                "2": odds.get("odds_2_best") or odds.get("odds_2_avg"),
                             }
+                            m["best_bookmakers"] = odds.get("best_bookmakers") or {}
+                            m["used_predicted_odds"] = bool(odds.get("used_fallback"))
                     except Exception:
                         pass
 
@@ -1198,6 +1214,7 @@ def main() -> None:
         # Generate marketing-optimized messages with inline buttons
         # ONLY if we have actual bets (not empty)
         date_today = datetime.date.today().strftime("%Y.%m.%d.")
+        combos = build_marketing_combos(vip_bets_enriched[:10], public_bets_enriched[:8])
         
         # Get stats for VIP header (if available)
         try:
@@ -1208,13 +1225,9 @@ def main() -> None:
             stats_7d = None
         
         if send_vip and vip_chat_id:
-            # Extract combos from tips_data if available
-            combos_data = []
-            # TODO: extract combo data from tips_data structure
-            
             vip_text_marketing, vip_buttons = format_marketing_vip(
-                tips=vip_bets_enriched[:6],
-                combos=combos_data,
+                tips=vip_bets_enriched[:10],
+                combos=combos.get("vip") or [],
                 date_str=date_today,
                 stats=stats_7d
             )
@@ -1222,7 +1235,8 @@ def main() -> None:
         
         if send_public and public_chat_id:
             free_text_marketing, free_buttons = format_marketing_free(
-                tips=public_bets_enriched[:3],
+                tips=public_bets_enriched[:6],
+                combos=combos.get("free") or [],
                 date_str=date_today
             )
             send_telegram_message(telegram_token, public_chat_id, free_text_marketing, f"PUBLIC_{slot}", meta=base_meta, inline_buttons=free_buttons)

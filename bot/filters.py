@@ -47,8 +47,11 @@ TIER2_KEYWORDS = [
 # ── Env kapcsolók ──────────────────────────────────────────────────────────
 STRICT_MODE = (os.getenv("FILTER_STRICT_MODE") or "1").strip() == "1"
 ALLOW_TIER2 = (os.getenv("FILTER_ALLOW_TIER2") or "1").strip() == "1"
-ALLOW_TIER3 = (os.getenv("FILTER_ALLOW_TIER3") or "0").strip() == "1"
+ALLOW_TIER3 = (os.getenv("FILTER_ALLOW_TIER3") or "1").strip() == "1"
 MIN_SCORE_THRESHOLD = float(os.getenv("FILTER_MIN_SCORE", "0.0"))
+TIER1_MIN_SCORE = float(os.getenv("FILTER_TIER1_MIN_SCORE", "5.0"))
+TIER2_MIN_SCORE = float(os.getenv("FILTER_TIER2_MIN_SCORE", "6.0"))
+TIER3_MIN_SCORE = float(os.getenv("FILTER_TIER3_MIN_SCORE", "7.0"))
 
 
 def league_tier(league_name: str, country_name: str = "") -> Optional[int]:
@@ -180,3 +183,37 @@ def get_filter_stats(matches: List[Dict[str, Any]]) -> Dict[str, int]:
     tier3 = sum(1 for m in matches if m.get("league_tier") == 3)
     no_tier = sum(1 for m in matches if m.get("league_tier") is None)
     return {"tier1": tier1, "tier2": tier2, "tier3": tier3, "unknown": no_tier, "total": len(matches)}
+
+
+def get_tier_min_score(league_tier: Optional[int]) -> float:
+    if league_tier == 1:
+        return TIER1_MIN_SCORE
+    if league_tier == 2:
+        return TIER2_MIN_SCORE
+    return TIER3_MIN_SCORE
+
+
+def apply_tiered_score_filter(matches: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Tier-függő pontszám küszöb:
+      - Tier1: 5.0+
+      - Tier2: 6.0+
+      - Tier3: 7.0+
+    """
+    passed: List[Dict[str, Any]] = []
+    rejected = 0
+
+    for m in matches:
+        tier = m.get("league_tier")
+        threshold = get_tier_min_score(tier)
+        score = float(m.get("match_score") or 0.0)
+        if score >= threshold:
+            passed.append(m)
+        else:
+            rejected += 1
+
+    log.info(
+        f"[filters] Tiered score filter: {len(passed)}/{len(matches)} meccs maradt "
+        f"(kizárva: {rejected}, küszöbök: t1={TIER1_MIN_SCORE}, t2={TIER2_MIN_SCORE}, t3={TIER3_MIN_SCORE})"
+    )
+    return passed

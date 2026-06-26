@@ -8,7 +8,7 @@ Selects safest bets and calculates combined odds.
 Marketing gold: big wins from small stakes!
 """
 
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any, Set
 import random
 
 
@@ -172,6 +172,97 @@ def build_combos(picks: List[Dict]) -> Dict[str, Optional[List[Dict]]]:
         "safe": select_safe_combo(picks, combo_size=3),
         "risky": select_risky_combo(picks, combo_size=4)
     }
+
+
+def _pick_odds(pick: Dict[str, Any]) -> float:
+    try:
+        return float(
+            pick.get("best_odds")
+            or pick.get("odds_pick")
+            or pick.get("odds_estimate")
+            or 0.0
+        )
+    except Exception:
+        return 0.0
+
+
+def _pick_confidence(pick: Dict[str, Any]) -> float:
+    try:
+        return float(pick.get("confidence") or 0.0)
+    except Exception:
+        return 0.0
+
+
+def _pick_id(pick: Dict[str, Any]) -> Any:
+    return pick.get("fixture_id") or pick.get("match") or f"{pick.get('home_team')}-{pick.get('away_team')}-{pick.get('tip')}"
+
+
+def _build_combo_group(
+    picks: List[Dict[str, Any]],
+    combo_size: int,
+    max_groups: int,
+    used_ids: Optional[Set[Any]] = None,
+) -> List[List[Dict[str, Any]]]:
+    used_ids = used_ids or set()
+    ranked = sorted(
+        [p for p in picks if _pick_odds(p) >= 1.2],
+        key=lambda p: (_pick_confidence(p), _pick_odds(p)),
+        reverse=True,
+    )
+    groups: List[List[Dict[str, Any]]] = []
+
+    for _ in range(max_groups):
+        current: List[Dict[str, Any]] = []
+        local_ids: Set[Any] = set()
+        for pick in ranked:
+            pid = _pick_id(pick)
+            if pid in used_ids or pid in local_ids:
+                continue
+            current.append(pick)
+            local_ids.add(pid)
+            if len(current) >= combo_size:
+                break
+        if len(current) >= combo_size:
+            groups.append(current)
+            used_ids.update(local_ids)
+        else:
+            break
+    return groups
+
+
+def _short_pick_name(pick: Dict[str, Any]) -> str:
+    sel = (pick.get("selection") or pick.get("tip") or "").strip()
+    mapping = {
+        "Hazai győzelem": "H",
+        "Vendég győzelem": "V",
+        "Döntetlen": "X",
+    }
+    return mapping.get(sel, sel[:20] if sel else "Tip")
+
+
+def _combo_to_marketing_dict(combo_picks: List[Dict[str, Any]]) -> Dict[str, Any]:
+    total_odds = calculate_combo_odds(combo_picks)
+    return {
+        "picks": combo_picks,
+        "total_odds": total_odds,
+        "label": " + ".join(
+            f"{(p.get('home_team') or '').strip()} {_short_pick_name(p)}"
+            for p in combo_picks
+        ),
+    }
+
+
+def build_marketing_combos(vip_picks: List[Dict[str, Any]], free_picks: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    VIP: minimum 2 kombó (ha van elég meccs), FREE: 1-2 kombó.
+    """
+    vip_groups = _build_combo_group(vip_picks, combo_size=2, max_groups=2)
+    free_groups = _build_combo_group(free_picks, combo_size=2, max_groups=2)
+
+    vip_combos = [_combo_to_marketing_dict(g) for g in vip_groups]
+    free_combos = [_combo_to_marketing_dict(g) for g in free_groups]
+
+    return {"vip": vip_combos, "free": free_combos}
 
 
 def format_combo_for_telegram(
