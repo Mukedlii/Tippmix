@@ -325,4 +325,5 @@ def build_context_for_prompt_batch(
         )
         parts.append(ctx)
 
-    return "\n\n" + "─" * 60 + "\n\n".join(parts)
+    separator = "\n\n" + "─" * 60 + "\n\n"
+    return separator.join(parts)

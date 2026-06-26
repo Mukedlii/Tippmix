@@ -29,6 +29,9 @@ from typing import Any, Dict, List, Optional
 
 log = logging.getLogger(__name__)
 
+# Minimális összesített hitrate az osztóban (division by zero elleni védelem)
+_MIN_OVERALL_HITRATE = 0.01
+
 # Importáljuk a meglévő self_learning modult
 try:
     from bot.self_learning import fetch_resolved_bets, evaluate_bet, compute_stats
@@ -83,7 +86,7 @@ def _compute_league_reliability(days: int = 60) -> Dict[str, float]:
         hr = data["won"] / data["total"]
         # Faktor: liga hitrate / összesített hitrate
         # Clamp: 0.5 - 1.5
-        factor = min(1.5, max(0.5, hr / max(overall_hr, 0.01)))
+        factor = min(1.5, max(0.5, hr / max(overall_hr, _MIN_OVERALL_HITRATE)))
         factors[league] = round(factor, 3)
 
     return factors
