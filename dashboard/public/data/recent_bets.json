@@ -1,5 +1,31 @@
 [
   {
+    "id": 1714,
+    "tier": "VIP",
+    "match": "Arsenal Dzerzhinsk vs Gomel",
+    "league": "Belarus Premier League",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 4.5,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-06-26T17:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
+    "id": 1715,
+    "tier": "VIP",
+    "match": "FC Baranovichi vs Slavia Mozyr",
+    "league": "Belarus Premier League",
+    "tip": "D\u00f6ntetlen",
+    "confidence": 4.2,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-06-26T15:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 1696,
     "tier": "FREE",
     "match": "Al-Salmiyah vs Al-Arabi",
@@ -230,32 +256,6 @@
     "risk": "k\u00f6zepes",
     "odds": null,
     "kickoff": "2026-06-25T09:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 1660,
-    "tier": "FREE",
-    "match": "Dodoma Jiji FC vs JKT Tanzania",
-    "league": "Tanzania Premier League",
-    "tip": "Hazai gy\u0151zelem",
-    "confidence": 3.1,
-    "risk": "magas",
-    "odds": null,
-    "kickoff": "2026-06-24T13:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 1671,
-    "tier": "FREE",
-    "match": "Dodoma Jiji FC vs JKT Tanzania",
-    "league": "Tanzania Premier League",
-    "tip": "D\u00f6ntetlen",
-    "confidence": 3.0,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-06-24T13:00:00+00:00",
     "result": null,
     "outcome": "pending"
   }
