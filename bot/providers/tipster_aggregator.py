@@ -42,15 +42,22 @@ HEADERS = {
 }
 
 
-def _get(url: str, timeout: int = 18) -> Optional[str]:
-    try:
-        time.sleep(random.uniform(1.5, 3.0))
-        r = requests.get(url, headers=HEADERS, timeout=timeout)
-        if r.status_code == 200:
-            return r.text
-        log.debug(f"HTTP {r.status_code}: {url}")
-    except Exception as e:
-        log.debug(f"Fetch hiba {url}: {e}")
+def _get(url: str, timeout: int = 18, retries: int = 2) -> Optional[str]:
+    """HTTP GET with retry logic. Returns HTML on success, None on failure."""
+    for attempt in range(1 + retries):
+        try:
+            if attempt > 0:
+                time.sleep(random.uniform(2.0, 4.0))
+            else:
+                time.sleep(random.uniform(1.5, 3.0))
+            r = requests.get(url, headers=HEADERS, timeout=timeout)
+            if r.status_code == 200:
+                return r.text
+            log.debug(f"HTTP {r.status_code}: {url} (attempt {attempt + 1})")
+        except requests.exceptions.Timeout:
+            log.debug(f"Timeout ({timeout}s): {url} (attempt {attempt + 1})")
+        except Exception as e:
+            log.debug(f"Fetch hiba {url}: {e} (attempt {attempt + 1})")
     return None
 
 
@@ -331,22 +338,28 @@ def get_all_tipster_consensus() -> List[Dict[str, Any]]:
     Összegyűjti az összes forrás tippjét és konszenzust keres.
 
     Ha több forrás ugyanazt a meccset és tippet javasol → magasabb bizalom.
+    Minden forrás hibája izolált: ha az egyik nem tölt le, a többi folytatódik.
     """
     all_tips: List[Dict] = []
 
-    print("[TIPSTERS] Forebet scraping...")
-    all_tips.extend(scrape_forebet())
+    sources = [
+        ("Forebet", scrape_forebet),
+        ("BettingExpert", scrape_bettingexpert_tips),
+        ("Betclan", scrape_betclan),
+        ("Nemzeti Sport", scrape_nemzeti_sport_tippek),
+    ]
 
-    print("[TIPSTERS] BettingExpert scraping...")
-    all_tips.extend(scrape_bettingexpert_tips())
+    for name, fn in sources:
+        print(f"[TIPSTERS] {name} scraping...")
+        try:
+            tips = fn()
+            all_tips.extend(tips)
+            log.info(f"[TIPSTERS] {name}: {len(tips)} tipp")
+        except Exception as e:
+            log.warning(f"[TIPSTERS] {name} forrás hiba (kihagyva): {e}")
 
-    print("[TIPSTERS] Betclan scraping...")
-    all_tips.extend(scrape_betclan())
-
-    print("[TIPSTERS] Nemzeti Sport scraping...")
-    all_tips.extend(scrape_nemzeti_sport_tippek())
-
-    print(f"[TIPSTERS] Összes tipp: {len(all_tips)} db, {len(set(t.get('source') for t in all_tips))} forrásból")
+    active_sources = len(set(t.get("source") for t in all_tips))
+    print(f"[TIPSTERS] Összes tipp: {len(all_tips)} db, {active_sources} forrásból")
     return all_tips
 
 
