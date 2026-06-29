@@ -1,5 +1,31 @@
 [
   {
+    "id": 1766,
+    "tier": "VIP",
+    "match": "Brazil vs Japan",
+    "league": "World Cup 2026 R32",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 3.0,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-06-29T17:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
+    "id": 1767,
+    "tier": "VIP",
+    "match": "Brazil vs Japan",
+    "league": "World Cup 2026 R32",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 4.5,
+    "risk": "alacsony",
+    "odds": null,
+    "kickoff": "2026-06-29T17:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 1758,
     "tier": "VIP",
     "match": "Isloch vs Belshina Bobruisk",
@@ -222,32 +248,6 @@
   },
   {
     "id": 1732,
-    "tier": "VIP",
-    "match": "Dinamo Brest vs FC Minsk",
-    "league": "Belarus Premier League",
-    "tip": "Hazai gy\u0151zelem",
-    "confidence": 4.5,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-06-27T15:30:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 1741,
-    "tier": "VIP",
-    "match": "Dinamo Brest vs FC Minsk",
-    "league": "Belarus Premier League",
-    "tip": "Hazai gy\u0151zelem",
-    "confidence": 4.5,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-06-27T15:30:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 1749,
     "tier": "VIP",
     "match": "Dinamo Brest vs FC Minsk",
     "league": "Belarus Premier League",
