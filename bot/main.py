@@ -1177,6 +1177,32 @@ def main() -> None:
         with open(vip_meta_path, "w", encoding="utf-8") as f:
             json.dump(vip_meta, f, ensure_ascii=False, indent=2)
 
+        if (os.getenv("TIPPMIX_SAVE_DASHBOARD_JSON") or "1").strip() == "1":
+            try:
+                provider_name = resolve_sports_provider()
+            except Exception:
+                provider_name = None
+            dashboard_data_dir = os.path.join("dashboard", "public", "data")
+            _ensure_dir(dashboard_data_dir)
+            with open(os.path.join(dashboard_data_dir, "latest_public_bets.json"), "w", encoding="utf-8") as f:
+                json.dump(public_bets_enriched, f, ensure_ascii=False, indent=2)
+            with open(os.path.join(dashboard_data_dir, "latest_vip_bets.json"), "w", encoding="utf-8") as f:
+                json.dump(vip_bets_enriched, f, ensure_ascii=False, indent=2)
+            with open(os.path.join(dashboard_data_dir, "latest_run_meta.json"), "w", encoding="utf-8") as f:
+                json.dump(
+                    {
+                        "run_date": run_date_str,
+                        "slot": slot,
+                        "provider": provider_name,
+                        "public_bets_count": len(public_bets_enriched),
+                        "vip_bets_count": len(vip_bets_enriched),
+                        "updated_ts_utc": _utc_iso(),
+                    },
+                    f,
+                    ensure_ascii=False,
+                    indent=2,
+                )
+
         print(f"Napi tippek elmentve: {public_json_path}, {vip_json_path}")
         print(f"Meta elmentve: {public_meta_path}, {vip_meta_path}")
 

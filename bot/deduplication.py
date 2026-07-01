@@ -28,14 +28,29 @@ def _match_key(tip: Dict[str, Any]) -> str:
 
 
 def _score_for_keep(tip: Dict[str, Any]) -> tuple[float, float, float]:
+    def _to_float(value: Any, default: float = 0.0) -> float:
+        try:
+            return float(value)
+        except Exception:
+            return default
+
+    def _normalize_probability(raw: Any) -> float:
+        p = _to_float(raw, -1.0)
+        if p < 0:
+            return -1.0
+        if p > 1.0 and p <= 100.0:
+            p = p / 100.0
+        return max(0.0, min(1.0, p))
+
     try:
-        conf = float(tip.get("confidence", 0) or 0)
+        conf_raw = _to_float(tip.get("confidence", 0) or 0, 0.0)
     except Exception:
-        conf = 0.0
-    try:
-        prob = float(tip.get("p", 0) or 0)
-    except Exception:
-        prob = 0.0
+        conf_raw = 0.0
+    conf_norm = max(0.0, min(1.0, conf_raw / 5.0))
+
+    prob = _normalize_probability(tip.get("p"))
+    chance = prob if prob >= 0 else conf_norm
+
     try:
         odds = float(
             tip.get("best_odds")
@@ -45,7 +60,10 @@ def _score_for_keep(tip: Dict[str, Any]) -> tuple[float, float, float]:
         )
     except Exception:
         odds = 0.0
-    return (conf, prob, odds)
+    # "Best chance" priority: highest chance first, then confidence.
+    # Final tie-break prefers lower odds (typically safer / higher implied chance).
+    odds_tiebreak = -odds if odds > 0 else 0.0
+    return (chance, conf_raw, odds_tiebreak)
 
 
 def deduplicate_tips(tips: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

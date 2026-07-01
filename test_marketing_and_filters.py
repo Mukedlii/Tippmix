@@ -124,7 +124,7 @@ class MarketingAndFiltersTests(unittest.TestCase):
     def test_deduplicate_tips_normalizes_team_names(self):
         tips = [
             {"home_team": "Arsenal", "away_team": "Liverpool", "selection": "Hazai", "confidence": 4.0, "p": 0.58, "odds_estimate": 1.9},
-            {"home_team": " arsenal ", "away_team": "LIVERPOOL", "selection": "Vendég", "confidence": 4.2, "p": 0.55, "odds_estimate": 2.1},
+            {"home_team": " arsenal ", "away_team": "LIVERPOOL", "selection": "Vendég", "confidence": 4.2, "p": 0.62, "odds_estimate": 2.1},
         ]
         deduped = deduplicate_tips(tips)
         self.assertEqual(len(deduped), 1)
@@ -138,6 +138,15 @@ class MarketingAndFiltersTests(unittest.TestCase):
         deduped = deduplicate_tips(tips)
         self.assertEqual(len(deduped), 1)
         self.assertEqual(deduped[0]["selection"], "1")
+
+    def test_deduplicate_tips_prioritizes_best_chance_probability(self):
+        tips = [
+            {"home_team": "Roma", "away_team": "Milan", "selection": "Hazai", "confidence": 4.8, "p": 0.57, "odds_estimate": 1.80},
+            {"home_team": "Roma", "away_team": "Milan", "selection": "Döntetlen", "confidence": 4.2, "p": 0.64, "odds_estimate": 2.40},
+        ]
+        deduped = deduplicate_tips(tips)
+        self.assertEqual(len(deduped), 1)
+        self.assertEqual(deduped[0]["selection"], "Döntetlen")
 
     def test_alert_message_uses_odds_fallback_sources(self):
         tip = {

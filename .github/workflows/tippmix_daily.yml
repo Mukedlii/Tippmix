@@ -31,6 +31,7 @@ jobs:
       SPORTS_DATA_PROVIDER: ${{ vars.SPORTS_DATA_PROVIDER }}
       TIPPMIX_SLOT: DAY
       TIPPMIX_MODEL: "gpt-4o-mini"
+      TIPPMIX_DB_PATH: data/tippmix.db
 
       TIPPMIX_SEND_PUBLIC: "1"
       TIPPMIX_SEND_VIP: "1"
@@ -68,11 +69,14 @@ jobs:
       - name: Run tip generation
         run: python -m bot.main
 
+      - name: Generate dashboard data
+        run: python scripts/generate_dashboard_data.py
+
       - name: Commit bet JSONs
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add *.json data/ || true
+          git add *.json data/ dashboard/public/data/*.json || true
           if git diff --cached --quiet; then
             echo "Nincs változás."
           else

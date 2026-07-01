@@ -60,7 +60,7 @@ def generate_all_data():
     # 6. Recent bets
     import sqlite3
     
-    db_path = os.getenv("TIPPMIX_DB_PATH", "tippmix.db")
+    db_path = os.getenv("TIPPMIX_DB_PATH", os.path.join("data", "tippmix.db"))
     
     recent_bets = []
     
