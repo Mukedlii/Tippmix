@@ -87,11 +87,6 @@ if r.status_code == 200:
 print("\n[4] Local test of odds enrichment...")
 print("   (Run locally with ODDS_API_KEY set)")
 
-if not GITHUB_TOKEN:
-    raise RuntimeError("GITHUB_TOKEN environment variable is required.")
-if not ODDS_API_KEY:
-    raise RuntimeError("ODDS_API_KEY environment variable is required.")
-
 print("\n" + "="*70)
 print("\nRECOMMENDATION:")
 print("1. Download workflow logs from: https://github.com/Mukedlii/Tippmix/actions")

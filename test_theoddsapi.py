@@ -6,8 +6,9 @@ import os
 import sys
 import requests
 
-# Set API key from TOOLS.md
-API_KEY = "<your_odds_api_key>"
+API_KEY = (os.getenv("ODDS_API_KEY") or "").strip()
+if not API_KEY:
+    raise RuntimeError("ODDS_API_KEY environment variable is required.")
 
 print("\n" + "="*60)
 print("THEODDSAPI TEST")
@@ -23,7 +24,7 @@ params = {
 }
 
 print(f"\nTesting: {url}")
-print(f"Params: {params}")
+print("Params: {'apiKey': '***', 'regions': 'eu', 'markets': 'h2h', 'oddsFormat': 'decimal'}")
 
 try:
     r = requests.get(url, params=params, timeout=15)
