@@ -23,6 +23,7 @@ import re
 import time
 import random
 import logging
+import datetime
 from typing import Optional
 import requests
 from bs4 import BeautifulSoup
@@ -298,6 +299,24 @@ def build_match_context(
 
     log.info(f"[WebContext] Gyűjtés: {home_team} vs {away_team}")
 
+    try:
+        from bot.scrapers.sofascore import SofascoreScraper
+        from bot.scrapers.fotmob import FotmobScraper
+
+        ss_ctx = SofascoreScraper().fetch_team_context(home_team, league_name)
+        if ss_ctx:
+            ctx["home_scraper_context"] = ss_ctx
+        as_ctx = SofascoreScraper().fetch_team_context(away_team, league_name)
+        if as_ctx:
+            ctx["away_scraper_context"] = as_ctx
+
+        today = datetime.date.today().isoformat()
+        fotmob_today = FotmobScraper().fetch_fixtures(today)
+        if fotmob_today:
+            ctx["fotmob_sample"] = fotmob_today[:3]
+    except Exception:
+        pass
+
     # xG adatok (Understat - csak top 5 liga)
     if fetch_xg:
         home_xg = get_understat_team_xg(home_team, league_name)
@@ -386,6 +405,15 @@ def format_context_for_prompt(ctx: dict) -> str:
         lines.append(f"\n🚑 {away} sérültek/hiányzók:")
         for p in away_inj[:5]:
             lines.append(f"  - {p['player']} ({p['reason']}, vissza: {p['until']})")
+
+    home_scraper_context = ctx.get("home_scraper_context") or {}
+    away_scraper_context = ctx.get("away_scraper_context") or {}
+    if home_scraper_context or away_scraper_context:
+        lines.append("\n🧩 Multi-source scraper kontextus:")
+        if home_scraper_context:
+            lines.append(f"  {home}: {home_scraper_context}")
+        if away_scraper_context:
+            lines.append(f"  {away}: {away_scraper_context}")
 
     # Hírek
     news = ctx.get("news", [])

@@ -7,7 +7,12 @@ from typing import Any, Dict, List, Optional
 import requests
 from bs4 import BeautifulSoup
 
-from bot.providers.odds_scraper import fetch_flashscore_odds, search_betexplorer
+from bot.providers.odds_scraper import (
+    fetch_flashscore_odds,
+    search_betexplorer,
+    search_oddschecker,
+    search_betfair_exchange,
+)
 
 CACHE_TTL_SECONDS = int(os.getenv("FREE_ODDS_CACHE_TTL_SECONDS", str(6 * 60 * 60)))
 REQUEST_TIMEOUT = int(os.getenv("FREE_ODDS_REQUEST_TIMEOUT", "12"))
@@ -148,6 +153,30 @@ def get_best_odds_free(
     odds_com = _scrape_odds_com(home_team, away_team)
     if odds_com:
         providers.append(odds_com)
+
+    oddschecker = search_oddschecker(home_team, away_team)
+    if oddschecker:
+        providers.append(
+            {
+                "source": "oddschecker",
+                "bookmaker": "Oddschecker",
+                "odds_1": oddschecker.get("odds_1"),
+                "odds_x": oddschecker.get("odds_x"),
+                "odds_2": oddschecker.get("odds_2"),
+            }
+        )
+
+    betfair = search_betfair_exchange(home_team, away_team)
+    if betfair:
+        providers.append(
+            {
+                "source": "betfair",
+                "bookmaker": "Betfair Exchange",
+                "odds_1": betfair.get("odds_1"),
+                "odds_x": betfair.get("odds_x"),
+                "odds_2": betfair.get("odds_2"),
+            }
+        )
 
     if not providers:
         fallback = _fallback_predicted(predicted_odds)

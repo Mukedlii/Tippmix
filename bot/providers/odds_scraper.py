@@ -144,6 +144,56 @@ def search_betexplorer(home_team: str, away_team: str) -> Optional[dict]:
     return None
 
 
+def search_oddschecker(home_team: str, away_team: str) -> Optional[dict]:
+    query = f"{home_team} {away_team}"
+    search_url = f"https://www.oddschecker.com/search?q={requests.utils.quote(query)}"
+    html = _get(search_url)
+    if not html:
+        return None
+
+    try:
+        text = BeautifulSoup(html, "html.parser").get_text(" ", strip=True)
+        if home_team.lower()[:4] not in text.lower() or away_team.lower()[:4] not in text.lower():
+            return None
+        vals = [float(x) for x in re.findall(r"\b\d{1,3}\.\d{2}\b", text)]
+        if len(vals) < 3:
+            return None
+        return {
+            "source": "oddschecker",
+            "odds_1": vals[0],
+            "odds_x": vals[1],
+            "odds_2": vals[2],
+        }
+    except Exception as e:
+        log.debug(f"Oddschecker parse error: {e}")
+        return None
+
+
+def search_betfair_exchange(home_team: str, away_team: str) -> Optional[dict]:
+    query = f"{home_team} v {away_team}"
+    search_url = f"https://www.betfair.com/sport/football?query={requests.utils.quote(query)}"
+    html = _get(search_url)
+    if not html:
+        return None
+
+    try:
+        text = BeautifulSoup(html, "html.parser").get_text(" ", strip=True)
+        if home_team.lower()[:4] not in text.lower() or away_team.lower()[:4] not in text.lower():
+            return None
+        vals = [float(x) for x in re.findall(r"\b\d{1,3}\.\d{2}\b", text)]
+        if len(vals) < 3:
+            return None
+        return {
+            "source": "betfair",
+            "odds_1": vals[0],
+            "odds_x": vals[1],
+            "odds_2": vals[2],
+        }
+    except Exception as e:
+        log.debug(f"Betfair parse error: {e}")
+        return None
+
+
 # ──────────────────────────────────────────────
 # 3. THE ODDS API — ingyenes tier (500 req/hó)
 # ──────────────────────────────────────────────
@@ -284,6 +334,16 @@ def get_best_odds(home_team: str, away_team: str) -> dict:
     if betexp:
         results["betexplorer"] = betexp
         sources_tried.append("betexplorer")
+
+    oddschecker = search_oddschecker(home_team, away_team)
+    if oddschecker:
+        results["oddschecker"] = oddschecker
+        sources_tried.append("oddschecker")
+
+    betfair = search_betfair_exchange(home_team, away_team)
+    if betfair:
+        results["betfair"] = betfair
+        sources_tried.append("betfair")
 
     all_1: list[float] = []
     all_x: list[float] = []

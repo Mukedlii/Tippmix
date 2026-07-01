@@ -117,6 +117,68 @@ def init_db() -> None:
         # One row per fixture_id (latest result snapshot)
         con.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_results_fixture_id ON results(fixture_id);")
 
+        con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS data_sources (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              source_name TEXT,
+              fixture_id TEXT,
+              data_type TEXT,
+              value_json TEXT,
+              confidence REAL,
+              updated_at TEXT NOT NULL
+            );
+            """
+        )
+        con.execute("CREATE INDEX IF NOT EXISTS idx_data_sources_fixture ON data_sources(fixture_id);")
+
+        con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS odds_history (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              fixture_id TEXT,
+              bookmaker TEXT,
+              odds_1 REAL,
+              odds_x REAL,
+              odds_2 REAL,
+              timestamp TEXT NOT NULL,
+              source_json TEXT
+            );
+            """
+        )
+        con.execute("CREATE INDEX IF NOT EXISTS idx_odds_history_fixture ON odds_history(fixture_id);")
+
+        con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS expert_picks (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              fixture_id TEXT,
+              source TEXT,
+              pick TEXT,
+              confidence REAL,
+              reasoning TEXT,
+              author TEXT,
+              timestamp TEXT
+            );
+            """
+        )
+        con.execute("CREATE INDEX IF NOT EXISTS idx_expert_picks_fixture ON expert_picks(fixture_id);")
+
+        con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS prediction_market (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              fixture_id TEXT,
+              platform TEXT,
+              outcome TEXT,
+              probability REAL,
+              market_odds REAL,
+              timestamp TEXT
+            );
+            """
+        )
+        con.execute("CREATE INDEX IF NOT EXISTS idx_prediction_market_fixture ON prediction_market(fixture_id);")
+
         con.commit()
     finally:
         con.close()
@@ -431,6 +493,116 @@ def upsert_result(
                 ),
             )
 
+        con.commit()
+    finally:
+        con.close()
+
+
+def insert_data_sources(rows: List[Dict[str, Any]]) -> None:
+    if not rows:
+        return
+    init_db()
+    con = _connect()
+    try:
+        for row in rows:
+            con.execute(
+                """
+                INSERT INTO data_sources(source_name, fixture_id, data_type, value_json, confidence, updated_at)
+                VALUES(?,?,?,?,?,?)
+                """,
+                (
+                    row.get("source_name"),
+                    str(row.get("fixture_id")) if row.get("fixture_id") is not None else None,
+                    row.get("data_type"),
+                    json.dumps(row.get("value_json") or {}, ensure_ascii=False),
+                    float(row.get("confidence")) if row.get("confidence") is not None else None,
+                    _utc_iso(),
+                ),
+            )
+        con.commit()
+    finally:
+        con.close()
+
+
+def insert_odds_history(
+    fixture_id: str,
+    bookmaker: str,
+    odds_1: Optional[float],
+    odds_x: Optional[float],
+    odds_2: Optional[float],
+    source_rows: Optional[List[Dict[str, Any]]] = None,
+) -> None:
+    init_db()
+    con = _connect()
+    try:
+        con.execute(
+            """
+            INSERT INTO odds_history(fixture_id, bookmaker, odds_1, odds_x, odds_2, timestamp, source_json)
+            VALUES(?,?,?,?,?,?,?)
+            """,
+            (
+                str(fixture_id),
+                str(bookmaker or "unknown"),
+                float(odds_1) if odds_1 is not None else None,
+                float(odds_x) if odds_x is not None else None,
+                float(odds_2) if odds_2 is not None else None,
+                _utc_iso(),
+                json.dumps(source_rows or [], ensure_ascii=False),
+            ),
+        )
+        con.commit()
+    finally:
+        con.close()
+
+
+def insert_expert_picks(fixture_id: str, rows: List[Dict[str, Any]]) -> None:
+    if not rows:
+        return
+    init_db()
+    con = _connect()
+    try:
+        for row in rows:
+            con.execute(
+                """
+                INSERT INTO expert_picks(fixture_id, source, pick, confidence, reasoning, author, timestamp)
+                VALUES(?,?,?,?,?,?,?)
+                """,
+                (
+                    str(fixture_id),
+                    row.get("source"),
+                    row.get("pick"),
+                    float(row.get("confidence")) if row.get("confidence") is not None else None,
+                    row.get("reasoning"),
+                    row.get("author"),
+                    row.get("timestamp"),
+                ),
+            )
+        con.commit()
+    finally:
+        con.close()
+
+
+def insert_prediction_markets(fixture_id: str, rows: List[Dict[str, Any]]) -> None:
+    if not rows:
+        return
+    init_db()
+    con = _connect()
+    try:
+        for row in rows:
+            con.execute(
+                """
+                INSERT INTO prediction_market(fixture_id, platform, outcome, probability, market_odds, timestamp)
+                VALUES(?,?,?,?,?,?)
+                """,
+                (
+                    str(fixture_id),
+                    row.get("platform"),
+                    row.get("outcome"),
+                    float(row.get("probability")) if row.get("probability") is not None else None,
+                    float(row.get("market_odds")) if row.get("market_odds") is not None else None,
+                    row.get("timestamp"),
+                ),
+            )
         con.commit()
     finally:
         con.close()
