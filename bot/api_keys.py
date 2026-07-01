@@ -37,6 +37,7 @@ def get_optional_allsportsapi_key() -> str:
 
 def resolve_sports_provider() -> str:
     provider = (os.getenv("SPORTS_DATA_PROVIDER") or "").strip().lower()
+    prefer_scraping = (os.getenv("TIPPMIX_PREFER_SCRAPING") or "1").strip() == "1"
 
     # ÚJ: teljesen ingyenes scraper (SofaScore/LiveScore/Flashscore) — nincs key
     if provider == "free_scraper":
@@ -54,6 +55,10 @@ def resolve_sports_provider() -> str:
         return "sportmonks"
     if provider in ("allsportsapi", "all-sports-api", "allsports"):
         return "allsportsapi"
+
+    # scraping-first mode (default): avoid paid APIs unless explicitly configured
+    if prefer_scraping:
+        return "free_scraper"
 
     # auto-pick preference order
     if get_optional_api_sports_key():

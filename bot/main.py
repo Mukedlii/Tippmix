@@ -798,6 +798,9 @@ def main() -> None:
                             "X": odds.get("odds_x_best") or odds.get("odds_x_avg"),
                             "2": odds.get("odds_2_best") or odds.get("odds_2_avg"),
                         }
+                        # Use freshest scraped market odds as primary downstream odds input
+                        m["odds"] = dict(m["scraped_odds"])
+                        m["odds_source"] = "scraped_live_best"
                         m["best_bookmakers"] = odds.get("best_bookmakers") or {}
                         m["used_predicted_odds"] = bool(odds.get("used_fallback"))
                 except Exception as e:
@@ -1090,6 +1093,9 @@ def main() -> None:
                                 "X": odds.get("odds_x_best") or odds.get("odds_x_avg"),
                                 "2": odds.get("odds_2_best") or odds.get("odds_2_avg"),
                             }
+                            # Use freshest scraped market odds as primary downstream odds input
+                            m["odds"] = dict(m["scraped_odds"])
+                            m["odds_source"] = "scraped_live_best"
                             m["best_bookmakers"] = odds.get("best_bookmakers") or {}
                             m["used_predicted_odds"] = bool(odds.get("used_fallback"))
                     except Exception:
