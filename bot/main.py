@@ -37,6 +37,13 @@ from bot.tournament_detector import enrich_with_tournament_info, sort_by_tournam
 from bot.match_learner import apply_learning_scores, build_enhanced_learning_context
 from bot.storage.stats import dynamic_block_leagues, overall_hitrate
 
+MARKETING_MIN_ODDS = 1.15
+MARKETING_MAX_ODDS_FREE = 2.00
+MARKETING_MAX_ODDS_VIP = 2.10
+MARKETING_MIN_CONF_FREE = 3.8
+MARKETING_MIN_CONF_VIP = 3.6
+HIGH_RISK_TOKEN = "magas"
+
 
 # -----------------------------
 # Simple file logger (before/after send)
@@ -1221,29 +1228,53 @@ def main() -> None:
     def _sensible_marketing_tips(bets: List[Dict[str, Any]], tier: str) -> List[Dict[str, Any]]:
         out: List[Dict[str, Any]] = []
         tier_u = (tier or "").upper()
+        max_odds = MARKETING_MAX_ODDS_FREE if tier_u == "FREE" else MARKETING_MAX_ODDS_VIP
+        min_conf = MARKETING_MIN_CONF_FREE if tier_u == "FREE" else MARKETING_MIN_CONF_VIP
         for b in bets or []:
             risk = str(b.get("risk_level") or "").lower()
             shelf = str(b.get("shelf") or "").upper()
             conf = _safe_float(b.get("confidence"))
+            # Odds priority: enriched picked-odds → source odds field → model estimate fallback.
             odds = _safe_float(b.get("odds_pick") or b.get("odds") or b.get("odds_estimate"))
 
-            if "magas" in risk or shelf == "BOLD":
+            if HIGH_RISK_TOKEN in risk or shelf == "BOLD":
                 continue
-            if odds and (odds < 1.15 or odds > (2.00 if tier_u == "FREE" else 2.10)):
+            if odds > 0 and (odds < MARKETING_MIN_ODDS or odds > max_odds):
                 continue
-            if conf < (3.8 if tier_u == "FREE" else 3.6):
+            if conf < min_conf:
                 continue
 
             out.append(b)
         return out
+
+    def _fallback_marketing_tips(bets: List[Dict[str, Any]], tier: str) -> List[Dict[str, Any]]:
+        tier_u = (tier or "").upper()
+        base: List[Dict[str, Any]] = []
+        non_bold: List[Dict[str, Any]] = []
+        for b in bets or []:
+            if HIGH_RISK_TOKEN in str(b.get("risk_level") or "").lower():
+                continue
+            base.append(b)
+            if str(b.get("shelf") or "").upper() != "BOLD":
+                non_bold.append(b)
+        if tier_u == "VIP":
+            # Last-resort fallback: if everything is BOLD, still send best non-high-risk picks.
+            base = non_bold if non_bold else base
+        if not base:
+            return []
+        return sorted(base, key=lambda b: _safe_float(b.get("confidence")), reverse=True)
 
     if use_marketing and vip_bets_enriched and public_bets_enriched:
         # Generate marketing-optimized messages with inline buttons
         # ONLY if we have actual bets (not empty)
         date_today = datetime.date.today().strftime("%Y.%m.%d.")
         combos = build_marketing_combos(vip_bets_enriched[:10], public_bets_enriched[:8])
-        vip_send = _sensible_marketing_tips(vip_bets_enriched, "VIP") or vip_bets_enriched
-        free_send = _sensible_marketing_tips(public_bets_enriched, "FREE") or public_bets_enriched
+        vip_send = _sensible_marketing_tips(vip_bets_enriched, "VIP")
+        free_send = _sensible_marketing_tips(public_bets_enriched, "FREE")
+        if not vip_send:
+            vip_send = _fallback_marketing_tips(vip_bets_enriched, "VIP")
+        if not free_send:
+            free_send = _fallback_marketing_tips(public_bets_enriched, "FREE")
         
         # Get stats for VIP header (if available)
         try:
