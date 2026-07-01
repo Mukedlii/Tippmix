@@ -152,6 +152,20 @@ class MarketingAndFiltersTests(unittest.TestCase):
         text, _ = format_alert_message(tip)
         self.assertIn("📊 Odds: *2.05* (Bet365)", text)
 
+    def test_alert_message_keeps_tba_when_no_odds_available(self):
+        tip = {
+            "home_team": "Arsenal",
+            "away_team": "Liverpool",
+            "selection": "Hazai győzelem",
+            "odds_estimate": None,
+            "odds_pick": None,
+            "best_odds": None,
+            "bookmaker": "Bet365",
+            "confidence": 4.1,
+        }
+        text, _ = format_alert_message(tip)
+        self.assertIn("📊 Odds: *TBA* (Bet365)", text)
+
 
 if __name__ == "__main__":
     unittest.main()
