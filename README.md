@@ -12,10 +12,9 @@ Fontos:
   - SportsDataIO (soccer): `SPORTSDATAIO_API`
   - (opcionális, később bővíthető): SportMonks: `SPORTMONKS_API_TOKEN`
 
-- A provider automatikusan választ:
-  - ha van `SPORTS_API_KEY` → API-FOOTBALL
-  - ha van `SPORTSDATAIO_API` → SportsDataIO
-  - felülírható `SPORTS_DATA_PROVIDER=api-sports|sportsdataio` env-vel
+- A provider alapból scraping-first módban fut (`free_scraper`), hogy ne kelljen fizetős API.
+- Felülírható expliciten: `SPORTS_DATA_PROVIDER=free_scraper|footballdata|api-sports|sportsdataio|sportmonks|allsportsapi`
+- Ha automata API-választást szeretnél kulcsok alapján, állítsd: `TIPPMIX_PREFER_SCRAPING=0`
 
 ## Adatbázis (SQLite)
 Alapból a futások és tippek mentésre kerülnek SQLite-ba:

@@ -37,6 +37,13 @@ from bot.tournament_detector import enrich_with_tournament_info, sort_by_tournam
 from bot.match_learner import apply_learning_scores, build_enhanced_learning_context
 from bot.storage.stats import dynamic_block_leagues, overall_hitrate
 
+MARKETING_MIN_ODDS = 1.15
+MARKETING_MAX_ODDS_FREE = 2.00
+MARKETING_MAX_ODDS_VIP = 2.10
+MARKETING_MIN_CONF_FREE = 3.8
+MARKETING_MIN_CONF_VIP = 3.6
+HIGH_RISK_TOKEN = "magas"
+
 
 # -----------------------------
 # Simple file logger (before/after send)
@@ -791,6 +798,9 @@ def main() -> None:
                             "X": odds.get("odds_x_best") or odds.get("odds_x_avg"),
                             "2": odds.get("odds_2_best") or odds.get("odds_2_avg"),
                         }
+                        # Use freshest scraped market odds as primary downstream odds input
+                        m["odds"] = dict(m["scraped_odds"])
+                        m["odds_source"] = "scraped_live_best"
                         m["best_bookmakers"] = odds.get("best_bookmakers") or {}
                         m["used_predicted_odds"] = bool(odds.get("used_fallback"))
                 except Exception as e:
@@ -1083,6 +1093,9 @@ def main() -> None:
                                 "X": odds.get("odds_x_best") or odds.get("odds_x_avg"),
                                 "2": odds.get("odds_2_best") or odds.get("odds_2_avg"),
                             }
+                            # Use freshest scraped market odds as primary downstream odds input
+                            m["odds"] = dict(m["scraped_odds"])
+                            m["odds_source"] = "scraped_live_best"
                             m["best_bookmakers"] = odds.get("best_bookmakers") or {}
                             m["used_predicted_odds"] = bool(odds.get("used_fallback"))
                     except Exception:
@@ -1209,14 +1222,65 @@ def main() -> None:
     send_vip = (os.getenv("TIPPMIX_SEND_VIP") or "1").strip() != "0"
     send_en = (os.getenv("TIPPMIX_SEND_EN") or "1").strip() != "0"
     
-    # Marketing format with inline buttons (optional)
-    use_marketing = (os.getenv("TIPPMIX_USE_MARKETING_FORMAT") or "0").strip() == "1"
-    
+    # Marketing format with inline buttons (optional; default ON for cleaner messages)
+    use_marketing = (os.getenv("TIPPMIX_USE_MARKETING_FORMAT") or "1").strip() == "1"
+
+    def _safe_float(x: Any) -> float:
+        try:
+            return float(x)
+        except Exception:
+            return 0.0
+
+    def _sensible_marketing_tips(bets: List[Dict[str, Any]], tier: str) -> List[Dict[str, Any]]:
+        out: List[Dict[str, Any]] = []
+        tier_u = (tier or "").upper()
+        max_odds = MARKETING_MAX_ODDS_FREE if tier_u == "FREE" else MARKETING_MAX_ODDS_VIP
+        min_conf = MARKETING_MIN_CONF_FREE if tier_u == "FREE" else MARKETING_MIN_CONF_VIP
+        for b in bets or []:
+            risk = str(b.get("risk_level") or "").lower()
+            shelf = str(b.get("shelf") or "").upper()
+            conf = _safe_float(b.get("confidence"))
+            # Odds priority: enriched picked-odds → source odds field → model estimate fallback.
+            odds = _safe_float(b.get("odds_pick") or b.get("odds") or b.get("odds_estimate"))
+
+            if HIGH_RISK_TOKEN in risk or shelf == "BOLD":
+                continue
+            if odds > 0 and (odds < MARKETING_MIN_ODDS or odds > max_odds):
+                continue
+            if conf < min_conf:
+                continue
+
+            out.append(b)
+        return out
+
+    def _fallback_marketing_tips(bets: List[Dict[str, Any]], tier: str) -> List[Dict[str, Any]]:
+        tier_u = (tier or "").upper()
+        base: List[Dict[str, Any]] = []
+        non_bold: List[Dict[str, Any]] = []
+        for b in bets or []:
+            if HIGH_RISK_TOKEN in str(b.get("risk_level") or "").lower():
+                continue
+            base.append(b)
+            if str(b.get("shelf") or "").upper() != "BOLD":
+                non_bold.append(b)
+        if tier_u == "VIP":
+            # Last-resort fallback: if everything is BOLD, still send best non-high-risk picks.
+            base = non_bold if non_bold else base
+        if not base:
+            return []
+        return sorted(base, key=lambda b: _safe_float(b.get("confidence")), reverse=True)
+
     if use_marketing and vip_bets_enriched and public_bets_enriched:
         # Generate marketing-optimized messages with inline buttons
         # ONLY if we have actual bets (not empty)
         date_today = datetime.date.today().strftime("%Y.%m.%d.")
         combos = build_marketing_combos(vip_bets_enriched[:10], public_bets_enriched[:8])
+        vip_send = _sensible_marketing_tips(vip_bets_enriched, "VIP")
+        free_send = _sensible_marketing_tips(public_bets_enriched, "FREE")
+        if not vip_send:
+            vip_send = _fallback_marketing_tips(vip_bets_enriched, "VIP")
+        if not free_send:
+            free_send = _fallback_marketing_tips(public_bets_enriched, "FREE")
         
         # Get stats for VIP header (if available)
         try:
@@ -1228,7 +1292,7 @@ def main() -> None:
         
         if send_vip and vip_chat_id:
             vip_text_marketing, vip_buttons = format_marketing_vip(
-                tips=vip_bets_enriched[:10],
+                tips=vip_send[:8],
                 combos=combos.get("vip") or [],
                 date_str=date_today,
                 stats=stats_7d
@@ -1237,7 +1301,7 @@ def main() -> None:
         
         if send_public and public_chat_id:
             free_text_marketing, free_buttons = format_marketing_free(
-                tips=public_bets_enriched[:6],
+                tips=free_send[:3],
                 combos=combos.get("free") or [],
                 date_str=date_today
             )

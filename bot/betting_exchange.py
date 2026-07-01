@@ -20,6 +20,51 @@ from datetime import datetime, timedelta
 log = logging.getLogger(__name__)
 
 
+def _build_market_indicator_from_odds(dossier: Dict) -> Optional[Dict]:
+    """
+    API-free market indicator from 1X2 odds.
+    Treats bookmaker market prices as a prediction-market consensus signal.
+    """
+    try:
+        o1 = float(dossier.get("odds_1"))
+        ox = float(dossier.get("odds_x"))
+        o2 = float(dossier.get("odds_2"))
+    except Exception:
+        return None
+
+    if o1 <= 1.01 or ox <= 1.01 or o2 <= 1.01:
+        return None
+
+    p1, px, p2 = 1.0 / o1, 1.0 / ox, 1.0 / o2
+    total = p1 + px + p2
+    if total <= 0:
+        return None
+
+    probs = {
+        "1": p1 / total,
+        "X": px / total,
+        "2": p2 / total,
+    }
+    ordered = sorted(probs.items(), key=lambda x: x[1], reverse=True)
+    fav_outcome, fav_prob = ordered[0]
+    second_prob = ordered[1][1]
+    spread = fav_prob - second_prob
+
+    signal = "mixed"
+    if spread >= 0.10:
+        signal = "strong"
+    elif spread >= 0.05:
+        signal = "medium"
+
+    return {
+        "favorite_outcome": fav_outcome,
+        "favorite_prob_pct": round(fav_prob * 100, 1),
+        "draw_prob_pct": round(probs["X"] * 100, 1),
+        "spread_pct": round(spread * 100, 1),
+        "signal_strength": signal,
+    }
+
+
 class BettingExchangeTracker:
     """Track odds movements and detect sharp money."""
 
@@ -352,12 +397,19 @@ def enrich_with_exchange_data(dossier: Dict) -> Dict:
     if os.getenv("TIPPMIX_USE_EXCHANGE_DATA", "1") != "1":
         return dossier
     
+    indicator = _build_market_indicator_from_odds(dossier)
+    if indicator:
+        dossier["market_indicator"] = indicator
+
     tracker = BettingExchangeTracker()
-    
+
     fixture_id = dossier.get("fixture_id")
     home = dossier.get("home", "")
     away = dossier.get("away", "")
-    
+
+    if not tracker.use_odds_api:
+        return dossier
+
     if not fixture_id or not home:
         return dossier
     
@@ -400,5 +452,20 @@ def format_exchange_context(dossier: Dict) -> str:
                 f"soft books átlag @{signal['soft_avg_odds']} "
                 f"({signal['discrepancy_pct']:+.1f}% különbség)"
             )
+
+    # API-free market indicator (derived from odds implied probabilities)
+    market_indicator = dossier.get("market_indicator") or {}
+    if market_indicator:
+        outcome_name = {
+            "1": "Hazai",
+            "X": "Döntetlen",
+            "2": "Vendég",
+        }.get(market_indicator.get("favorite_outcome"), str(market_indicator.get("favorite_outcome")))
+        lines.append(
+            "📈 Prediction market indikátor: "
+            f"favorit={outcome_name} ({market_indicator.get('favorite_prob_pct', 'N/A')}%), "
+            f"jel-erősség={market_indicator.get('signal_strength', 'mixed')}, "
+            f"spread={market_indicator.get('spread_pct', 'N/A')}%"
+        )
     
     return "\n".join(lines) if lines else ""
