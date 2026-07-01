@@ -1209,14 +1209,41 @@ def main() -> None:
     send_vip = (os.getenv("TIPPMIX_SEND_VIP") or "1").strip() != "0"
     send_en = (os.getenv("TIPPMIX_SEND_EN") or "1").strip() != "0"
     
-    # Marketing format with inline buttons (optional)
-    use_marketing = (os.getenv("TIPPMIX_USE_MARKETING_FORMAT") or "0").strip() == "1"
-    
+    # Marketing format with inline buttons (optional; default ON for cleaner messages)
+    use_marketing = (os.getenv("TIPPMIX_USE_MARKETING_FORMAT") or "1").strip() == "1"
+
+    def _safe_float(x: Any) -> float:
+        try:
+            return float(x)
+        except Exception:
+            return 0.0
+
+    def _sensible_marketing_tips(bets: List[Dict[str, Any]], tier: str) -> List[Dict[str, Any]]:
+        out: List[Dict[str, Any]] = []
+        tier_u = (tier or "").upper()
+        for b in bets or []:
+            risk = str(b.get("risk_level") or "").lower()
+            shelf = str(b.get("shelf") or "").upper()
+            conf = _safe_float(b.get("confidence"))
+            odds = _safe_float(b.get("odds_pick") or b.get("odds") or b.get("odds_estimate"))
+
+            if "magas" in risk or shelf == "BOLD":
+                continue
+            if odds and (odds < 1.15 or odds > (2.00 if tier_u == "FREE" else 2.10)):
+                continue
+            if conf < (3.8 if tier_u == "FREE" else 3.6):
+                continue
+
+            out.append(b)
+        return out
+
     if use_marketing and vip_bets_enriched and public_bets_enriched:
         # Generate marketing-optimized messages with inline buttons
         # ONLY if we have actual bets (not empty)
         date_today = datetime.date.today().strftime("%Y.%m.%d.")
         combos = build_marketing_combos(vip_bets_enriched[:10], public_bets_enriched[:8])
+        vip_send = _sensible_marketing_tips(vip_bets_enriched, "VIP") or vip_bets_enriched
+        free_send = _sensible_marketing_tips(public_bets_enriched, "FREE") or public_bets_enriched
         
         # Get stats for VIP header (if available)
         try:
@@ -1228,7 +1255,7 @@ def main() -> None:
         
         if send_vip and vip_chat_id:
             vip_text_marketing, vip_buttons = format_marketing_vip(
-                tips=vip_bets_enriched[:10],
+                tips=vip_send[:8],
                 combos=combos.get("vip") or [],
                 date_str=date_today,
                 stats=stats_7d
@@ -1237,7 +1264,7 @@ def main() -> None:
         
         if send_public and public_chat_id:
             free_text_marketing, free_buttons = format_marketing_free(
-                tips=public_bets_enriched[:6],
+                tips=free_send[:3],
                 combos=combos.get("free") or [],
                 date_str=date_today
             )
