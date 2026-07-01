@@ -15,7 +15,7 @@ from nacl import encoding, public
 REPO_OWNER = "Mukedlii"
 REPO_NAME = "Tippmix"
 SECRET_NAME = "ODDS_API_KEY"
-SECRET_VALUE = "acf78bce7a7976c2bc4d028528d4cb2f"
+SECRET_VALUE = "<your_odds_api_key>"
 
 def add_secret(github_token):
     # 1. Get public key

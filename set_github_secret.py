@@ -6,6 +6,7 @@ Uses libsodium-compatible encryption (via nacl library)
 import requests
 import base64
 import sys
+import os
 
 # Try to import nacl for encryption
 try:
@@ -15,10 +16,14 @@ except ImportError:
     print("Install: pip install PyNaCl")
     sys.exit(1)
 
-GITHUB_TOKEN = "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"
+GITHUB_TOKEN = (os.getenv("GITHUB_TOKEN") or "").strip()
 REPO = "Mukedlii/Tippmix"
 SECRET_NAME = "TELEGRAM_VIP_CHAT_ID"
-SECRET_VALUE = "-1003341312269"
+SECRET_VALUE = (os.getenv(SECRET_NAME) or "").strip()
+if not GITHUB_TOKEN:
+    raise RuntimeError("GITHUB_TOKEN environment variable is required.")
+if not SECRET_VALUE:
+    raise RuntimeError(f"{SECRET_NAME} environment variable is required.")
 
 print(f"Setting GitHub secret: {SECRET_NAME}")
 

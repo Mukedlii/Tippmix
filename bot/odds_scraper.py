@@ -17,7 +17,7 @@ import os
 log = logging.getLogger(__name__)
 
 # TheOddsAPI config
-ODDS_API_KEY = os.getenv("ODDS_API_KEY", "acf78bce7a7976c2bc4d028528d4cb2f")
+ODDS_API_KEY = os.getenv("ODDS_API_KEY", "<your_odds_api_key>")
 ODDS_API_BASE = "https://api.the-odds-api.com/v4"
 
 HEADERS = {

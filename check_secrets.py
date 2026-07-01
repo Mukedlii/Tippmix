@@ -1,9 +1,14 @@
+import os
 import requests
+
+token = (os.getenv("GITHUB_TOKEN") or "").strip()
+if not token:
+    raise RuntimeError("GITHUB_TOKEN environment variable is required.")
 
 r = requests.get(
     'https://api.github.com/repos/Mukedlii/Tippmix/actions/secrets',
     headers={
-        'Authorization': 'Bearer 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',
+        'Authorization': 'token ' + token,
         'Accept': 'application/vnd.github+json'
     }
 )

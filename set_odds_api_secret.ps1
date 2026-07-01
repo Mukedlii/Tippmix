@@ -3,12 +3,15 @@
 
 $GITHUB_TOKEN = $env:GITHUB_TOKEN
 if (-not $GITHUB_TOKEN) {
-    $GITHUB_TOKEN = "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"
+    throw "GITHUB_TOKEN environment variable is required."
 }
 
 $repo = "Mukedlii/Tippmix"
 $secretName = "ODDS_API_KEY"
-$secretValue = "acf78bce7a7976c2bc4d028528d4cb2f"
+$secretValue = $env:ODDS_API_KEY
+if (-not $secretValue) {
+    throw "ODDS_API_KEY environment variable is required."
+}
 
 Write-Host "Setting GitHub Secret: $secretName"
 

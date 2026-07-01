@@ -4,6 +4,7 @@ import sys
 import io
 import requests
 import base64
+import os
 
 # Fix Windows encoding
 if sys.platform == 'win32':
@@ -17,10 +18,14 @@ except ImportError:
     print("   Install: pip install PyNaCl")
     sys.exit(1)
 
-GITHUB_TOKEN = "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"
+GITHUB_TOKEN = (os.getenv("GITHUB_TOKEN") or "").strip()
 REPO = "Mukedlii/Tippmix"
 SECRET_NAME = "OPENAI_API_KEY"
-SECRET_VALUE = "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"
+SECRET_VALUE = (os.getenv("OPENAI_API_KEY") or "").strip()
+if not GITHUB_TOKEN:
+    raise RuntimeError("GITHUB_TOKEN environment variable is required.")
+if not SECRET_VALUE:
+    raise RuntimeError("OPENAI_API_KEY environment variable is required.")
 
 print(f"\n🔑 Updating GitHub secret: {SECRET_NAME}\n")
 

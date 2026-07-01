@@ -15,7 +15,7 @@ if sys.platform == 'win32':
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 API_ID = 37692359
-API_HASH = "54620b16e0cd77b9180d5d8db79ec6f5"
+API_HASH = "<your_telegram_api_hash>"
 
 print("🔐 Generating Telegram Session")
 print("=" * 70)

@@ -10,8 +10,7 @@ if sys.platform == 'win32':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
 # Get GitHub token
-github_token = "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"
-
+github_token = (os.getenv("GITHUB_TOKEN") or "").strip()
 # Fetch OPENAI_API_KEY from GitHub Secrets (public key needed, can't read value directly)
 # Instead: Check if it's set via workflow or env variable
 

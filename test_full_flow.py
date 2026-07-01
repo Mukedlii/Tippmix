@@ -5,7 +5,7 @@ import datetime
 
 # Set environment
 os.environ["SPORTS_DATA_PROVIDER"] = "free_scraper"
-os.environ["ODDS_API_KEY"] = "acf78bce7a7976c2bc4d028528d4cb2f"
+os.environ["ODDS_API_KEY"] = "<your_odds_api_key>"
 os.environ["TIPPMIX_SLOT"] = "DAY"
 os.environ["ODDS_MAX_REQUESTS_PER_RUN"] = "10"
 

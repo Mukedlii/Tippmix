@@ -7,7 +7,7 @@ import subprocess
 import os
 import sys
 
-GITHUB_TOKEN = "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"
+GITHUB_TOKEN = (os.getenv("GITHUB_TOKEN") or "").strip()
 REPO = "Mukedlii/Tippmix"
 
 print("Fetching Telegram tokens from GitHub Secrets...")
@@ -37,7 +37,7 @@ TELEGRAM_PUBLIC_CHAT_ID=dummy
 TELEGRAM_VIP_CHAT_ID={vip_chat_id}
 
 # Odds API
-ODDS_API_KEY=acf78bce7a7976c2bc4d028528d4cb2f
+ODDS_API_KEY=<your_odds_api_key>
 ODDS_SPORT_KEYS=soccer_epl,soccer_germany_bundesliga,soccer_italy_serie_a,soccer_spain_la_liga,soccer_france_ligue_one
 
 # Engine

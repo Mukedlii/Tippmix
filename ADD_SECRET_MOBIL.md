@@ -23,7 +23,7 @@ ODDS_API_KEY
 
 ### Secret:
 ```
-acf78bce7a7976c2bc4d028528d4cb2f
+<your_odds_api_key>
 ```
 
 (Hosszú nyomással másold, beillesztés)

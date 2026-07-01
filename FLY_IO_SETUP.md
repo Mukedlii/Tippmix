@@ -81,7 +81,7 @@ primary_region = "fra"
   dockerfile = "Dockerfile"
 
 [env]
-  TELEGRAM_BOT_TOKEN = "8238287955:AAEo87ADOjZx6qcCW1eEYN6YV1klAzZ_8bs"
+  TELEGRAM_BOT_TOKEN = "<your_telegram_bot_token>"
   TELEGRAM_VIP_CHAT_ID = "-1003341312269"
 
 [experimental]

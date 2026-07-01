@@ -7,7 +7,7 @@ import sys
 import requests
 
 # Set API key from TOOLS.md
-API_KEY = "acf78bce7a7976c2bc4d028528d4cb2f"
+API_KEY = "<your_odds_api_key>"
 
 print("\n" + "="*60)
 print("THEODDSAPI TEST")

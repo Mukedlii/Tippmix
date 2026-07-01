@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bot.providers import theoddsapi
 
 # Set API key
-os.environ['ODDS_API_KEY'] = 'acf78bce7a7976c2bc4d028528d4cb2f'
+os.environ['ODDS_API_KEY'] = '<your_odds_api_key>'
 
 # Fetch events
 print("\nFetching soccer_epl events...")

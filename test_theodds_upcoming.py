@@ -5,7 +5,7 @@ import requests
 import datetime
 from collections import defaultdict
 
-os.environ["ODDS_API_KEY"] = "acf78bce7a7976c2bc4d028528d4cb2f"
+os.environ["ODDS_API_KEY"] = "<your_odds_api_key>"
 
 api_key = os.environ["ODDS_API_KEY"]
 sport_key = "soccer_epl"  # Premier League

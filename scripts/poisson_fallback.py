@@ -32,7 +32,7 @@ def fetch_upcoming_matches(hours_ahead=24):
         List of matches
     """
     
-    api_key = os.getenv('ODDS_API_KEY', 'acf78bce7a7976c2bc4d028528d4cb2f')
+    api_key = os.getenv('ODDS_API_KEY', '<your_odds_api_key>')
     
     # Major soccer leagues
     sports = [

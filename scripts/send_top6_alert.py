@@ -176,8 +176,10 @@ def send_telegram_message(message):
     Send message to Telegram VIP channel
     """
     
-    bot_token = os.getenv('TELEGRAM_BOT_TOKEN', '8238287955:AAEo87ADOjZx6qcCW1eEYN6YV1klAzZ_8bs')
+    bot_token = (os.getenv('TELEGRAM_BOT_TOKEN') or '').strip()
     chat_id = os.getenv('TELEGRAM_VIP_CHAT_ID', '-1003341312269')
+    if not bot_token:
+        raise RuntimeError('TELEGRAM_BOT_TOKEN environment variable is required.')
     
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
     
