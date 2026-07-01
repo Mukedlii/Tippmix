@@ -4,7 +4,7 @@ bot/deduplication.py
 De-duplicate tips: keep only BEST tip per match.
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 
 
 def _norm_team_name(raw: Any) -> str:
@@ -27,7 +27,7 @@ def _match_key(tip: Dict[str, Any]) -> str:
     return f"fallback:{league}|{kickoff}|{selection}"
 
 
-def _score_for_keep(tip: Dict[str, Any]) -> tuple[float, float, float]:
+def _score_for_keep(tip: Dict[str, Any]) -> Tuple[float, float, float]:
     def _to_float(value: Any, default: float = 0.0) -> float:
         try:
             return float(value)
