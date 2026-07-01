@@ -1,1 +1,26 @@
-[]
+[
+  {
+    "fixture_id": 1735738,
+    "match": "Forge FC vs Vancouver FC",
+    "tip": "Hazai győzelem",
+    "odds": null,
+    "confidence": 3.7,
+    "risk_level": "magas",
+    "is_highlighted": false,
+    "shelf": "STANDARD",
+    "league": "Canada Premier League",
+    "country": "Canada",
+    "kickoff": "2026-07-01T17:00:00+00:00",
+    "match_key": "fid:1735738",
+    "league_name": "Canada Premier League",
+    "country_name": "Canada",
+    "kickoff_local": "2026-07-01T17:00:00+00:00",
+    "home_team": "Forge FC",
+    "away_team": "Vancouver FC",
+    "odds_1x2": {},
+    "odds_pick": null,
+    "bookmaker": "N/A",
+    "run_date": "2026-07-01",
+    "slot": "DAY"
+  }
+]
