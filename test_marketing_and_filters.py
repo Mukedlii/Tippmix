@@ -1,9 +1,10 @@
 import unittest
 
 from bot.combo_builder import build_marketing_combos
+from bot.deduplication import deduplicate_tips
 from bot.filters import apply_tiered_score_filter
 from bot.providers.league_filter import is_allowed_league
-from bot.telegram_marketing import format_marketing_free, format_marketing_vip
+from bot.telegram_marketing import format_alert_message, format_marketing_free, format_marketing_vip
 from bot.openai_logic import _cap_per_league
 
 
@@ -119,6 +120,37 @@ class MarketingAndFiltersTests(unittest.TestCase):
         tips = [{"fixture_id": i, "selection": "Hazai győzelem"} for i in range(1, 6)]
         capped = _cap_per_league(tips, id_to_match, max_per_league=0)
         self.assertEqual(len(capped), 5)
+
+    def test_deduplicate_tips_normalizes_team_names(self):
+        tips = [
+            {"home_team": "Arsenal", "away_team": "Liverpool", "selection": "Hazai", "confidence": 4.0, "p": 0.58, "odds_estimate": 1.9},
+            {"home_team": " arsenal ", "away_team": "LIVERPOOL", "selection": "Vendég", "confidence": 4.2, "p": 0.55, "odds_estimate": 2.1},
+        ]
+        deduped = deduplicate_tips(tips)
+        self.assertEqual(len(deduped), 1)
+        self.assertEqual(deduped[0]["selection"], "Vendég")
+
+    def test_deduplicate_tips_uses_fixture_id_as_stable_key(self):
+        tips = [
+            {"fixture_id": 1234, "home_team": "A", "away_team": "B", "selection": "X", "confidence": 3.8, "p": 0.30},
+            {"fixture_id": 1234, "home_team": "A ", "away_team": " B", "selection": "1", "confidence": 4.1, "p": 0.31},
+        ]
+        deduped = deduplicate_tips(tips)
+        self.assertEqual(len(deduped), 1)
+        self.assertEqual(deduped[0]["selection"], "1")
+
+    def test_alert_message_uses_odds_fallback_sources(self):
+        tip = {
+            "home_team": "Arsenal",
+            "away_team": "Liverpool",
+            "selection": "Hazai győzelem",
+            "odds_estimate": None,
+            "odds_pick": 2.05,
+            "bookmaker": "Bet365",
+            "confidence": 4.4,
+        }
+        text, _ = format_alert_message(tip)
+        self.assertIn("📊 Odds: *2.05* (Bet365)", text)
 
 
 if __name__ == "__main__":
