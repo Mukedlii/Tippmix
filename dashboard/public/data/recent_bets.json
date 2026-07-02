@@ -13,6 +13,19 @@
     "outcome": "pending"
   },
   {
+    "id": 1795,
+    "tier": "VIP",
+    "match": "FC Astana vs Zhenis",
+    "league": "Kazakhstan Premier League",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 3.8,
+    "risk": "magas",
+    "odds": null,
+    "kickoff": "2026-07-03T14:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 1787,
     "tier": "FREE",
     "match": "Naftan Novopolotsk vs Dinamo Brest",
@@ -33,6 +46,19 @@
     "tip": "2.5 alatt (max. 2 g\u00f3l)",
     "confidence": 2.7502328975261348,
     "risk": "magas",
+    "odds": null,
+    "kickoff": "2026-07-03T13:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
+    "id": 1793,
+    "tier": "VIP",
+    "match": "Naftan Novopolotsk vs Dinamo Brest",
+    "league": "Belarus Premier League",
+    "tip": "Vend\u00e9g gy\u0151zelem",
+    "confidence": 4.2,
+    "risk": "k\u00f6zepes",
     "odds": null,
     "kickoff": "2026-07-03T13:00:00+00:00",
     "result": null,
@@ -104,6 +130,19 @@
     "outcome": "pending"
   },
   {
+    "id": 1794,
+    "tier": "VIP",
+    "match": "FC Minsk vs Dinamo Minsk",
+    "league": "Belarus Premier League",
+    "tip": "D\u00f6ntetlen",
+    "confidence": 4.0,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-02T17:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 1772,
     "tier": "VIP",
     "match": "BATE Borisov vs Gomel",
@@ -169,6 +208,32 @@
     "outcome": "pending"
   },
   {
+    "id": 1796,
+    "tier": "VIP",
+    "match": "BATE Borisov vs Gomel",
+    "league": "Belarus Premier League",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 3.0,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-02T15:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
+    "id": 1792,
+    "tier": "VIP",
+    "match": "Kairat Almaty vs Okzhetpes Kokshetau",
+    "league": "Kazakhstan Premier League",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 4.5,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-02T14:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 1771,
     "tier": "VIP",
     "match": "Slavia Mozyr vs Maxline Vitebsk",
@@ -191,71 +256,6 @@
     "risk": "k\u00f6zepes",
     "odds": null,
     "kickoff": "2026-07-01T17:30:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 1781,
-    "tier": "VIP",
-    "match": "Slavia Mozyr vs Maxline Vitebsk",
-    "league": "Belarus Premier League",
-    "tip": "Hazai gy\u0151zelem",
-    "confidence": 4.0,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-01T17:30:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 1770,
-    "tier": "FREE",
-    "match": "Forge FC vs Vancouver FC",
-    "league": "Canada Premier League",
-    "tip": "Hazai gy\u0151zelem",
-    "confidence": 3.7,
-    "risk": "magas",
-    "odds": null,
-    "kickoff": "2026-07-01T17:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 1779,
-    "tier": "VIP",
-    "match": "Forge FC vs Vancouver FC",
-    "league": "Canada Premier League",
-    "tip": "Hazai gy\u0151zelem",
-    "confidence": 3.0,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-01T17:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 1783,
-    "tier": "VIP",
-    "match": "Forge FC vs Vancouver FC",
-    "league": "Canada Premier League",
-    "tip": "Hazai gy\u0151zelem",
-    "confidence": 3.5,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-01T17:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 1773,
-    "tier": "VIP",
-    "match": "England vs DR Congo",
-    "league": "World Cup 2026 R32",
-    "tip": "Vend\u00e9g gy\u0151zelem",
-    "confidence": 3.0,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-01T16:00:00+00:00",
     "result": null,
     "outcome": "pending"
   }
