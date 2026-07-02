@@ -78,6 +78,19 @@
     "outcome": "pending"
   },
   {
+    "id": 1830,
+    "tier": "VIP",
+    "match": "FC Astana vs Zhenis",
+    "league": "Kazakhstan Premier League",
+    "tip": "2.5 alatt (max. 2 g\u00f3l)",
+    "confidence": 2.7502328975261348,
+    "risk": "magas",
+    "odds": null,
+    "kickoff": "2026-07-03T14:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 1787,
     "tier": "FREE",
     "match": "Naftan Novopolotsk vs Dinamo Brest",
@@ -169,6 +182,19 @@
     "outcome": "pending"
   },
   {
+    "id": 1829,
+    "tier": "VIP",
+    "match": "Naftan Novopolotsk vs Dinamo Brest",
+    "league": "Belarus Premier League",
+    "tip": "2.5 alatt (max. 2 g\u00f3l)",
+    "confidence": 2.7502328975261348,
+    "risk": "magas",
+    "odds": null,
+    "kickoff": "2026-07-03T13:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 1774,
     "tier": "VIP",
     "match": "FC Minsk vs Dinamo Minsk",
@@ -223,32 +249,6 @@
   {
     "id": 1789,
     "tier": "VIP",
-    "match": "FC Minsk vs Dinamo Minsk",
-    "league": "Belarus Premier League",
-    "tip": "2.5 alatt (max. 2 g\u00f3l)",
-    "confidence": 2.7502328975261348,
-    "risk": "magas",
-    "odds": null,
-    "kickoff": "2026-07-02T17:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 1794,
-    "tier": "VIP",
-    "match": "FC Minsk vs Dinamo Minsk",
-    "league": "Belarus Premier League",
-    "tip": "D\u00f6ntetlen",
-    "confidence": 4.0,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-02T17:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 1798,
-    "tier": "FREE",
     "match": "FC Minsk vs Dinamo Minsk",
     "league": "Belarus Premier League",
     "tip": "2.5 alatt (max. 2 g\u00f3l)",
