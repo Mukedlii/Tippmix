@@ -51,6 +51,5 @@ jobs:
             echo "No data changes"
           else
             git commit -m "🔄 Scraper pipeline update [skip ci]"
-            git pull origin main --ff-only
-            git push
+            git push origin main --force-with-lease
           fi
