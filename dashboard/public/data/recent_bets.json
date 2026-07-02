@@ -52,6 +52,19 @@
     "outcome": "pending"
   },
   {
+    "id": 1817,
+    "tier": "VIP",
+    "match": "FC Astana vs Zhenis",
+    "league": "Kazakhstan Premier League",
+    "tip": "2.5 alatt (max. 2 g\u00f3l)",
+    "confidence": 2.7502328975261348,
+    "risk": "magas",
+    "odds": null,
+    "kickoff": "2026-07-03T14:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 1787,
     "tier": "FREE",
     "match": "Naftan Novopolotsk vs Dinamo Brest",
@@ -111,6 +124,19 @@
     "tip": "Vend\u00e9g gy\u0151zelem",
     "confidence": 4.2,
     "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-03T13:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
+    "id": 1816,
+    "tier": "VIP",
+    "match": "Naftan Novopolotsk vs Dinamo Brest",
+    "league": "Belarus Premier League",
+    "tip": "2.5 alatt (max. 2 g\u00f3l)",
+    "confidence": 2.7502328975261348,
+    "risk": "magas",
     "odds": null,
     "kickoff": "2026-07-03T13:00:00+00:00",
     "result": null,
@@ -230,32 +256,6 @@
     "risk": "k\u00f6zepes",
     "odds": null,
     "kickoff": "2026-07-02T17:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 1772,
-    "tier": "VIP",
-    "match": "BATE Borisov vs Gomel",
-    "league": "Belarus Premier League",
-    "tip": "Hazai gy\u0151zelem",
-    "confidence": 4.2,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-02T15:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 1775,
-    "tier": "FREE",
-    "match": "BATE Borisov vs Gomel",
-    "league": "Belarus Premier League",
-    "tip": "Hazai gy\u0151zelem",
-    "confidence": 3.6,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-02T15:00:00+00:00",
     "result": null,
     "outcome": "pending"
   }
