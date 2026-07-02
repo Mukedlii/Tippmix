@@ -1,0 +1,55 @@
+name: Tippmix Scraper Pipeline
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+    - cron: '0 12 * * *'
+    - cron: '0 18 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  scraper-pipeline:
+    runs-on: ubuntu-latest
+    env:
+      TIPPMIX_DB_PATH: data/tippmix.db
+      SPORTS_DATA_PROVIDER: free_scraper
+      TIPPMIX_PREFER_SCRAPING: "1"
+      TIPPMIX_ENABLE_SCRAPER_PIPELINE: "1"
+      TIPPMIX_SEND_PUBLIC: "0"
+      TIPPMIX_SEND_VIP: "0"
+      TIPPMIX_SEND_EN: "0"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run scraper-first pipeline
+        run: python -m bot.main
+
+      - name: Generate dashboard data
+        run: python scripts/generate_dashboard_data.py
+
+      - name: Commit updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/tippmix.db dashboard/public/data/*.json || true
+          if git diff --cached --quiet; then
+            echo "No data changes"
+          else
+            git commit -m "🔄 Scraper pipeline update [skip ci]"
+            git push
+          fi

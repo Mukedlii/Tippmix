@@ -34,7 +34,7 @@ TELEGRAM_PUBLIC_CHAT_ID: (FREE csatorna ID)
 TELEGRAM_VIP_CHAT_ID: (VIP csatorna ID)
 
 # TheOddsAPI (FONTOS!)
-ODDS_API_KEY: acf78bce7a7976c2bc4d028528d4cb2f
+ODDS_API_KEY: <your_odds_api_key>
 - Free tier: 500 requests/month
 - Érvényes: 30 nap (2026-03-19-től)
 - Lejárat: ~2026-04-18
@@ -247,7 +247,7 @@ TIPPMIX_USE_ENSEMBLE=0
 TIPPMIX_ENGINE=poisson  # poisson or openai
 
 # TheOddsAPI
-ODDS_API_KEY=acf78bce7a7976c2bc4d028528d4cb2f
+ODDS_API_KEY=<your_odds_api_key>
 ODDS_MAX_REQUESTS_PER_RUN=20
 ODDS_REGIONS=eu
 ODDS_SPORT_KEYS=soccer_uefa_europa_league,soccer_uefa_europa_conference_league

@@ -42,7 +42,7 @@ A bot futásához GitHub Secrets-ben kell tárolni az API kulcsokat.
 
 **Secret neve:** `ODDS_API_KEY`
 
-**Érték:** `acf78bce7a7976c2bc4d028528d4cb2f`
+**Érték:** `<your_odds_api_key>`
 
 **Megszerzés:**
 1. https://the-odds-api.com/
@@ -89,7 +89,7 @@ Ismételd meg minden secret-tel (TELEGRAM_PUBLIC_CHAT_ID, TELEGRAM_VIP_CHAT_ID, 
 gh secret set TELEGRAM_BOT_TOKEN --body "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
 gh secret set TELEGRAM_PUBLIC_CHAT_ID --body "-1001234567890"
 gh secret set TELEGRAM_VIP_CHAT_ID --body "-1009876543210"
-gh secret set ODDS_API_KEY --body "acf78bce7a7976c2bc4d028528d4cb2f"
+gh secret set ODDS_API_KEY --body "<your_odds_api_key>"
 gh secret set OPENAI_API_KEY --body "sk-..."
 ```
 

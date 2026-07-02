@@ -26,7 +26,19 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for Next.js frontend
+
+
+def _cors_origins() -> list[str]:
+    raw = (os.getenv("TIPPMIX_API_CORS_ORIGINS") or "").strip()
+    if raw:
+        return [origin.strip() for origin in raw.split(",") if origin.strip()]
+    dashboard_url = (os.getenv("TIPPMIX_DASHBOARD_URL") or "").strip()
+    defaults = [dashboard_url] if dashboard_url else []
+    defaults.append("http://localhost:3000")
+    return defaults
+
+
+CORS(app, resources={r"/api/*": {"origins": _cors_origins()}})
 
 
 @app.route('/api/stats', methods=['GET'])
@@ -147,4 +159,5 @@ def health():
 
 if __name__ == '__main__':
     port = int(os.getenv('API_PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    debug = (os.getenv("FLASK_DEBUG") or "0").strip() == "1"
+    app.run(host='0.0.0.0', port=port, debug=debug)

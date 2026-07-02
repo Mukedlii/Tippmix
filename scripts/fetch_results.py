@@ -31,7 +31,7 @@ def fetch_completed_matches(days_back=1):
         List of match results
     """
     
-    api_key = os.getenv('ODDS_API_KEY', 'acf78bce7a7976c2bc4d028528d4cb2f')
+    api_key = os.getenv('ODDS_API_KEY', '<your_odds_api_key>')
     
     results = []
     sports = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga', 

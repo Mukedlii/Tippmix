@@ -7,13 +7,14 @@ import requests
 import sys
 import io
 import time
+import os
 
 # Fix Windows console encoding
 if sys.platform == 'win32':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
-GITHUB_TOKEN = "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"
+GITHUB_TOKEN = (os.getenv("GITHUB_TOKEN") or "").strip()
 REPO = "Mukedlii/Tippmix"
 WORKFLOW_FILE = "reddit_consensus.yml"
 

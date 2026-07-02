@@ -60,7 +60,7 @@ def generate_all_data():
     # 6. Recent bets
     import sqlite3
     
-    db_path = os.getenv("TIPPMIX_DB_PATH", "tippmix.db")
+    db_path = os.getenv("TIPPMIX_DB_PATH", os.path.join("data", "tippmix.db"))
     
     recent_bets = []
     
@@ -168,7 +168,26 @@ def generate_all_data():
                     'result': row['actual_score'],
                     'outcome': outcome,
                 })
-        
+        source_overview = {
+            "data_sources": 0,
+            "odds_history": 0,
+            "expert_picks": 0,
+            "prediction_market": 0,
+        }
+        for table_name in source_overview.keys():
+            if table_name in tables:
+                try:
+                    if table_name == "data_sources":
+                        source_overview[table_name] = con.execute("SELECT COUNT(*) FROM data_sources").fetchone()[0]
+                    elif table_name == "odds_history":
+                        source_overview[table_name] = con.execute("SELECT COUNT(*) FROM odds_history").fetchone()[0]
+                    elif table_name == "expert_picks":
+                        source_overview[table_name] = con.execute("SELECT COUNT(*) FROM expert_picks").fetchone()[0]
+                    elif table_name == "prediction_market":
+                        source_overview[table_name] = con.execute("SELECT COUNT(*) FROM prediction_market").fetchone()[0]
+                except Exception:
+                    source_overview[table_name] = 0
+
         con.close()
     
     with open(os.path.join(output_dir, "recent_bets.json"), "w") as f:
@@ -178,6 +197,7 @@ def generate_all_data():
     metadata = {
         "last_updated": datetime.now().replace(microsecond=0).isoformat() + "Z",
         "total_stats": len(recent_bets),
+        "sources": source_overview if 'source_overview' in locals() else {},
     }
     
     with open(os.path.join(output_dir, "metadata.json"), "w") as f:

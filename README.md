@@ -16,6 +16,48 @@ Fontos:
 - Felülírható expliciten: `SPORTS_DATA_PROVIDER=free_scraper|footballdata|api-sports|sportsdataio|sportmonks|allsportsapi`
 - Ha automata API-választást szeretnél kulcsok alapján, állítsd: `TIPPMIX_PREFER_SCRAPING=0`
 
+## Komprehenzív scraper pipeline (API kulcs nélkül)
+
+Új multi-source adatgyűjtés került a botba:
+
+- `bot/scrapers/`:
+  - `flashscore.py` (fixture + odds)
+  - `sofascore.py` (fixture + odds + xG/injury context)
+  - `fotmob.py` (fixture feed)
+  - `espn.py` (fixture + eredmények)
+  - `betfair.py`, `oddschecker.py` (public odds scraping)
+  - `base_scraper.py` (retry, 429 kezelés, User-Agent rotáció, proxy támogatás)
+- `bot/aggregators/`:
+  - `data_aggregator.py` (források merge + conflict kezelés)
+  - `odds_aggregator.py` (weighted average + best odds)
+  - `confidence_scorer.py` (forrás minőségi súlyok)
+  - `cache_manager.py` (24 órás / meccskezdésig cache)
+- `bot/expert_sources/`:
+  - `reddit_scraper.py`, `twitter_scraper.py`
+- `bot/prediction_markets/`:
+  - `polymarket.py`, `manifold.py`, `betfair_market.py`
+
+### SQLite bővített séma
+
+Az alábbi táblák automatikusan létrejönnek `bot/storage/sqlite_store.py:init_db()` során:
+
+- `data_sources`
+- `odds_history`
+- `expert_picks`
+- `prediction_market`
+
+### Ütemezés
+
+Új workflow: `.github/workflows/tippmix_scraper.yml`  
+Futás: **06:00, 12:00, 18:00 UTC** naponta.
+
+Pipeline lépések:
+1. Multi-source fixture gyűjtés
+2. Odds aggregáció (best + weighted average)
+3. Sérülés/forma/xG context enrichment
+4. Expert + prediction market indikátorok
+5. Mentés SQLite-ba + dashboard JSON frissítés
+
 ## Adatbázis (SQLite)
 Alapból a futások és tippek mentésre kerülnek SQLite-ba:
 - `data/tippmix.db`

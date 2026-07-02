@@ -1,7 +1,7 @@
 import requests
 import os
 
-token = "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"
+token = (os.getenv("GITHUB_TOKEN") or "").strip()
 r = requests.get(
     'https://api.github.com/repos/Mukedlii/Tippmix/actions/runs',
     headers={'Authorization': f'token {token}'}

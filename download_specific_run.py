@@ -1,8 +1,9 @@
 import requests
 import zipfile
 import io
+import os
 
-token = "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"
+token = (os.getenv("GITHUB_TOKEN") or "").strip()
 run_id = 23361162176  # 21:23 run
 
 print(f"Downloading logs for run {run_id}...")

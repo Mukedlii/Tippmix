@@ -2,8 +2,9 @@ name: Tippmix Daily Tips
 
 on:
   schedule:
-    - cron: "0 7 * * *"
-    - cron: "0 14 * * *"
+    - cron: "0 6 * * *"
+    - cron: "0 12 * * *"
+    - cron: "0 18 * * *"
   workflow_dispatch:
 
 permissions:
@@ -20,16 +21,17 @@ jobs:
 
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
-      SPORTS_API_KEY: ${{ vars.SPORTS_API_KEY }}
-      SPORTMONKS_API_TOKEN: ${{ vars.SPORTMONKS_API_TOKEN }}
-      SPORTSDATAIO_API: ${{ vars.SPORTSDATAIO_API }}
-      ALLSPORTSAPI_KEY: ${{ vars.ALLSPORTSAPI_KEY }}
+      SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
+      SPORTMONKS_API_TOKEN: ${{ secrets.SPORTMONKS_API_TOKEN }}
+      SPORTSDATAIO_API: ${{ secrets.SPORTSDATAIO_API }}
+      ALLSPORTSAPI_KEY: ${{ secrets.ALLSPORTSAPI_KEY }}
       ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
-      FOOTBALLDATA_API_KEY: ${{ vars.FOOTBALLDATA_API_KEY }}
+      FOOTBALLDATA_API_KEY: ${{ secrets.FOOTBALLDATA_API_KEY }}
 
       SPORTS_DATA_PROVIDER: ${{ vars.SPORTS_DATA_PROVIDER }}
       TIPPMIX_SLOT: DAY
       TIPPMIX_MODEL: "gpt-4o-mini"
+      TIPPMIX_DB_PATH: data/tippmix.db
 
       TIPPMIX_SEND_PUBLIC: "1"
       TIPPMIX_SEND_VIP: "1"
@@ -67,11 +69,14 @@ jobs:
       - name: Run tip generation
         run: python -m bot.main
 
+      - name: Generate dashboard data
+        run: python scripts/generate_dashboard_data.py
+
       - name: Commit bet JSONs
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add *.json data/ || true
+          git add *.json data/ dashboard/public/data/*.json || true
           if git diff --cached --quiet; then
             echo "Nincs változás."
           else

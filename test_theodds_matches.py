@@ -5,7 +5,7 @@ import datetime
 from bot.providers.theoddsapi import fetch_theodds_fixtures
 
 # Set API key
-os.environ["ODDS_API_KEY"] = "acf78bce7a7976c2bc4d028528d4cb2f"
+os.environ["ODDS_API_KEY"] = "<your_odds_api_key>"
 
 today = datetime.date.today().isoformat()
 print(f"\n=== Fetching matches via TheOddsAPI for {today} ===\n")

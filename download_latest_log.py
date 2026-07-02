@@ -1,9 +1,9 @@
 import requests
 import zipfile
 import io
+import os
 
-token = "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"
-
+token = (os.getenv("GITHUB_TOKEN") or "").strip()
 # Get latest run
 r = requests.get(
     'https://api.github.com/repos/Mukedlii/Tippmix/actions/runs',

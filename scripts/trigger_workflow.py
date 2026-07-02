@@ -3,12 +3,13 @@
 import sys
 import io
 import requests
+import os
 
 # Fix Windows encoding
 if sys.platform == 'win32':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
-GITHUB_TOKEN = "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"
+GITHUB_TOKEN = (os.getenv("GITHUB_TOKEN") or "").strip()
 REPO = "Mukedlii/Tippmix"
 WORKFLOW_FILE = "ai_tipster_system.yml"
 

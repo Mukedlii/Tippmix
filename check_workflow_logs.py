@@ -4,8 +4,9 @@ Check latest workflow run logs
 """
 import requests
 import sys
+import os
 
-GITHUB_TOKEN = "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"
+GITHUB_TOKEN = (os.getenv("GITHUB_TOKEN") or "").strip()
 REPO = "Mukedlii/Tippmix"
 
 headers = {

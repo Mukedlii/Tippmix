@@ -1,7 +1,10 @@
 import requests
 import json
+import os
 
-api_key = "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"
+api_key = (os.getenv("OPENAI_API_KEY") or "").strip()
+if not api_key:
+    raise RuntimeError("OPENAI_API_KEY environment variable is required.")
 
 headers = {
     "Authorization": f"Bearer {api_key}",

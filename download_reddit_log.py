@@ -1,8 +1,9 @@
 import requests
 import zipfile
 import io
+import os
 
-token = "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"
+token = (os.getenv("GITHUB_TOKEN") or "").strip()
 run_id = 23337266805  # Latest Reddit run
 
 print(f"Downloading Reddit logs for run {run_id}...")

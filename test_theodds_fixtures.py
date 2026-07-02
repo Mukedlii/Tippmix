@@ -3,7 +3,7 @@
 import os
 import datetime
 
-os.environ["ODDS_API_KEY"] = "acf78bce7a7976c2bc4d028528d4cb2f"
+os.environ["ODDS_API_KEY"] = "<your_odds_api_key>"
 os.environ["ODDS_MAX_SPORT_KEYS"] = "12"  # Use all top leagues
 
 from bot.providers.theodds_fixtures import fetch_theodds_fixtures

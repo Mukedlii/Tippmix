@@ -214,8 +214,7 @@ def format_alert_message(
     home = tip.get("home_team", "")
     away = tip.get("away_team", "")
     selection = tip.get("selection", "")
-    odds = tip.get("odds_estimate")
-    odds_txt = f"{odds:.2f}" if odds else "TBA"
+    odds_txt, bookmaker = _best_odds_and_bookmaker(tip)
     confidence = tip.get("confidence", 3.0)
     league = tip.get("league_name", "")
     time = tip.get("kickoff_local", "")
@@ -229,7 +228,7 @@ def format_alert_message(
         f"🏆 {league} | ⏰ {time_short}",
         "",
         f"🎯 Tipp: *{selection}*",
-        f"📊 Odds: *{odds_txt}*",
+        f"📊 Odds: *{odds_txt}* ({bookmaker})",
         f"⭐ Bizalom: *{confidence:.1f}/5*",
         "",
     ]

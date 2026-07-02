@@ -14,7 +14,7 @@ if sys.platform == 'win32':
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 API_ID = 37692359
-API_HASH = "54620b16e0cd77b9180d5d8db79ec6f5"
+API_HASH = "<your_telegram_api_hash>"
 SESSION_STRING = "1BJWap1wBu7ITLUiFdktD4rIP4GlHznNAxJX81Cx5U5Lds_cA6tYt9M-FWpdKTCemMZthIspKeBTS9pNWBB4xvxZwFNvntF3frrW5MSXI1_QE97DWtVo4JK7-ObyYvdNCmMBXitdxZ-Apbp3IeLX5krOLm3qf6S5PKpmNRXdHu5anbt26pIS6ss3Pxd1ldKjlY4xdVW6wiHywSPUpVjr-YN7jfiI79vDxn7Hykr4JKVEh6T8cBmJjDvh_fZRYpiEi5zgAkcR59d8AHfQ4ETZoaUM_XYKYgce2GL4Qai2N7kAykGoooeUHzT1iz4FumszjiKVZiFbnkL68z5qyYDfpdaF4ww_3k7w="
 
 # Test channels (popular football/betting)

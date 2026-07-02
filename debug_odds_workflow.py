@@ -4,10 +4,15 @@ Full diagnostic of odds enrichment issue
 """
 import requests
 import json
+import os
 
-GITHUB_TOKEN = "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"
+GITHUB_TOKEN = (os.getenv("GITHUB_TOKEN") or "").strip()
 REPO = "Mukedlii/Tippmix"
-ODDS_API_KEY = "acf78bce7a7976c2bc4d028528d4cb2f"
+ODDS_API_KEY = (os.getenv("ODDS_API_KEY") or "").strip()
+if not GITHUB_TOKEN:
+    raise RuntimeError("GITHUB_TOKEN environment variable is required.")
+if not ODDS_API_KEY:
+    raise RuntimeError("ODDS_API_KEY environment variable is required.")
 
 print("\n" + "="*70)
 print("ODDS ENRICHMENT DIAGNOSTIC")

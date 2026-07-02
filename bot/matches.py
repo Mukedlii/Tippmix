@@ -395,7 +395,48 @@ def _fetch_fixtures_for_date(date_str: str) -> List[Dict[str, Any]]:
     # ── ÚJ: teljesen ingyenes scraper provider (SofaScore/LiveScore/Flashscore) ──
     if provider == "free_scraper":
         from bot.providers.free_fixtures import fetch_free_fixtures
-        return fetch_free_fixtures(date_str, top_leagues_only=False)
+        base = fetch_free_fixtures(date_str, top_leagues_only=False)
+        try:
+            if (os.getenv("TIPPMIX_ENABLE_SCRAPER_PIPELINE") or "1").strip() == "1":
+                from bot.aggregators.data_aggregator import DataAggregator
+
+                merged = DataAggregator().merge_fixtures_from_sources(date_str)
+                if merged:
+                    by_key = {
+                        (str(m.get("home_team") or "").strip().lower(), str(m.get("away_team") or "").strip().lower()): m
+                        for m in base
+                    }
+                    for item in merged:
+                        key = (str(item.get("home_team") or "").strip().lower(), str(item.get("away_team") or "").strip().lower())
+                        if key in by_key:
+                            by_key[key].setdefault("extra_sources", [])
+                            by_key[key]["extra_sources"] = list(
+                                sorted(
+                                    set((by_key[key].get("extra_sources") or []) + (item.get("sources") or []))
+                                )
+                            )
+                            by_key[key]["source_confidence"] = item.get("confidence")
+                        else:
+                            base.append(
+                                {
+                                    "sport": "football",
+                                    "fixture_id": item.get("fixture_id") or (hash(f"{item.get('home_team')}::{item.get('away_team')}::{date_str}") & 0x7FFFFFFF),
+                                    "league_name": item.get("league_name") or "",
+                                    "country_name": item.get("country_name") or "",
+                                    "kickoff_local": item.get("kickoff_local") or f"{date_str}T12:00:00+00:00",
+                                    "home_team": item.get("home_team") or "",
+                                    "away_team": item.get("away_team") or "",
+                                    "odds": {},
+                                    "standings": {},
+                                    "injuries": [],
+                                    "source": "aggregated_scrapers",
+                                    "extra_sources": item.get("sources") or [],
+                                    "source_confidence": item.get("confidence"),
+                                }
+                            )
+        except Exception:
+            pass
+        return base
 
     if provider == "sportsdataio":
         games = sportsdataio.fetch_games_by_date(date_str)
@@ -658,20 +699,20 @@ def fetch_matches_for_today(slot: str = "DAY", date: Optional[str] = None) -> Li
             except Exception:
                 looked += 1
                 continue
-                
+
     # SofaScore ingyenes odds enrichment
-        if provider == "free_scraper":
-            from bot.providers.free_fixtures import fetch_sofascore_odds
-            for m in slot_fixtures[:20]:
-                fid = m.get("fixture_id")
-                if fid and not m.get("odds", {}).get("1"):
-                    try:
-                        odds = fetch_sofascore_odds(int(fid))
-                        if odds:
-                            m["odds"] = odds
-                            m["odds_source"] = "sofascore"
-                    except Exception:
-                        pass
+    if provider == "free_scraper":
+        from bot.providers.free_fixtures import fetch_sofascore_odds
+        for m in slot_fixtures[:20]:
+            fid = m.get("fixture_id")
+            if fid and not m.get("odds", {}).get("1"):
+                try:
+                    odds = fetch_sofascore_odds(int(fid))
+                    if odds:
+                        m["odds"] = odds
+                        m["odds_source"] = "sofascore"
+                except Exception:
+                    pass
 
 
 
@@ -696,10 +737,24 @@ def fetch_matches_for_today(slot: str = "DAY", date: Optional[str] = None) -> Li
         except Exception:
             m["bucket"] = None
 
+    # Multi-source scraper pipeline (best-effort, failure-safe)
+    try:
+        if (os.getenv("TIPPMIX_ENABLE_SCRAPER_PIPELINE") or "1").strip() == "1":
+            from bot.aggregators.data_aggregator import DataAggregator
+
+            max_enrich = int(os.getenv("TIPPMIX_SCRAPER_ENRICH_LIMIT", "20"))
+            agg = DataAggregator()
+            for idx, fixture in enumerate(slot_fixtures):
+                if idx >= max_enrich:
+                    break
+                try:
+                    slot_fixtures[idx] = agg.enrich_fixture(fixture)
+                except Exception:
+                    continue
+    except Exception:
+        pass
+
     return slot_fixtures
-
-
-
 
 
 

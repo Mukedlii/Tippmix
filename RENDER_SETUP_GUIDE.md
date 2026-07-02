@@ -66,7 +66,7 @@ Kattints: **"Add Environment Variable"**
 
 **Változó 1:**
 - Key: `TELEGRAM_BOT_TOKEN`
-- Value: `8238287955:AAEo87ADOjZx6qcCW1eEYN6YV1klAzZ_8bs`
+- Value: `<your_telegram_bot_token>`
 
 **Változó 2:**
 - Key: `TELEGRAM_VIP_CHAT_ID`  
