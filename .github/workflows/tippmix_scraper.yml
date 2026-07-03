@@ -65,5 +65,17 @@ jobs:
             echo "No data changes"
           else
             git commit -m "🔄 Scraper pipeline update [skip ci]"
-            git push origin main --force-with-lease
+            for attempt in 1 2 3; do
+              if git pull --rebase origin main && git push origin HEAD:main; then
+                break
+              fi
+
+              if [ "$attempt" -eq 3 ]; then
+                echo "Push failed after retries"
+                exit 1
+              fi
+
+              echo "Push failed on attempt $attempt, retrying..."
+              sleep 5
+            done
           fi
