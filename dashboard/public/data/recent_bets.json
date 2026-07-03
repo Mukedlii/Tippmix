@@ -26,6 +26,19 @@
     "outcome": "pending"
   },
   {
+    "id": 1849,
+    "tier": "VIP",
+    "match": "Australia vs Egypt",
+    "league": "World Cup 2026 R32",
+    "tip": "D\u00f6ntetlen",
+    "confidence": 4.5,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-03T18:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 1791,
     "tier": "VIP",
     "match": "FC Astana vs Zhenis",
@@ -221,6 +234,19 @@
     "outcome": "pending"
   },
   {
+    "id": 1850,
+    "tier": "VIP",
+    "match": "FC Astana vs Zhenis",
+    "league": "Kazakhstan Premier League",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 4.2,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-03T14:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 1787,
     "tier": "FREE",
     "match": "Naftan Novopolotsk vs Dinamo Brest",
@@ -228,32 +254,6 @@
     "tip": "2.5 alatt (max. 2 g\u00f3l)",
     "confidence": 2.7502328975261348,
     "risk": "magas",
-    "odds": null,
-    "kickoff": "2026-07-03T13:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 1790,
-    "tier": "VIP",
-    "match": "Naftan Novopolotsk vs Dinamo Brest",
-    "league": "Belarus Premier League",
-    "tip": "2.5 alatt (max. 2 g\u00f3l)",
-    "confidence": 2.7502328975261348,
-    "risk": "magas",
-    "odds": null,
-    "kickoff": "2026-07-03T13:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 1793,
-    "tier": "VIP",
-    "match": "Naftan Novopolotsk vs Dinamo Brest",
-    "league": "Belarus Premier League",
-    "tip": "Vend\u00e9g gy\u0151zelem",
-    "confidence": 4.2,
-    "risk": "k\u00f6zepes",
     "odds": null,
     "kickoff": "2026-07-03T13:00:00+00:00",
     "result": null,
