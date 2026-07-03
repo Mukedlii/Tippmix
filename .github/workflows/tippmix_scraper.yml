@@ -18,9 +18,9 @@ jobs:
       SPORTS_DATA_PROVIDER: free_scraper
       TIPPMIX_PREFER_SCRAPING: "1"
       TIPPMIX_ENABLE_SCRAPER_PIPELINE: "1"
-      TIPPMIX_SEND_PUBLIC: "0"
-      TIPPMIX_SEND_VIP: "0"
-      TIPPMIX_SEND_EN: "0"
+      TIPPMIX_SEND_PUBLIC: "1"
+      TIPPMIX_SEND_VIP: "1"
+      TIPPMIX_SEND_EN: "1"
 
     steps:
       - name: Checkout repository
