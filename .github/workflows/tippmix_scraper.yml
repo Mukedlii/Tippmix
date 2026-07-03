@@ -70,7 +70,9 @@ jobs:
                 break
               fi
 
-              git rebase --abort || true
+              if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ]; then
+                git rebase --abort
+              fi
 
               if [ "$attempt" -eq 3 ]; then
                 echo "Push failed after retries"
