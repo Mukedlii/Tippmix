@@ -70,6 +70,8 @@ jobs:
                 break
               fi
 
+              git rebase --abort || true
+
               if [ "$attempt" -eq 3 ]; then
                 echo "Push failed after retries"
                 exit 1
