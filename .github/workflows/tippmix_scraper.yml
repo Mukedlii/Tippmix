@@ -14,6 +14,20 @@ jobs:
   scraper-pipeline:
     runs-on: ubuntu-latest
     env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
+      TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
+      TELEGRAM_EN_CHAT_ID: ${{ secrets.TELEGRAM_EN_CHAT_ID }}
+
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
+      SPORTMONKS_API_TOKEN: ${{ secrets.SPORTMONKS_API_TOKEN }}
+      SPORTSDATAIO_API: ${{ secrets.SPORTSDATAIO_API }}
+      ALLSPORTSAPI_KEY: ${{ secrets.ALLSPORTSAPI_KEY }}
+      ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+      FOOTBALLDATA_API_KEY: ${{ secrets.FOOTBALLDATA_API_KEY }}
+
       TIPPMIX_DB_PATH: data/tippmix.db
       SPORTS_DATA_PROVIDER: free_scraper
       TIPPMIX_PREFER_SCRAPING: "1"
@@ -51,5 +65,21 @@ jobs:
             echo "No data changes"
           else
             git commit -m "🔄 Scraper pipeline update [skip ci]"
-            git push origin main --force-with-lease
+            for attempt in 1 2 3; do
+              if git pull --rebase origin main && git push origin HEAD:main; then
+                break
+              fi
+
+              if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ]; then
+                git rebase --abort
+              fi
+
+              if [ "$attempt" -eq 3 ]; then
+                echo "Push failed after retries"
+                exit 1
+              fi
+
+              echo "Push failed on attempt $attempt, retrying..."
+              sleep 5
+            done
           fi
