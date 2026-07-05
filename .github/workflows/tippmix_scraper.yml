@@ -70,20 +70,27 @@ jobs:
           else
             git commit -m "🔄 Scraper pipeline update [skip ci]"
             for attempt in 1 2 3; do
+              stashed=0
               echo "Attempt $attempt git state before pull --rebase:"
               git status --short
               if ! git diff --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
                 echo "Stashing local changes before rebase"
                 git stash push --include-untracked -m "scraper-pipeline-autostash-attempt-$attempt" || true
+                stashed=1
               fi
 
               if git pull --rebase origin main && git push origin HEAD:main; then
+                if [ "$stashed" -eq 1 ]; then
+                  echo "Restoring stashed changes after successful push"
+                  git stash pop || true
+                fi
                 break
               fi
 
               if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ]; then
                 git rebase --abort || true
               fi
+              echo "Cleaning working tree before retry (discarding local uncommitted changes)"
               git reset --hard HEAD
               git clean -fd
 
