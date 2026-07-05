@@ -76,12 +76,12 @@ jobs:
               git status --short
               if ! git diff --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
                 echo "Stashing local changes before rebase"
-                previous_stash_ref="$(git stash list -n 1 --format='%gd' || echo '')"
+                before_stash_count="$(git stash list | wc -l)"
                 git stash push --include-untracked -m "scraper-pipeline-autostash-attempt-$attempt"
-                latest_stash_ref="$(git stash list -n 1 --format='%gd' || echo '')"
-                if [ -n "$latest_stash_ref" ] && [ "$latest_stash_ref" != "$previous_stash_ref" ]; then
+                after_stash_count="$(git stash list | wc -l)"
+                if [ "$after_stash_count" -gt "$before_stash_count" ]; then
                   stashed=1
-                  stash_ref="$latest_stash_ref"
+                  stash_ref="stash@{0}"
                 fi
               fi
 
