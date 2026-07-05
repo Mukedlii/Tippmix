@@ -76,32 +76,34 @@ jobs:
               git status --short
               if ! git diff --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
                 echo "Stashing local changes before rebase"
-                before_stash_count="$(git stash list | wc -l)"
-                git stash push --include-untracked -m "scraper-pipeline-autostash-attempt-$attempt"
-                after_stash_count="$(git stash list | wc -l)"
-                if [ "$after_stash_count" -gt "$before_stash_count" ]; then
-                  stashed=1
-                  stash_ref="stash@{0}"
+                if git stash push --include-untracked -m "scraper-pipeline-autostash-attempt-$attempt"; then
+                  stash_ref="$(git stash list --format='%gd %s' | awk '/scraper-pipeline-autostash-attempt-'"$attempt"'/ {print $1; exit}')"
+                  if [ -n "$stash_ref" ]; then
+                    stashed=1
+                  fi
+                else
+                  echo "Failed to stash local changes"
+                  exit 1
                 fi
               fi
 
               if git pull --rebase origin main && git push origin HEAD:main; then
                 if [ "$stashed" -eq 1 ]; then
                   # Stash is temporary only for rebase safety in this ephemeral CI workspace
-                  git stash drop "$stash_ref" || true
+                  git stash drop "$stash_ref" || echo "Warning: Failed to drop stash $stash_ref"
                 fi
                 break
               fi
 
               if [ "$stashed" -eq 1 ]; then
-                git stash drop "$stash_ref" || true
+                git stash drop "$stash_ref" || echo "Warning: Failed to drop stash $stash_ref"
               fi
 
               if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ]; then
                 git rebase --abort || true
               fi
               # Force clean state between retries to avoid persistent dirty working tree rebase failures
-              echo "Files before cleanup:"
+              echo "Discarded changes (before cleanup):"
               git status --short
               echo "Cleaning working tree before retry (discarding local uncommitted changes)"
               git reset --hard HEAD
