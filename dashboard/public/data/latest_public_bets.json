@@ -22,29 +22,5 @@
     "bookmaker": "N/A",
     "run_date": "2026-07-05",
     "slot": "DAY"
-  },
-  {
-    "fixture_id": 1744645,
-    "match": "Atyrau vs Kaspyi Aktau",
-    "tip": "Vendég győzelem",
-    "odds": null,
-    "confidence": 3.8,
-    "risk_level": "magas",
-    "is_highlighted": false,
-    "shelf": "STANDARD",
-    "league": "Kazakhstan Premier League",
-    "country": "Kazakhstan",
-    "kickoff": "2026-07-05T14:00:00+00:00",
-    "match_key": "fid:1744645",
-    "league_name": "Kazakhstan Premier League",
-    "country_name": "Kazakhstan",
-    "kickoff_local": "2026-07-05T14:00:00+00:00",
-    "home_team": "Atyrau",
-    "away_team": "Kaspyi Aktau",
-    "odds_1x2": {},
-    "odds_pick": null,
-    "bookmaker": "N/A",
-    "run_date": "2026-07-05",
-    "slot": "DAY"
   }
 ]
