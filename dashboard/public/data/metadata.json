@@ -1,10 +1,10 @@
 {
-  "last_updated": "2026-07-05T13:13:45Z",
+  "last_updated": "2026-07-05T19:28:13Z",
   "total_stats": 20,
   "sources": {
-    "data_sources": 480,
+    "data_sources": 524,
     "odds_history": 0,
     "expert_picks": 0,
-    "prediction_market": 545
+    "prediction_market": 645
   }
 }
