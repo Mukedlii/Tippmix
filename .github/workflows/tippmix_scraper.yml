@@ -77,7 +77,7 @@ jobs:
               if ! git diff --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
                 echo "Stashing local changes before rebase"
                 previous_stash_ref="$(git stash list -n 1 --format='%gd' || echo '')"
-                git stash push --include-untracked -m "scraper-pipeline-autostash-attempt-$attempt" || true
+                git stash push --include-untracked -m "scraper-pipeline-autostash-attempt-$attempt"
                 latest_stash_ref="$(git stash list -n 1 --format='%gd' || echo '')"
                 if [ -n "$latest_stash_ref" ] && [ "$latest_stash_ref" != "$previous_stash_ref" ]; then
                   stashed=1
@@ -87,6 +87,7 @@ jobs:
 
               if git pull --rebase origin main && git push origin HEAD:main; then
                 if [ "$stashed" -eq 1 ]; then
+                  # Stash is temporary only for rebase safety in this ephemeral CI workspace
                   git stash drop "$stash_ref" || true
                 fi
                 break
@@ -100,6 +101,8 @@ jobs:
                 git rebase --abort || true
               fi
               # Force clean state between retries to avoid persistent dirty working tree rebase failures
+              echo "Files before cleanup:"
+              git status --short
               echo "Cleaning working tree before retry (discarding local uncommitted changes)"
               git reset --hard HEAD
               git clean -fd
