@@ -60,19 +60,32 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          echo "Git state before staging:"
+          git status --short
           git add data/tippmix.db dashboard/public/data/*.json || true
+          echo "Git state after staging:"
+          git status --short
           if git diff --cached --quiet; then
             echo "No data changes"
           else
             git commit -m "🔄 Scraper pipeline update [skip ci]"
             for attempt in 1 2 3; do
+              echo "Attempt $attempt git state before pull --rebase:"
+              git status --short
+              if ! git diff --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
+                echo "Stashing local changes before rebase"
+                git stash push --include-untracked -m "scraper-pipeline-autostash-attempt-$attempt" || true
+              fi
+
               if git pull --rebase origin main && git push origin HEAD:main; then
                 break
               fi
 
               if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ]; then
-                git rebase --abort
+                git rebase --abort || true
               fi
+              git reset --hard HEAD
+              git clean -fd
 
               if [ "$attempt" -eq 3 ]; then
                 echo "Push failed after retries"
