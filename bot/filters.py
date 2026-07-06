@@ -32,6 +32,7 @@ TIER1_KEYWORDS = [
     "champions league", "europa league",
     "world cup", "euro 2024", "euro 2025", "euro 2026",
     "copa america",
+    "european qualifiers", "world cup qualification",
 ]
 
 TIER2_KEYWORDS = [
