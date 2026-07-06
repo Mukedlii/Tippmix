@@ -56,8 +56,9 @@ WHITELIST_KEYWORDS = [
     "rpl", "russian premier",
     # Európai kupák
     "champions league", "europa league", "conference league", "uefa",
-    # Nemzetközi
+    # Nemzetközi / VB
     "world cup", "euro", "nations league",
+    "european qualifiers", "world cup qualification",
     # Magyar
     "otp bank liga", "nb i", "nb ii", "mol liga", "hungarian",
 ]

@@ -1,40 +1,29 @@
-name: Tippmix Scraper Pipeline
+name: Daily Recap
 
 on:
   schedule:
-    - cron: '0 6 * * *'
-    - cron: '0 12 * * *'
-    - cron: '0 18 * * *'
+    - cron: '59 23 * * *'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  scraper-pipeline:
+  daily-recap:
     runs-on: ubuntu-latest
     env:
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_PUBLIC_CHAT_ID: ${{ secrets.TELEGRAM_PUBLIC_CHAT_ID }}
       TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
-      TELEGRAM_EN_CHAT_ID: ${{ secrets.TELEGRAM_EN_CHAT_ID }}
-
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
       SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
       SPORTMONKS_API_TOKEN: ${{ secrets.SPORTMONKS_API_TOKEN }}
       SPORTSDATAIO_API: ${{ secrets.SPORTSDATAIO_API }}
       ALLSPORTSAPI_KEY: ${{ secrets.ALLSPORTSAPI_KEY }}
-      ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
-      FOOTBALLDATA_API_KEY: ${{ secrets.FOOTBALLDATA_API_KEY }}
 
       TIPPMIX_DB_PATH: data/tippmix.db
-      SPORTS_DATA_PROVIDER: free_scraper
-      TIPPMIX_PREFER_SCRAPING: "1"
-      TIPPMIX_ENABLE_SCRAPER_PIPELINE: "1"
-      TIPPMIX_SEND_PUBLIC: "1"
-      TIPPMIX_SEND_VIP: "1"
-      TIPPMIX_SEND_EN: "1"
+      # EVENING recap runs at 23:59 to catch all day's matches results
+      TIPPMIX_SLOT: EVENING
 
     steps:
       - name: Checkout repository
@@ -50,21 +39,18 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run scraper-first pipeline
-        run: python -m bot.main
+      - name: Run daily recap
+        run: python -m bot.daily_recap_main
 
-      - name: Generate dashboard data
-        run: python scripts/generate_dashboard_data.py
-
-      - name: Commit and push updated data
+      - name: Commit recap data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/tippmix.db dashboard/public/data/*.json || true
+          git add data/recap_sent.json data/recap_history.json || true
           if git diff --cached --quiet; then
-            echo "No data changes"
+            echo "No recap data changes"
           else
-            git commit -m "🔄 Scraper pipeline update [skip ci]"
+            git commit -m "📊 Daily recap update [skip ci]"
             for attempt in 1 2 3; do
               git fetch origin main
               git merge -X ours origin/main --no-edit --allow-unrelated-histories 2>/dev/null || true

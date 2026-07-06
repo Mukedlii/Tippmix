@@ -24,6 +24,7 @@ from bot.storage.poisson_stats import ensure_results_columns
 # Duplicate-send guard (GitHub Actions fallback retries)
 # -----------------------------
 _MARKER_PATH = os.path.join("data", "recap_sent.json")
+_HISTORY_PATH = os.path.join("data", "recap_history.json")
 
 
 def _load_marker() -> Dict[str, Any]:
@@ -56,6 +57,53 @@ def _mark_sent(slot: str, date_iso: str) -> None:
     marker = _load_marker()
     marker[slot] = date_iso
     _save_marker(marker)
+
+
+# -----------------------------
+# Recap history (data/recap_history.json)
+# -----------------------------
+
+def _load_history() -> List[Dict[str, Any]]:
+    try:
+        with open(_HISTORY_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, list) else []
+    except Exception:
+        return []
+
+
+def _save_history(history: List[Dict[str, Any]]) -> None:
+    os.makedirs(os.path.dirname(_HISTORY_PATH), exist_ok=True)
+    with open(_HISTORY_PATH, "w", encoding="utf-8") as f:
+        json.dump(history, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+
+
+def _append_recap_to_history(
+    date_iso: str,
+    slot: str,
+    vip_wins: int,
+    vip_losses: int,
+    vip_pending: int,
+    pub_wins: int,
+    pub_losses: int,
+    pub_pending: int,
+) -> None:
+    history = _load_history()
+    entry = {
+        "date": date_iso,
+        "slot": slot,
+        "ts_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "vip": {"wins": vip_wins, "losses": vip_losses, "pending": vip_pending},
+        "public": {"wins": pub_wins, "losses": pub_losses, "pending": pub_pending},
+    }
+    # remove any existing entry for the same date+slot before appending
+    history = [h for h in history if not (h.get("date") == date_iso and h.get("slot") == slot)]
+    history.append(entry)
+    # keep last 90 days (max 270 entries: 3 slots (DAY/EVENING + any extra) * 90 days)
+    history = history[-270:]
+    _save_history(history)
+    print(f"[RecapHistory] Bejegyzés mentve: {date_iso} {slot}")
 
 
 # -----------------------------
@@ -534,6 +582,21 @@ def main() -> None:
         if not ok_p:
             ok = False
             print(f"Public recap send failed: {err_p}")
+
+    # Always persist history (even if Telegram send partially failed)
+    try:
+        _append_recap_to_history(
+            date_iso=date_iso,
+            slot=slot,
+            vip_wins=vip_w,
+            vip_losses=vip_l,
+            vip_pending=vip_p,
+            pub_wins=pub_w,
+            pub_losses=pub_l,
+            pub_pending=pub_p,
+        )
+    except Exception as e:
+        print(f"[RecapHistory] Mentési hiba (nem kritikus): {e}")
 
     if ok:
         _mark_sent(slot, date_iso)
