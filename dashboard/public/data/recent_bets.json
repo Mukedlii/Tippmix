@@ -52,6 +52,32 @@
     "outcome": "pending"
   },
   {
+    "id": 1913,
+    "tier": "VIP",
+    "match": "Borac Banja Luka vs Levski Sofia",
+    "league": "Champions League Qualification",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 3.0,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-07T18:30:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
+    "id": 1914,
+    "tier": "VIP",
+    "match": "Tre Fiori vs Larne",
+    "league": "Champions League Qualification",
+    "tip": "Vend\u00e9g gy\u0151zelem",
+    "confidence": 3.0,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-07T18:30:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 1894,
     "tier": "VIP",
     "match": "Floriana vs Shamrock Rovers",
@@ -78,6 +104,19 @@
     "outcome": "pending"
   },
   {
+    "id": 1912,
+    "tier": "VIP",
+    "match": "Floriana vs Shamrock Rovers",
+    "league": "Champions League Qualification",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 3.0,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-07T17:30:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 1893,
     "tier": "VIP",
     "match": "FK Vardar Skopje vs KuPS",
@@ -98,6 +137,19 @@
     "tip": "Vend\u00e9g gy\u0151zelem",
     "confidence": 3.8,
     "risk": "magas",
+    "odds": null,
+    "kickoff": "2026-07-07T17:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
+    "id": 1911,
+    "tier": "VIP",
+    "match": "FK Vardar Skopje vs KuPS",
+    "league": "Champions League Qualification",
+    "tip": "D\u00f6ntetlen",
+    "confidence": 3.0,
+    "risk": "k\u00f6zepes",
     "odds": null,
     "kickoff": "2026-07-07T17:00:00+00:00",
     "result": null,
@@ -204,58 +256,6 @@
     "risk": "k\u00f6zepes",
     "odds": null,
     "kickoff": "2026-07-07T16:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 1903,
-    "tier": "VIP",
-    "match": "Lincoln Red Imps FC vs Inter Club d'Escaldes",
-    "league": "Champions League Qualification",
-    "tip": "Vend\u00e9g gy\u0151zelem",
-    "confidence": 3.0,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-07T16:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 1904,
-    "tier": "VIP",
-    "match": "Sabah FK vs TNS",
-    "league": "Champions League Qualification",
-    "tip": "Hazai gy\u0151zelem",
-    "confidence": 3.0,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-07T16:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 1867,
-    "tier": "FREE",
-    "match": "Torpedo Zhodino vs Isloch",
-    "league": "Belarus Premier League",
-    "tip": "D\u00f6ntetlen",
-    "confidence": 3.5,
-    "risk": "magas",
-    "odds": null,
-    "kickoff": "2026-07-05T17:55:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 1874,
-    "tier": "FREE",
-    "match": "Torpedo Zhodino vs Isloch",
-    "league": "Belarus Premier League",
-    "tip": "D\u00f6ntetlen",
-    "confidence": 3.5,
-    "risk": "magas",
-    "odds": null,
-    "kickoff": "2026-07-05T17:55:00+00:00",
     "result": null,
     "outcome": "pending"
   }
