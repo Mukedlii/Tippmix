@@ -234,28 +234,28 @@
     "outcome": "pending"
   },
   {
-    "id": 1894,
+    "id": 1975,
     "tier": "VIP",
-    "match": "Floriana vs Shamrock Rovers",
+    "match": "Borac Banja Luka vs Levski Sofia",
     "league": "Champions League Qualification",
     "tip": "Hazai gy\u0151zelem",
     "confidence": 3.0,
     "risk": "k\u00f6zepes",
     "odds": null,
-    "kickoff": "2026-07-07T17:30:00+00:00",
+    "kickoff": "2026-07-07T18:30:00+00:00",
     "result": null,
     "outcome": "pending"
   },
   {
-    "id": 1898,
-    "tier": "FREE",
-    "match": "Floriana vs Shamrock Rovers",
+    "id": 1976,
+    "tier": "VIP",
+    "match": "Tre Fiori vs Larne",
     "league": "Champions League Qualification",
-    "tip": "Vend\u00e9g gy\u0151zelem",
-    "confidence": 3.5,
-    "risk": "magas",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 3.0,
+    "risk": "k\u00f6zepes",
     "odds": null,
-    "kickoff": "2026-07-07T17:30:00+00:00",
+    "kickoff": "2026-07-07T18:30:00+00:00",
     "result": null,
     "outcome": "pending"
   }
