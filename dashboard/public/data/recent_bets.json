@@ -13,6 +13,19 @@
     "outcome": "pending"
   },
   {
+    "id": 1960,
+    "tier": "FREE",
+    "match": "Klaksvik vs Atert Bissen",
+    "league": "Champions League Qualification",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 3.6,
+    "risk": "magas",
+    "odds": null,
+    "kickoff": "2026-07-07T18:45:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 1895,
     "tier": "VIP",
     "match": "Borac Banja Luka vs Levski Sofia",
@@ -208,6 +221,19 @@
     "outcome": "pending"
   },
   {
+    "id": 1959,
+    "tier": "FREE",
+    "match": "Tre Fiori vs Larne",
+    "league": "Champions League Qualification",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 3.8,
+    "risk": "magas",
+    "odds": null,
+    "kickoff": "2026-07-07T18:30:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 1894,
     "tier": "VIP",
     "match": "Floriana vs Shamrock Rovers",
@@ -227,32 +253,6 @@
     "league": "Champions League Qualification",
     "tip": "Vend\u00e9g gy\u0151zelem",
     "confidence": 3.5,
-    "risk": "magas",
-    "odds": null,
-    "kickoff": "2026-07-07T17:30:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 1912,
-    "tier": "VIP",
-    "match": "Floriana vs Shamrock Rovers",
-    "league": "Champions League Qualification",
-    "tip": "Hazai gy\u0151zelem",
-    "confidence": 3.0,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-07T17:30:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 1916,
-    "tier": "FREE",
-    "match": "Floriana vs Shamrock Rovers",
-    "league": "Champions League Qualification",
-    "tip": "Vend\u00e9g gy\u0151zelem",
-    "confidence": 3.6,
     "risk": "magas",
     "odds": null,
     "kickoff": "2026-07-07T17:30:00+00:00",
