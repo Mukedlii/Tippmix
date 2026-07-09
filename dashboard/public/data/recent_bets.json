@@ -156,6 +156,45 @@
     "outcome": "pending"
   },
   {
+    "id": 2039,
+    "tier": "VIP",
+    "match": "Hajduk Split vs Zilina",
+    "league": "Europa League Qualification",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 3.0,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-09T18:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
+    "id": 2040,
+    "tier": "VIP",
+    "match": "PFC CSKA Sofia vs Derry City",
+    "league": "Europa League Qualification",
+    "tip": "D\u00f6ntetlen",
+    "confidence": 3.0,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-09T18:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
+    "id": 2041,
+    "tier": "VIP",
+    "match": "Vojvodina vs Ferencvaros",
+    "league": "Europa League Qualification",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 3.0,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-09T18:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 2027,
     "tier": "VIP",
     "match": "Dynamo Kyiv vs Universitatea Cluj",
@@ -208,54 +247,15 @@
     "outcome": "pending"
   },
   {
-    "id": 1990,
-    "tier": "VIP",
+    "id": 2037,
+    "tier": "FREE",
     "match": "Dynamo Kyiv vs Universitatea Cluj",
     "league": "Europa League Qualification",
     "tip": "Hazai gy\u0151zelem",
-    "confidence": 4.2,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-09T16:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 1993,
-    "tier": "VIP",
-    "match": "FC Sheriff vs Aluminij",
-    "league": "Europa League Qualification",
-    "tip": "Hazai gy\u0151zelem",
     "confidence": 3.0,
     "risk": "k\u00f6zepes",
     "odds": null,
-    "kickoff": "2026-07-09T16:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 1994,
-    "tier": "VIP",
-    "match": "Qarabag FK vs Vestri",
-    "league": "Europa League Qualification",
-    "tip": "D\u00f6ntetlen",
-    "confidence": 3.0,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-09T16:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 1999,
-    "tier": "VIP",
-    "match": "Dynamo Kyiv vs Universitatea Cluj",
-    "league": "Europa League Qualification",
-    "tip": "Vend\u00e9g gy\u0151zelem",
-    "confidence": 3.0,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-09T16:00:00+00:00",
+    "kickoff": "2026-07-09T17:00:00+00:00",
     "result": null,
     "outcome": "pending"
   }
