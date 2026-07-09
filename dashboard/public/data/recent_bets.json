@@ -234,28 +234,28 @@
     "outcome": "pending"
   },
   {
-    "id": 2027,
+    "id": 2051,
     "tier": "VIP",
-    "match": "Dynamo Kyiv vs Universitatea Cluj",
+    "match": "Hajduk Split vs Zilina",
     "league": "Europa League Qualification",
     "tip": "Hazai gy\u0151zelem",
     "confidence": 3.0,
     "risk": "k\u00f6zepes",
     "odds": null,
-    "kickoff": "2026-07-09T17:00:00+00:00",
+    "kickoff": "2026-07-09T18:00:00+00:00",
     "result": null,
     "outcome": "pending"
   },
   {
-    "id": 2028,
+    "id": 2052,
     "tier": "VIP",
-    "match": "FC Sheriff vs Aluminij",
+    "match": "PFC CSKA Sofia vs Derry City",
     "league": "Europa League Qualification",
-    "tip": "Hazai gy\u0151zelem",
+    "tip": "D\u00f6ntetlen",
     "confidence": 3.0,
     "risk": "k\u00f6zepes",
     "odds": null,
-    "kickoff": "2026-07-09T17:00:00+00:00",
+    "kickoff": "2026-07-09T18:00:00+00:00",
     "result": null,
     "outcome": "pending"
   }
