@@ -13,6 +13,19 @@
     "outcome": "pending"
   },
   {
+    "id": 2061,
+    "tier": "FREE",
+    "match": "Dnepr Mogilev vs FC Minsk",
+    "league": "Belarus Premier League",
+    "tip": "D\u00f6ntetlen",
+    "confidence": 3.0,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-10T15:30:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 1987,
     "tier": "FREE",
     "match": "Hajduk Split vs Zilina",
@@ -237,19 +250,6 @@
     "id": 2047,
     "tier": "VIP",
     "match": "Vojvodina vs Ferencvaros",
-    "league": "Europa League Qualification",
-    "tip": "Hazai gy\u0151zelem",
-    "confidence": 3.0,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-09T18:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 2051,
-    "tier": "VIP",
-    "match": "Hajduk Split vs Zilina",
     "league": "Europa League Qualification",
     "tip": "Hazai gy\u0151zelem",
     "confidence": 3.0,
