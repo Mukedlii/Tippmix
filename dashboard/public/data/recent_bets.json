@@ -78,6 +78,32 @@
     "outcome": "pending"
   },
   {
+    "id": 2139,
+    "tier": "VIP",
+    "match": "Drita vs FK Kauno Zalgiris",
+    "league": "Champions League Qualification",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 3.0,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-14T18:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
+    "id": 2140,
+    "tier": "VIP",
+    "match": "Inter Club d'Escaldes vs Lincoln Red Imps FC",
+    "league": "Champions League Qualification",
+    "tip": "Vend\u00e9g gy\u0151zelem",
+    "confidence": 3.0,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-14T18:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 2115,
     "tier": "VIP",
     "match": "Levski Sofia vs Borac Banja Luka",
@@ -156,6 +182,32 @@
     "outcome": "pending"
   },
   {
+    "id": 2137,
+    "tier": "VIP",
+    "match": "Levski Sofia vs Borac Banja Luka",
+    "league": "Champions League Qualification",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 3.0,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-14T17:30:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
+    "id": 2138,
+    "tier": "VIP",
+    "match": "TNS vs Sabah FK",
+    "league": "Champions League Qualification",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 3.0,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-14T17:30:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 2111,
     "tier": "VIP",
     "match": "Gyori ETO vs Vikingur Reykjavik",
@@ -204,58 +256,6 @@
     "risk": "k\u00f6zepes",
     "odds": null,
     "kickoff": "2026-07-14T17:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 2127,
-    "tier": "VIP",
-    "match": "Gyori ETO vs Vikingur Reykjavik",
-    "league": "Champions League Qualification",
-    "tip": "Hazai gy\u0151zelem",
-    "confidence": 4.5,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-14T17:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 2131,
-    "tier": "VIP",
-    "match": "Riga FC vs Ararat Armenia",
-    "league": "Champions League Qualification",
-    "tip": "Hazai gy\u0151zelem",
-    "confidence": 3.0,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-14T17:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 2114,
-    "tier": "VIP",
-    "match": "FC Iberia 1999 vs Flora Tallinn",
-    "league": "Champions League Qualification",
-    "tip": "D\u00f6ntetlen",
-    "confidence": 3.0,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-14T16:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 2118,
-    "tier": "FREE",
-    "match": "FC Iberia 1999 vs Flora Tallinn",
-    "league": "Champions League Qualification",
-    "tip": "Hazai gy\u0151zelem",
-    "confidence": 3.0,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-14T16:00:00+00:00",
     "result": null,
     "outcome": "pending"
   }
