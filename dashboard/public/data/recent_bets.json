@@ -143,6 +143,19 @@
     "outcome": "pending"
   },
   {
+    "id": 2165,
+    "tier": "FREE",
+    "match": "Drita vs FK Kauno Zalgiris",
+    "league": "Champions League Qualification",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 3.0,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-14T18:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 2115,
     "tier": "VIP",
     "match": "Levski Sofia vs Borac Banja Luka",
@@ -237,19 +250,6 @@
     "id": 2138,
     "tier": "VIP",
     "match": "TNS vs Sabah FK",
-    "league": "Champions League Qualification",
-    "tip": "Hazai gy\u0151zelem",
-    "confidence": 3.0,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-14T17:30:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 2146,
-    "tier": "VIP",
-    "match": "Levski Sofia vs Borac Banja Luka",
     "league": "Champions League Qualification",
     "tip": "Hazai gy\u0151zelem",
     "confidence": 3.0,
