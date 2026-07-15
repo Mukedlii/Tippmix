@@ -26,6 +26,19 @@
     "outcome": "pending"
   },
   {
+    "id": 2193,
+    "tier": "VIP",
+    "match": "Atert Bissen vs Klaksvik",
+    "league": "Champions League Qualification",
+    "tip": "Vend\u00e9g gy\u0151zelem",
+    "confidence": 4.0,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-15T18:15:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 2188,
     "tier": "VIP",
     "match": "CS Universitatea Craiova vs Maxline Vitebsk",
@@ -45,6 +58,19 @@
     "league": "Champions League Qualification",
     "tip": "Hazai gy\u0151zelem",
     "confidence": 3.0,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-15T17:30:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
+    "id": 2192,
+    "tier": "VIP",
+    "match": "CS Universitatea Craiova vs Maxline Vitebsk",
+    "league": "Champions League Qualification",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 4.5,
     "risk": "k\u00f6zepes",
     "odds": null,
     "kickoff": "2026-07-15T17:30:00+00:00",
@@ -230,32 +256,6 @@
     "risk": "k\u00f6zepes",
     "odds": null,
     "kickoff": "2026-07-14T18:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 2115,
-    "tier": "VIP",
-    "match": "Levski Sofia vs Borac Banja Luka",
-    "league": "Champions League Qualification",
-    "tip": "Hazai gy\u0151zelem",
-    "confidence": 3.0,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-14T17:30:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 2116,
-    "tier": "VIP",
-    "match": "TNS vs Sabah FK",
-    "league": "Champions League Qualification",
-    "tip": "Hazai gy\u0151zelem",
-    "confidence": 3.0,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-14T17:30:00+00:00",
     "result": null,
     "outcome": "pending"
   }
