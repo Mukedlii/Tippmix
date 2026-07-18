@@ -78,6 +78,32 @@
     "outcome": "pending"
   },
   {
+    "id": 2241,
+    "tier": "VIP",
+    "match": "Atyrau vs Kairat Almaty",
+    "league": "Kazakhstan Premier League",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 3.0,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-18T15:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
+    "id": 2242,
+    "tier": "VIP",
+    "match": "Kaisar Kyzylorda vs Kaspyi Aktau",
+    "league": "Kazakhstan Premier League",
+    "tip": "Vend\u00e9g gy\u0151zelem",
+    "confidence": 3.0,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-18T15:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 2223,
     "tier": "VIP",
     "match": "FC Kyzylzhar Petropavlovsk vs Tobol Kostanay",
@@ -156,6 +182,32 @@
     "outcome": "pending"
   },
   {
+    "id": 2239,
+    "tier": "FREE",
+    "match": "FC Kyzylzhar Petropavlovsk vs Tobol Kostanay",
+    "league": "Kazakhstan Premier League",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 3.0,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-18T13:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
+    "id": 2240,
+    "tier": "FREE",
+    "match": "Zhenis vs Ulytau",
+    "league": "Kazakhstan Premier League",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 3.0,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-18T13:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 2224,
     "tier": "VIP",
     "match": "Okzhetpes Kokshetau vs Zhetysu Taldykorgan",
@@ -195,67 +247,15 @@
     "outcome": "pending"
   },
   {
-    "id": 2200,
-    "tier": "VIP",
-    "match": "Zilina vs Hajduk Split",
-    "league": "Europa League Qualification",
-    "tip": "Vend\u00e9g gy\u0151zelem",
-    "confidence": 4.0,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-16T18:30:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 2207,
-    "tier": "VIP",
-    "match": "Zilina vs Hajduk Split",
-    "league": "Europa League Qualification",
+    "id": 2238,
+    "tier": "FREE",
+    "match": "Okzhetpes Kokshetau vs Zhetysu Taldykorgan",
+    "league": "Kazakhstan Premier League",
     "tip": "Hazai gy\u0151zelem",
     "confidence": 3.0,
     "risk": "k\u00f6zepes",
     "odds": null,
-    "kickoff": "2026-07-16T18:30:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 2212,
-    "tier": "VIP",
-    "match": "Zilina vs Hajduk Split",
-    "league": "Europa League Qualification",
-    "tip": "D\u00f6ntetlen",
-    "confidence": 3.0,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-16T18:30:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 2217,
-    "tier": "VIP",
-    "match": "Zilina vs Hajduk Split",
-    "league": "Europa League Qualification",
-    "tip": "Hazai gy\u0151zelem",
-    "confidence": 3.0,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-16T18:30:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 2222,
-    "tier": "VIP",
-    "match": "Zilina vs Hajduk Split",
-    "league": "Europa League Qualification",
-    "tip": "Vend\u00e9g gy\u0151zelem",
-    "confidence": 3.0,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-16T18:30:00+00:00",
+    "kickoff": "2026-07-18T12:00:00+00:00",
     "result": null,
     "outcome": "pending"
   }
