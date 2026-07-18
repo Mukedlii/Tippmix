@@ -104,6 +104,32 @@
     "outcome": "pending"
   },
   {
+    "id": 2243,
+    "tier": "VIP",
+    "match": "Atyrau vs Kairat Almaty",
+    "league": "Kazakhstan Premier League",
+    "tip": "Vend\u00e9g gy\u0151zelem",
+    "confidence": 4.5,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-18T15:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
+    "id": 2244,
+    "tier": "VIP",
+    "match": "Kaisar Kyzylorda vs Kaspyi Aktau",
+    "league": "Kazakhstan Premier League",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 4.2,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-18T15:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 2223,
     "tier": "VIP",
     "match": "FC Kyzylzhar Petropavlovsk vs Tobol Kostanay",
@@ -208,54 +234,28 @@
     "outcome": "pending"
   },
   {
-    "id": 2224,
+    "id": 2246,
     "tier": "VIP",
-    "match": "Okzhetpes Kokshetau vs Zhetysu Taldykorgan",
-    "league": "Kazakhstan Premier League",
-    "tip": "Hazai gy\u0151zelem",
-    "confidence": 4.0,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-18T12:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 2228,
-    "tier": "FREE",
-    "match": "Okzhetpes Kokshetau vs Zhetysu Taldykorgan",
+    "match": "FC Kyzylzhar Petropavlovsk vs Tobol Kostanay",
     "league": "Kazakhstan Premier League",
     "tip": "Hazai gy\u0151zelem",
     "confidence": 3.0,
     "risk": "k\u00f6zepes",
     "odds": null,
-    "kickoff": "2026-07-18T12:00:00+00:00",
+    "kickoff": "2026-07-18T13:00:00+00:00",
     "result": null,
     "outcome": "pending"
   },
   {
-    "id": 2234,
+    "id": 2247,
     "tier": "VIP",
-    "match": "Okzhetpes Kokshetau vs Zhetysu Taldykorgan",
-    "league": "Kazakhstan Premier League",
-    "tip": "Hazai gy\u0151zelem",
-    "confidence": 4.5,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-18T12:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 2238,
-    "tier": "FREE",
-    "match": "Okzhetpes Kokshetau vs Zhetysu Taldykorgan",
+    "match": "Zhenis vs Ulytau",
     "league": "Kazakhstan Premier League",
     "tip": "Hazai gy\u0151zelem",
     "confidence": 3.0,
     "risk": "k\u00f6zepes",
     "odds": null,
-    "kickoff": "2026-07-18T12:00:00+00:00",
+    "kickoff": "2026-07-18T13:00:00+00:00",
     "result": null,
     "outcome": "pending"
   }
