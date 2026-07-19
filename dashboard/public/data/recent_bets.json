@@ -26,6 +26,19 @@
     "outcome": "pending"
   },
   {
+    "id": 2253,
+    "tier": "VIP",
+    "match": "Ordabasy Shymkent vs FC Yelimay",
+    "league": "Kazakhstan Premier League",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 4.2,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-19T16:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 2248,
     "tier": "VIP",
     "match": "Altai Semey vs Aktobe",
@@ -45,6 +58,19 @@
     "league": "Kazakhstan Premier League",
     "tip": "Hazai gy\u0151zelem",
     "confidence": 3.0,
+    "risk": "k\u00f6zepes",
+    "odds": null,
+    "kickoff": "2026-07-19T12:00:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
+    "id": 2252,
+    "tier": "VIP",
+    "match": "Altai Semey vs Aktobe",
+    "league": "Kazakhstan Premier League",
+    "tip": "Hazai gy\u0151zelem",
+    "confidence": 4.5,
     "risk": "k\u00f6zepes",
     "odds": null,
     "kickoff": "2026-07-19T12:00:00+00:00",
@@ -223,32 +249,6 @@
   {
     "id": 2230,
     "tier": "FREE",
-    "match": "Zhenis vs Ulytau",
-    "league": "Kazakhstan Premier League",
-    "tip": "Hazai gy\u0151zelem",
-    "confidence": 3.0,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-18T13:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 2235,
-    "tier": "VIP",
-    "match": "FC Kyzylzhar Petropavlovsk vs Tobol Kostanay",
-    "league": "Kazakhstan Premier League",
-    "tip": "Vend\u00e9g gy\u0151zelem",
-    "confidence": 4.2,
-    "risk": "k\u00f6zepes",
-    "odds": null,
-    "kickoff": "2026-07-18T13:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 2236,
-    "tier": "VIP",
     "match": "Zhenis vs Ulytau",
     "league": "Kazakhstan Premier League",
     "tip": "Hazai gy\u0151zelem",
