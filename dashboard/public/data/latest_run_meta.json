@@ -1,8 +1,8 @@
 {
-  "run_date": "2026-07-20",
+  "run_date": "2026-07-21",
   "slot": "DAY",
   "provider": "free_scraper",
-  "public_bets_count": 0,
-  "vip_bets_count": 0,
-  "updated_ts_utc": "2026-07-20T19:50:30.401446+00:00"
+  "public_bets_count": 3,
+  "vip_bets_count": 6,
+  "updated_ts_utc": "2026-07-21T08:27:36.232906+00:00"
 }
