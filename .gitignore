@@ -1,7 +1,6 @@
 # Python
 __pycache__/
-bot/__pycache__/
-bot/storage/__pycache__/
+**/__pycache__/
 
 # Local env / secrets
 .env
@@ -18,6 +17,10 @@ data/*.json
 
 Tippmix/data/archive/
 data/archive/
+
+# Scraper/pipeline cache (regenerated at runtime, don't commit)
+data/pipeline_cache/
+data/scraper_cache/
 
 # Generated outputs
 public_bets*.json
