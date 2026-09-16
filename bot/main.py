@@ -11,20 +11,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from bot.matches import fetch_matches_for_today
-from bot.openai_logic import generate_tips
 from bot.poisson_engine import generate_poisson_tips
-from bot.providers.web_context import build_match_context, format_context_for_prompt
-from bot.providers.odds_free_scraper import get_best_odds_free as get_best_odds
-from bot.providers.odds_scraper import format_odds_for_prompt
-from bot.providers.sports_news import get_match_news, format_news_for_prompt
-from bot.providers.multi_sport import fetch_multi_sport_matches, format_match_with_sport
+from bot.providers.multi_sport import fetch_multi_sport_matches
 from bot.telegram_marketing import (
     format_marketing_vip,
     format_marketing_free,
     format_alert_message,
     create_inline_buttons,
 )
-from bot.self_learning import build_learning_context
 from bot.api_keys import resolve_sports_provider
 from bot.storage.sqlite_store import insert_run, insert_bets, insert_fixtures
 from bot.combo_builder import build_marketing_combos
@@ -32,9 +26,8 @@ from bot.combo_builder import build_marketing_combos
 # ── ÚJ modulok: minőség szűrés, meccs pontozás, torna detektálás, tanulás ──
 from bot.filters import apply_quality_filters, get_filter_stats, apply_tiered_score_filter
 from bot.match_scoring import score_and_filter
-from bot.match_context import build_context_for_prompt_batch
 from bot.tournament_detector import enrich_with_tournament_info, sort_by_tournament_priority
-from bot.match_learner import apply_learning_scores, build_enhanced_learning_context
+from bot.match_learner import apply_learning_scores, get_avoid_leagues
 from bot.storage.stats import dynamic_block_leagues, overall_hitrate
 
 MARKETING_MIN_ODDS = 1.15
@@ -302,217 +295,7 @@ def _safe_json_loads(s: str) -> Optional[Dict[str, Any]]:
     return None
 
 
-def _xai_base_url() -> str:
-    base = (os.getenv("XAI_BASE_URL") or "https://api.x.ai").rstrip("/")
-    return base
-
-
-def _xai_headers() -> Dict[str, str]:
-    key = os.getenv("XAI_API_KEY", "").strip()
-    return {
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json",
-    }
-
-
-def _xai_list_models() -> Optional[List[Dict[str, Any]]]:
-    key = os.getenv("XAI_API_KEY", "").strip()
-    if not key:
-        return None
-    url = f"{_xai_base_url()}/v1/models"
-    try:
-        resp = requests.get(url, headers=_xai_headers(), timeout=25)
-        if resp.status_code != 200:
-            return None
-        data = resp.json()
-        models = data.get("data")
-        if isinstance(models, list):
-            return models
-    except Exception:
-        return None
-    return None
-
-
-def _xai_pick_model() -> Optional[str]:
-    env_model = (os.getenv("XAI_MODEL") or "").strip()
-    if env_model:
-        return env_model
-
-    models = _xai_list_models()
-    if not models:
-        return None
-
-    ids = [m.get("id") for m in models if isinstance(m, dict) and m.get("id")]
-    grok_ids = [i for i in ids if isinstance(i, str) and "grok" in i.lower()]
-    if not grok_ids:
-        return ids[0] if ids else None
-
-    def score(mid: str) -> int:
-        s = mid.lower()
-        sc = 0
-        if "latest" in s:
-            sc += 50
-        if "2" in s:
-            sc += 20
-        if "vision" in s:
-            sc -= 5
-        return sc
-
-    grok_ids.sort(key=score, reverse=True)
-    return grok_ids[0]
-
-
-def _xai_chat(messages: List[Dict[str, str]], temperature: float = 0.2) -> Tuple[Optional[str], Optional[str]]:
-    key = os.getenv("XAI_API_KEY", "").strip()
-    if not key:
-        return None, "XAI_API_KEY nincs beállítva"
-
-    model = _xai_pick_model()
-    if not model:
-        return None, "Nem találtam xAI modelt. Állítsd be: XAI_MODEL (vagy legyen elérhető /v1/models)."
-
-    url = f"{_xai_base_url()}/v1/chat/completions"
-    payload = {
-        "model": model,
-        "messages": messages,
-        "temperature": temperature,
-    }
-
-    try:
-        resp = requests.post(url, headers=_xai_headers(), json=payload, timeout=35)
-    except Exception as e:
-        return None, f"xAI request hiba: {repr(e)}"
-
-    if resp.status_code != 200:
-        return None, f"xAI HTTP {resp.status_code}: {resp.text}"
-
-    try:
-        data = resp.json()
-    except Exception as e:
-        return None, f"xAI JSON parse hiba: {repr(e)}"
-
-    try:
-        content = data["choices"][0]["message"]["content"]
-        return content, None
-    except Exception:
-        return None, f"xAI válasz formátum hiba: {data}"
-
-
-def grok_review_vip_bets(
-    slot_matches: List[Dict[str, Any]],
-    vip_bets: List[Dict[str, Any]],
-    slot: str,
-    run_date: str,
-) -> Dict[str, Any]:
-    enabled = (os.getenv("ENABLE_GROK_REVIEW", "0").strip() == "1")
-    if not enabled:
-        return {"enabled": False}
-
-    by_key: Dict[str, Dict[str, Any]] = {_match_key(m): m for m in slot_matches}
-
-    compact_bets: List[Dict[str, Any]] = []
-    for b in (vip_bets or []):
-        fid = b.get("fixture_id")
-        key = f"fid:{fid}" if fid else (b.get("match_key") or "")
-        m = by_key.get(key) if key else None
-
-        compact_bets.append({
-            "key": key or None,
-            "fixture_id": fid or (m.get("fixture_id") if m else None),
-            "league": b.get("league_name") or (m.get("league_name") if m else None),
-            "country": b.get("country_name") or (m.get("country_name") if m else None),
-            "kickoff_local": b.get("kickoff_local") or (m.get("kickoff_local") if m else None),
-            "home": b.get("home_team") or (m.get("home_team") if m else None),
-            "away": b.get("away_team") or (m.get("away_team") if m else None),
-            "market": b.get("market") or "1X2",
-            "pick": b.get("pick") or b.get("tip") or b.get("selection"),
-            "odds_pick": b.get("odds_pick"),
-            "odds_1x2": b.get("odds_1x2") or (m.get("odds") if m else None),
-            "confidence": b.get("confidence"),
-            "risk_level": b.get("risk_level"),
-            "is_highlighted": b.get("is_highlighted"),
-            "extra": {
-                "standings": (m.get("standings") if m else {}),
-                "injuries_count": len(m.get("injuries") or []) if m else 0,
-            },
-        })
-
-    system = (
-        "Te egy szigorú sportfogadási kockázat-auditor vagy (Grok). "
-        "Feladat: a VIP szelvény kiválasztott meccseit ellenőrizni (logika, csapaterő, piaci kockázat, barátságos meccs rizikó, rotáció). "
-        "NEM kérsz új adatot. "
-        "KIZÁRÓLAG érvényes JSON-t adhatsz válaszul, semmi mást."
-    )
-
-    user_payload = {
-        "run_date": run_date,
-        "slot": slot,
-        "rules": {
-            "veto_only_if_strong_reason": True,
-            "prefer_keep_if_uncertain": True,
-            "max_veto": 3,
-        },
-        "vip_bets": compact_bets,
-    }
-
-    messages = [
-        {"role": "system", "content": system},
-        {"role": "user", "content": "JSON input:\n" + json.dumps(user_payload, ensure_ascii=False)},
-        {"role": "user", "content": (
-            "Adj vissza JSON-t ebben a sémában:\n"
-            "{\n"
-            '  "veto_keys": ["fid:123" vagy "key:..."],\n'
-            '  "flags": [{"key":"...","risk":"low|medium|high","reason":"..."}],\n'
-            '  "overall_confidence": 0,\n'
-            '  "comment": "rövid összegzés"\n'
-            "}\n"
-            "Csak JSON, semmi más."
-        )},
-    ]
-
-    raw, err = _xai_chat(messages, temperature=0.2)
-    out: Dict[str, Any] = {"enabled": True, "raw": raw, "error": err, "model": _xai_pick_model()}
-
-    if err or not raw:
-        out.update({"veto_keys": [], "flags": [], "overall_confidence": 0, "comment": "Grok audit nem elérhető"})
-        return out
-
-    parsed = _safe_json_loads(raw)
-    if not parsed:
-        out.update({"veto_keys": [], "flags": [], "overall_confidence": 0, "comment": "Grok audit: nem parse-olható JSON"})
-        return out
-
-    out["veto_keys"] = parsed.get("veto_keys") or []
-    out["flags"] = parsed.get("flags") or []
-    out["overall_confidence"] = parsed.get("overall_confidence")
-    out["comment"] = parsed.get("comment") or ""
-    return out
-
-
-def _append_grok_section(vip_text: str, audit: Dict[str, Any]) -> str:
-    if not audit or not audit.get("enabled"):
-        return vip_text
-
-    if audit.get("error"):
-        return vip_text + "\n\n<b>🧠 Grok audit</b>\n⚠️ Nem elérhető: " + str(audit.get("error"))
-
-    veto = audit.get("veto_keys") or []
-    flags = audit.get("flags") or []
-    conf = audit.get("overall_confidence")
-    comment = audit.get("comment") or ""
-
-    lines: List[str] = []
-    lines.append("<b>🧠 Grok audit</b>")
-    if conf is not None:
-        lines.append(f"📊 Össz-bizalom: <b>{conf}</b>/100")
-    if comment:
-        lines.append(f"🗒️ {comment}")
-    if veto:
-        lines.append(f"⛔ Vétó javaslat: <b>{len(veto)}</b> meccs")
-    if flags:
-        lines.append(f"⚠️ Figyelmeztetés: <b>{len(flags)}</b> tipp")
-
-    return vip_text + "\n\n" + "\n".join(lines)
+# (A korábbi Grok/xAI VIP-audit funkció eltávolítva – nincs fizetős AI API a kódban.)
 
 
 # -----------------------------
@@ -729,133 +512,34 @@ def main() -> None:
     if enable_learning_scores:
         slot_matches = apply_learning_scores(slot_matches)
 
+    # 4b. Kerülendő ligák kiszűrése — ha egy liga historikusan alacsony
+    # találati aránnyal teljesített (saját adatbázis alapján), kizárjuk.
+    enable_avoid_leagues = (os.getenv("TIPPMIX_AVOID_BAD_LEAGUES") or "1").strip() == "1"
+    if enable_avoid_leagues:
+        try:
+            avoid = get_avoid_leagues(
+                days=int(os.getenv("TIPPMIX_AVOID_LEAGUES_DAYS", "60")),
+                max_hitrate=float(os.getenv("TIPPMIX_AVOID_LEAGUES_MAX_HITRATE", "0.45")),
+                min_samples=int(os.getenv("TIPPMIX_AVOID_LEAGUES_MIN_SAMPLES", "5")),
+            )
+            if avoid:
+                before = len(slot_matches)
+                slot_matches = [m for m in slot_matches if (m.get("league_name") or "").strip() not in avoid]
+                after = len(slot_matches)
+                print(f"[Learning] Kerülendő ligák ({len(avoid)} db) miatt kiszűrve: {before}->{after}")
+        except Exception as e:
+            print(f"[Learning] get_avoid_leagues hiba (ignorálva): {e}")
+
     # 5. Rendezés: torna meccsek előre, majd pontszám szerinti sorrend
     slot_matches = sort_by_tournament_priority(slot_matches)
 
     print(f"[Pipeline] Végleges meccs pool: {len(slot_matches)} meccs")
 
-    engine = (os.getenv("TIPPMIX_ENGINE") or "openai").strip().lower()
-    if engine in ("poisson", "stats", "pro"):
-        tips_data = generate_poisson_tips(slot_matches)
-    else:
-        # Kontextus gyűjtés (web_context + odds + self-learning)
-        WEB_CONTEXT_MAX = int(os.getenv("WEB_CONTEXT_MAX_MATCHES", "5"))
-        ODDS_MAX = int(os.getenv("ODDS_MAX_MATCHES", "8"))
-
-        web_contexts: Dict[Any, str] = {}
-        odds_data: Dict[Any, str] = {}
-
-        for m in slot_matches[: max(WEB_CONTEXT_MAX, ODDS_MAX)]:
-            home = m.get("home_team", "")
-            away = m.get("away_team", "")
-            league = m.get("league_name", "")
-            fid = m.get("fixture_id")
-            if not (home and away and fid):
-                continue
-
-            # Web kontextus (xG, sérülések, hírek)
-            if len(web_contexts) < WEB_CONTEXT_MAX:
-                try:
-                    ctx = build_match_context(
-                        home_team=home,
-                        away_team=away,
-                        league_name=league,
-                        fetch_injuries=True,
-                        fetch_news=True,
-                        fetch_xg=True,
-                        fetch_form=False,
-                    )
-                    web_contexts[fid] = format_context_for_prompt(ctx)
-                    print(f"[WEB_CTX] OK: {home} vs {away}")
-                except Exception as e:
-                    print(f"[WEB_CTX] Hiba ({home} vs {away}): {e}")
-
-            # Sport news scraping (Nemzeti Sport, BBC, Goal.com, stb.)
-            news_max = int(os.getenv("TIPPMIX_NEWS_MAX", "15"))
-            if len(web_contexts) < news_max:
-                try:
-                    news = get_match_news(home, away, league, max_results=5)
-                    if news:
-                        news_text = format_news_for_prompt(news, home, away)
-                        # Append to existing web context or create new
-                        if fid in web_contexts:
-                            web_contexts[fid] += "\n\n" + news_text
-                        else:
-                            web_contexts[fid] = news_text
-                        print(f"[NEWS] {home} vs {away} → {len(news)} hírek")
-                except Exception as e:
-                    print(f"[NEWS] Hiba ({home} vs {away}): {e}")
-
-            # Odds scraping
-            if len(odds_data) < ODDS_MAX:
-                try:
-                    odds = get_best_odds(home, away, predicted_odds=m.get("odds"))
-                    if odds.get("found"):
-                        odds_data[fid] = format_odds_for_prompt(odds)
-                        # Odds-ot visszaírjuk a meccs adatába (Poisson engine / későbbi logika)
-                        m["scraped_odds"] = {
-                            "1": odds.get("odds_1_best") or odds.get("odds_1_avg"),
-                            "X": odds.get("odds_x_best") or odds.get("odds_x_avg"),
-                            "2": odds.get("odds_2_best") or odds.get("odds_2_avg"),
-                        }
-                        # Use freshest scraped market odds as primary downstream odds input
-                        m["odds"] = dict(m["scraped_odds"])
-                        m["odds_source"] = "scraped_live_best"
-                        m["best_bookmakers"] = odds.get("best_bookmakers") or {}
-                        m["used_predicted_odds"] = bool(odds.get("used_fallback"))
-                except Exception as e:
-                    print(f"[ODDS] Hiba ({home} vs {away}): {e}")
-
-        # ── Gazdagított tanulságok (match_learner kibővíti a self_learning-et) ──
-        learning_context = ""
-        try:
-            learning_context = build_enhanced_learning_context(days=30)
-            if learning_context:
-                print(f"[LEARN] Kibővített tanulságok betöltve ({len(learning_context)} chars)")
-        except Exception as e:
-            # Fallback az alap tanulságokra
-            print(f"[LEARN] Kibővített tanulságok hiba: {e}, alap tanulságokra visszaesés")
-            try:
-                learning_context = build_learning_context(days=30)
-                if learning_context:
-                    print(f"[LEARN] Alap tanulságok betöltve ({len(learning_context)} chars)")
-            except Exception as e2:
-                print(f"[LEARN] Hiba: {e2}")
-
-        # ── Gazdagított meccs kontextus (match_context + web_context) ──
-        try:
-            enhanced_context_str = build_context_for_prompt_batch(
-                matches=slot_matches,
-                web_contexts=web_contexts,
-                max_matches=max(WEB_CONTEXT_MAX, ODDS_MAX),
-            )
-            print(f"[ENHANCED_CTX] Gazdagított kontextus: {len(enhanced_context_str)} chars")
-        except Exception as e:
-            print(f"[ENHANCED_CTX] Hiba: {e}")
-            enhanced_context_str = ""
-
-        combined_odds = "\n\n".join(
-            f"Meccs [{fid}]:\n{o}" for fid, o in odds_data.items() if o
-        )
-
-        full_context = "\n\n".join([x for x in [learning_context, enhanced_context_str, combined_odds] if x])
-
-        # AI engine selection
-        engine = os.getenv("TIPPMIX_ENGINE", "openai").lower()
-        openai_key = os.getenv("OPENAI_API_KEY", "").strip()
-        anthropic_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
-
-        # Fallback to Poisson if no AI keys available
-        if engine == "poisson" or (not openai_key and not anthropic_key):
-            print("[ENGINE] Using Poisson (statistical model - no API needed)")
-            tips_data = generate_poisson_tips(slot_matches)
-        else:
-            print(f"[ENGINE] Using AI ({engine})")
-            try:
-                tips_data = generate_tips(slot_matches, slot=slot, web_context=full_context)
-            except Exception as e:
-                print(f"[ENGINE] AI failed: {e}, falling back to Poisson")
-                tips_data = generate_poisson_tips(slot_matches)
+    # Engine: kizárólag a szabad, statisztikai Poisson-modell (Dixon-Coles
+    # stílusú, hazai/vendég bontással, saját adatbázisból tanulva).
+    # Nincs fizetős AI API a kódban.
+    print("[ENGINE] Poisson (statisztikai modell, saját adatbázisból tanul - nincs fizetős API)")
+    tips_data = generate_poisson_tips(slot_matches)
 
     # ALERT mode: send only very strong PRO picks (VIP + EN only).
     alert_only = (os.getenv("TIPPMIX_ALERT_ONLY") or "0").strip() == "1"
@@ -1027,100 +711,8 @@ def main() -> None:
         return
 
     suffix = "day" if slot == "DAY" else "evening"
-    consensus_passes: List[Dict[str, Any]] = []
-    enable_grok = (os.getenv("ENABLE_GROK_REVIEW", "0").strip() == "1")
-
-    if enable_grok:
-        for attempt in range(1, 3):
-            vip_bets_try = tips_data.get("vip_bets", []) or []
-            vip_bets_try = _enrich_bets_for_storage(vip_bets_try, slot_matches, run_date_str, slot)
-
-            audit = grok_review_vip_bets(slot_matches, vip_bets_try, slot, run_date_str)
-            consensus_passes.append({"attempt": attempt, "audit": audit})
-
-            veto_keys = set(audit.get("veto_keys") or [])
-            if not veto_keys:
-                break
-
-            min_vip = int(os.getenv("TIPPMIX_MIN_VIP", "6"))
-            min_free = int(os.getenv("TIPPMIX_MIN_FREE", "3"))
-            min_need = min_vip + min_free
-
-            filtered_pool = [m for m in slot_matches if _match_key(m) not in veto_keys]
-            if len(filtered_pool) < min_need:
-                print(f"[GROK] Vétó miatt túl kevés meccs maradna ({len(filtered_pool)} < {min_need}), ezért ignorálom a vétót.")
-                break
-
-            print(f"[GROK] Vétózott meccsek: {len(veto_keys)}. Újragenerálás tiltólistával... (attempt={attempt})")
-
-            # Rebuild extra context for the filtered pool as well
-            WEB_CONTEXT_MAX = int(os.getenv("WEB_CONTEXT_MAX_MATCHES", "5"))
-            ODDS_MAX = int(os.getenv("ODDS_MAX_MATCHES", "8"))
-
-            web_contexts: Dict[Any, str] = {}
-            odds_data: Dict[Any, str] = {}
-
-            for m in filtered_pool[: max(WEB_CONTEXT_MAX, ODDS_MAX)]:
-                home = m.get("home_team", "")
-                away = m.get("away_team", "")
-                league = m.get("league_name", "")
-                fid = m.get("fixture_id")
-                if not (home and away and fid):
-                    continue
-
-                if len(web_contexts) < WEB_CONTEXT_MAX:
-                    try:
-                        ctx = build_match_context(
-                            home_team=home,
-                            away_team=away,
-                            league_name=league,
-                            fetch_injuries=True,
-                            fetch_news=True,
-                            fetch_xg=True,
-                            fetch_form=False,
-                        )
-                        web_contexts[fid] = format_context_for_prompt(ctx)
-                    except Exception:
-                        pass
-
-                if len(odds_data) < ODDS_MAX:
-                    try:
-                        odds = get_best_odds(home, away, predicted_odds=m.get("odds"))
-                        if odds.get("found"):
-                            odds_data[fid] = format_odds_for_prompt(odds)
-                            m["scraped_odds"] = {
-                                "1": odds.get("odds_1_best") or odds.get("odds_1_avg"),
-                                "X": odds.get("odds_x_best") or odds.get("odds_x_avg"),
-                                "2": odds.get("odds_2_best") or odds.get("odds_2_avg"),
-                            }
-                            # Use freshest scraped market odds as primary downstream odds input
-                            m["odds"] = dict(m["scraped_odds"])
-                            m["odds_source"] = "scraped_live_best"
-                            m["best_bookmakers"] = odds.get("best_bookmakers") or {}
-                            m["used_predicted_odds"] = bool(odds.get("used_fallback"))
-                    except Exception:
-                        pass
-
-            learning_context = ""
-            try:
-                learning_context = build_learning_context(days=30)
-            except Exception:
-                learning_context = ""
-
-            combined_web = "\n\n".join(
-                f"Meccs [{fid}]:\n{ctx}" for fid, ctx in web_contexts.items() if ctx
-            )
-            combined_odds = "\n\n".join(
-                f"Meccs [{fid}]:\n{o}" for fid, o in odds_data.items() if o
-            )
-            full_context = "\n\n".join([x for x in [learning_context, combined_web, combined_odds] if x])
-
-            tips_data = generate_tips(filtered_pool, slot=slot, web_context=full_context)
-            time.sleep(1.0)
-
-        final_audit = consensus_passes[-1]["audit"] if consensus_passes else {"enabled": False}
-        if tips_data.get("telegram_vip_text"):
-            tips_data["telegram_vip_text"] = _append_grok_section(tips_data["telegram_vip_text"], final_audit)
+    # (A korábbi Grok/xAI VIP-audit és újragenerálási kör eltávolítva – nincs fizetős AI API a kódban.
+    #  A Poisson-modell egy menetben adja a végleges tippeket.)
 
     public_text = tips_data.get("telegram_public_text") or "⚠️ Hiba a FREE tippek generálásánál."
     vip_text = tips_data.get("telegram_vip_text") or "⚠️ Hiba a VIP tippek generálásánál."
@@ -1162,14 +754,13 @@ def main() -> None:
             "run_date": run_date_str,
             "slot": slot,
             "bets_count": len(public_bets_enriched),
-            "source": "gpt",
+            "source": "poisson",
         }
         vip_meta = {
             "run_date": run_date_str,
             "slot": slot,
             "bets_count": len(vip_bets_enriched),
-            "source": "gpt+grok" if enable_grok else "gpt",
-            "consensus_passes": consensus_passes,
+            "source": "poisson",
         }
 
         with open(public_meta_path, "w", encoding="utf-8") as f:
@@ -1214,7 +805,6 @@ def main() -> None:
         "run_date": run_date_str,
         "public_bets_count": len(public_bets_enriched),
         "vip_bets_count": len(vip_bets_enriched),
-        "enable_grok": enable_grok,
     }
 
     # --- Persist to SQLite (optional but default-on) ---
@@ -1352,6 +942,24 @@ def main() -> None:
             send_telegram_message(telegram_token, en_chat_id, public_text_en, f"EN_PUBLIC_{slot}", meta=meta_en)
         if vip_text_en:
             send_telegram_message(telegram_token, en_chat_id, vip_text_en, f"EN_VIP_{slot}", meta=meta_en)
+
+    # Opcionális: hang-összefoglaló a legjobb VIP tippekről (ingyenes gTTS,
+    # nincs fizetős voice API). Kapcsold be: TIPPMIX_SEND_VOICE_SUMMARY=1
+    if (os.getenv("TIPPMIX_SEND_VOICE_SUMMARY") or "0").strip() == "1":
+        try:
+            from bot.voice_tts import send_voice_summary_telegram
+
+            voice_target_chat = vip_chat_id or public_chat_id
+            if telegram_token and voice_target_chat and vip_bets_enriched:
+                sent = send_voice_summary_telegram(
+                    vip_bets_enriched,
+                    bot_token=telegram_token,
+                    chat_id=voice_target_chat,
+                    max_tips=int(os.getenv("TIPPMIX_VOICE_MAX_TIPS", "5")),
+                )
+                print(f"[Voice] Hang-összefoglaló elküldve: {sent}")
+        except Exception as e:
+            print(f"[Voice] Hang-összefoglaló hiba (ignorálva, a szöveges tippek elmentek): {e}")
 
 
 if __name__ == "__main__":
