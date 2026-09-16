@@ -221,27 +221,49 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
             league_name=m.get("league_name"),
             days=int(os.getenv("TIPPMIX_HIST_DAYS", "180"))
         )
+
+        base = base_raw or _defaults_base()
+        used_league_defaults = base_raw is None
+
+        lg_home_for = float(base.get("home_for", 1.35))
+        lg_away_for = float(base.get("away_for", 1.10))
+
+        # Csapat gólátlagok: elsősorban hazai/vendég bontással (a hazai csapat
+        # otthoni formája, a vendég csapat idegenbeli formája), Bayes-i
+        # simítással (kevés meccsnél a liga-átlag felé húzva). Ha venue-specifikus
+        # adat nincs (túl kevés meccs otthon/idegenben), kombinált átlagra esünk vissza.
         rates_h_raw = team_goal_rates(
             team_id=int(hid) if hid else None,
             team_name=m.get("home_team"),
-            days=int(os.getenv("TIPPMIX_TEAM_DAYS", "120"))
+            days=int(os.getenv("TIPPMIX_TEAM_DAYS", "120")),
+            venue="home",
+            league_avg_for=lg_home_for,
+            league_avg_against=lg_away_for,
+        ) or team_goal_rates(
+            team_id=int(hid) if hid else None,
+            team_name=m.get("home_team"),
+            days=int(os.getenv("TIPPMIX_TEAM_DAYS", "120")),
+            league_avg_for=lg_home_for,
+            league_avg_against=lg_away_for,
         )
         rates_a_raw = team_goal_rates(
             team_id=int(aid) if aid else None,
             team_name=m.get("away_team"),
-            days=int(os.getenv("TIPPMIX_TEAM_DAYS", "120"))
+            days=int(os.getenv("TIPPMIX_TEAM_DAYS", "120")),
+            venue="away",
+            league_avg_for=lg_away_for,
+            league_avg_against=lg_home_for,
+        ) or team_goal_rates(
+            team_id=int(aid) if aid else None,
+            team_name=m.get("away_team"),
+            days=int(os.getenv("TIPPMIX_TEAM_DAYS", "120")),
+            league_avg_for=lg_away_for,
+            league_avg_against=lg_home_for,
         )
 
-        base = base_raw or _defaults_base()
         rates_h = rates_h_raw or _defaults_team()
         rates_a = rates_a_raw or _defaults_team()
-
-        used_league_defaults = base_raw is None
         used_team_defaults = (rates_h_raw is None) or (rates_a_raw is None)
-
-        # Simple multiplicative model around league avg
-        lg_home_for = float(base.get("home_for", 1.35))
-        lg_away_for = float(base.get("away_for", 1.10))
 
         # attack/defense factors
         h_att = float(rates_h.get("gf", 1.35)) / max(0.3, lg_home_for)
@@ -634,55 +656,11 @@ def generate_poisson_tips(matches: List[Dict[str, Any]]) -> Dict[str, Any]:
         home_team = r.get("home_team", "")
         away_team = r.get("away_team", "")
         
-        if market == "OU" and ("felett" in pick.lower() or "over" in pick.lower()):
-            # Over/Under - Over
-            try:
-                from bot.providers.theoddsapi import get_over_under_for_match
-                import os
-                
-                sport_keys_env = (os.getenv("ODDS_SPORT_KEYS") or "").strip()
-                if sport_keys_env:
-                    sport_keys = [x.strip() for x in sport_keys_env.split(",") if x.strip()]
-                else:
-                    sport_keys = []
-                
-                if sport_keys:
-                    line = r.get("line", 2.5)
-                    over_odds, under_odds = get_over_under_for_match(home_team, away_team, sport_keys, line)
-                    if over_odds:
-                        odds_estimate = over_odds
-                        print(f"[OU_ODDS] Over {line} for {home_team} vs {away_team}: {over_odds}")
-                    else:
-                        print(f"[OU_ODDS] No Over odds found for {home_team} vs {away_team}")
-                else:
-                    print(f"[OU_ODDS] No sport keys configured!")
-            except Exception as e:
-                print(f"[OU_ODDS] ERROR: {repr(e)}")
-                pass
-        
-        elif market == "OU" and ("alatt" in pick.lower() or "under" in pick.lower()):
-            # Over/Under - Under
-            try:
-                from bot.providers.theoddsapi import get_over_under_for_match
-                import os
-                
-                sport_keys_env = (os.getenv("ODDS_SPORT_KEYS") or "").strip()
-                sport_keys = [x.strip() for x in sport_keys_env.split(",") if x.strip()] if sport_keys_env else []
-                
-                if sport_keys:
-                    line = r.get("line", 2.5)
-                    over_odds, under_odds = get_over_under_for_match(home_team, away_team, sport_keys, line)
-                    if under_odds:
-                        odds_estimate = under_odds
-                        print(f"[OU_ODDS] Under {line} for {home_team} vs {away_team}: {under_odds}")
-                    else:
-                        print(f"[OU_ODDS] No Under odds found for {home_team} vs {away_team}")
-                else:
-                    print(f"[OU_ODDS] No sport keys configured!")
-            except Exception as e:
-                print(f"[OU_ODDS] ERROR: {repr(e)}")
-                pass
-        
+        if market == "OU":
+            # Over/Under piacra jelenleg nincs ingyenes odds-forrás bekötve,
+            # a becslés a modell saját valószínűségén alapul (nincs fizetős API).
+            odds_estimate = odds_dict.get("over") if "felett" in pick.lower() or "over" in pick.lower() else odds_dict.get("under")
+
         elif "Hazai" in pick or "Home" in pick:
             odds_estimate = odds_dict.get("1")
         elif "Vendég" in pick or "Away" in pick:
