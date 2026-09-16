@@ -1,5 +1,8 @@
 name: Tippmix Daily Tips
 
+# Egyetlen napi futás, kizárólag ingyenes forrásokkal (SofaScore/Flashscore
+# scraping + statisztikai Poisson-modell). Nincs fizetős API a workflow-ban.
+
 on:
   schedule:
     - cron: "0 6 * * *"
@@ -19,19 +22,10 @@ jobs:
       TELEGRAM_VIP_CHAT_ID: ${{ secrets.TELEGRAM_VIP_CHAT_ID }}
       TELEGRAM_EN_CHAT_ID: ${{ secrets.TELEGRAM_EN_CHAT_ID }}
 
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
-      SPORTS_API_KEY: ${{ secrets.SPORTS_API_KEY }}
-      SPORTMONKS_API_TOKEN: ${{ secrets.SPORTMONKS_API_TOKEN }}
-      SPORTSDATAIO_API: ${{ secrets.SPORTSDATAIO_API }}
-      ALLSPORTSAPI_KEY: ${{ secrets.ALLSPORTSAPI_KEY }}
-      ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
-      FOOTBALLDATA_API_KEY: ${{ secrets.FOOTBALLDATA_API_KEY }}
-
-      SPORTS_DATA_PROVIDER: ${{ vars.SPORTS_DATA_PROVIDER }}
-      TIPPMIX_SLOT: DAY
-      TIPPMIX_MODEL: "gpt-4o-mini"
       TIPPMIX_DB_PATH: data/tippmix.db
+      TIPPMIX_SLOT: DAY
+      TIPPMIX_ENGINE: poisson
+      TIPPMIX_ENABLE_SCRAPER_PIPELINE: "1"
 
       TIPPMIX_SEND_PUBLIC: "1"
       TIPPMIX_SEND_VIP: "1"
@@ -39,13 +33,9 @@ jobs:
 
       TIPPMIX_MIN_VIP: "6"
       TIPPMIX_MIN_FREE: "3"
-      TIPPMIX_USE_VALIDATOR: "1"
-      TIPPMIX_USE_ENSEMBLE: "0"
-      
-      # Odds enrichment
+
       TIPPMIX_VIP_REQUIRE_ODDS: "0"
       TIPPMIX_FREE_REQUIRE_ODDS: "0"
-      ODDS_MAX_REQUESTS_PER_RUN: "12"
 
     steps:
       - name: Checkout repo
@@ -64,22 +54,34 @@ jobs:
       - name: Install Playwright browsers
         run: |
           pip install playwright
-          playwright install chromium
+          playwright install chromium --with-deps
 
-      - name: Run tip generation
+      - name: Run tip generation (free scraping + Poisson)
         run: python -m bot.main
 
       - name: Generate dashboard data
         run: python scripts/generate_dashboard_data.py
 
-      - name: Commit bet JSONs
+      - name: Commit and push updated data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add *.json data/ dashboard/public/data/*.json || true
+          git add *.json data/tippmix.db dashboard/public/data/*.json || true
           if git diff --cached --quiet; then
             echo "Nincs változás."
           else
-            git commit -m "🎯 Daily tips generated"
-            git push
+            git commit -m "🎯 Daily tips generated [skip ci]"
+            for attempt in 1 2 3; do
+              git fetch origin main
+              git merge -X ours origin/main --no-edit --allow-unrelated-histories 2>/dev/null || true
+              if git push origin HEAD:main; then
+                break
+              fi
+              if [ "$attempt" -eq 3 ]; then
+                echo "Push failed after retries"
+                exit 1
+              fi
+              echo "Push failed on attempt $attempt, retrying..."
+              sleep 5
+            done
           fi
