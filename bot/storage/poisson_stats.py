@@ -1,4 +1,24 @@
+"""
+bot/storage/poisson_stats.py
+
+A Poisson-modell statisztikai alapja: csapat- és liga-szintű gólátlagok
+a saját, folyamatosan bővülő adatbázisból (data/tippmix.db).
+
+Fejlesztések a korábbi (egyszerű, sima-átlag) verzióhoz képest:
+  1. Hazai/vendég bontás — egy csapat hazai gólátlaga eltér a vendég
+     gólátlagától, ezért külön számoljuk (Dixon-Coles gyakorlat).
+  2. Időbeli súlyozás — a frissebb meccsek nagyobb súllyal esnek latba
+     (exponenciális lecsengés), mert a forma számít.
+  3. Bayes-i simítás (shrinkage) — kevés meccsnél (pl. 4-6 meccs) a nyers
+     átlag zajos; a becslést a liga-átlag felé húzzuk, súlyozva a minta
+     méretével, hogy ne legyen szélsőséges torzítás kevés adatból.
+
+Minden adat kizárólag a saját adatbázisból (ingyenes scraping + napi
+eredmény-visszacsatolás), nincs fizetős API.
+"""
+
 import os
+import math
 import sqlite3
 import datetime
 from typing import Any, Dict, Optional
@@ -55,68 +75,139 @@ def _days_ago(days: int) -> str:
     return dt.isoformat()
 
 
+def _recency_weight(match_date_iso: str, half_life_days: float) -> float:
+    """Exponenciális lecsengés: a régebbi meccsek kisebb súllyal esnek latba.
+
+    half_life_days idő alatt feleződik egy meccs súlya (pl. 45 nap).
+    """
+    try:
+        match_dt = datetime.datetime.fromisoformat(str(match_date_iso).replace("Z", "+00:00"))
+        if match_dt.tzinfo is None:
+            match_dt = match_dt.replace(tzinfo=datetime.timezone.utc)
+    except Exception:
+        return 0.5  # ismeretlen dátum -> semleges súly
+
+    now = datetime.datetime.now(datetime.timezone.utc)
+    age_days = max(0.0, (now - match_dt).total_seconds() / 86400.0)
+    if half_life_days <= 0:
+        return 1.0
+    return 0.5 ** (age_days / half_life_days)
+
+
 def team_goal_rates(
-    team_id: Optional[int] = None, 
+    team_id: Optional[int] = None,
     team_name: Optional[str] = None,
-    days: int = 120
+    days: int = 120,
+    venue: Optional[str] = None,  # "home" | "away" | None (kombinált)
+    league_avg_for: Optional[float] = None,
+    league_avg_against: Optional[float] = None,
 ) -> Optional[Dict[str, float]]:
     """
-    Return per-match avg goals for/against for a team over last N days.
-    
+    Egy csapat gólátlaga (szerzett/kapott) az utóbbi N napban,
+    időbeli súlyozással és opcionális hazai/vendég bontással.
+
     Args:
-        team_id: Team ID from current match provider (optional)
-        team_name: Team name for fallback matching (optional)
-        days: Lookback period in days
-    
+        team_id: csapat ID a jelenlegi providertől (opcionális)
+        team_name: csapatnév fallback egyeztetéshez (opcionális)
+        days: visszatekintési időszak napokban
+        venue: "home" -> csak amikor a csapat hazai pályán játszott,
+               "away" -> csak vendégként, None -> mindkettő (kombinált)
+        league_avg_for/against: ha meg van adva, Bayes-i simításhoz
+               (a nyers átlagot ez felé húzzuk kevés adatnál)
+
     Returns:
-        Dict with 'n' (matches), 'gf' (goals for), 'ga' (goals against) or None
+        Dict 'n' (súlyozott meccsszám), 'gf' (szerzett gól/meccs),
+        'ga' (kapott gól/meccs), vagy None ha nincs adat.
     """
     if not os.path.exists(_db_path()):
         return None
 
     ensure_results_columns()
     start = _days_ago(days)
+    half_life = float(os.getenv("TIPPMIX_RECENCY_HALFLIFE_DAYS", "45"))
+    min_n = int(os.getenv("TIPPMIX_TEAM_MIN_N", "4"))
 
-    sql = """
-      SELECT
-        SUM(CASE WHEN home_team_id = ? THEN COALESCE(home_goals, NULL)
-                 WHEN away_team_id = ? THEN COALESCE(away_goals, NULL)
-                 ELSE NULL END) AS gf_sum,
-        SUM(CASE WHEN home_team_id = ? THEN COALESCE(away_goals, NULL)
-                 WHEN away_team_id = ? THEN COALESCE(home_goals, NULL)
-                 ELSE NULL END) AS ga_sum,
-        SUM(CASE WHEN (home_team_id = ? OR away_team_id = ?) AND home_goals IS NOT NULL AND away_goals IS NOT NULL THEN 1 ELSE 0 END) AS n
-      FROM results
-      WHERE updated_ts_utc >= ?
-        AND status IN ('FT','AET','PEN')
-    """
+    def _query(tid: int) -> Optional[Dict[str, float]]:
+        if venue == "home":
+            sql = """
+              SELECT home_goals AS gf, away_goals AS ga, updated_ts_utc AS dt
+              FROM results
+              WHERE home_team_id = ?
+                AND updated_ts_utc >= ?
+                AND status IN ('FT','AET','PEN')
+                AND home_goals IS NOT NULL AND away_goals IS NOT NULL
+            """
+            params = (tid, start)
+        elif venue == "away":
+            sql = """
+              SELECT away_goals AS gf, home_goals AS ga, updated_ts_utc AS dt
+              FROM results
+              WHERE away_team_id = ?
+                AND updated_ts_utc >= ?
+                AND status IN ('FT','AET','PEN')
+                AND home_goals IS NOT NULL AND away_goals IS NOT NULL
+            """
+            params = (tid, start)
+        else:
+            sql = """
+              SELECT
+                CASE WHEN home_team_id = ? THEN home_goals ELSE away_goals END AS gf,
+                CASE WHEN home_team_id = ? THEN away_goals ELSE home_goals END AS ga,
+                updated_ts_utc AS dt
+              FROM results
+              WHERE (home_team_id = ? OR away_team_id = ?)
+                AND updated_ts_utc >= ?
+                AND status IN ('FT','AET','PEN')
+                AND home_goals IS NOT NULL AND away_goals IS NOT NULL
+            """
+            params = (tid, tid, tid, tid, start)
+
+        rows = con.execute(sql, params).fetchall()
+        if not rows:
+            return None
+
+        w_sum = 0.0
+        gf_w = 0.0
+        ga_w = 0.0
+        for r in rows:
+            w = _recency_weight(r["dt"], half_life)
+            w_sum += w
+            gf_w += w * float(r["gf"] or 0)
+            ga_w += w * float(r["ga"] or 0)
+
+        n_raw = len(rows)
+        if n_raw < min_n:
+            return None
+
+        gf_avg = gf_w / w_sum if w_sum > 0 else 0.0
+        ga_avg = ga_w / w_sum if w_sum > 0 else 0.0
+        return {"n": float(n_raw), "gf": gf_avg, "ga": ga_avg}
 
     con = _connect()
     try:
-        # Try with provided team_id first
+        result = None
         if team_id is not None:
-            row = con.execute(sql, (team_id, team_id, team_id, team_id, team_id, team_id, start)).fetchone()
-            if row:
-                n = int(row["n"] or 0)
-                if n >= int(os.getenv("TIPPMIX_TEAM_MIN_N", "4")):
-                    gf = float(row["gf_sum"] or 0.0) / n
-                    ga = float(row["ga_sum"] or 0.0) / n
-                    return {"n": float(n), "gf": gf, "ga": ga}
-        
-        # Fallback: try name-based matching
-        if team_name:
+            result = _query(int(team_id))
+
+        if result is None and team_name:
             matched_id = find_historical_team_id(team_name)
             if matched_id and matched_id != team_id:
-                row = con.execute(sql, (matched_id, matched_id, matched_id, matched_id, matched_id, matched_id, start)).fetchone()
-                if row:
-                    n = int(row["n"] or 0)
-                    if n >= int(os.getenv("TIPPMIX_TEAM_MIN_N", "4")):
-                        gf = float(row["gf_sum"] or 0.0) / n
-                        ga = float(row["ga_sum"] or 0.0) / n
-                        return {"n": float(n), "gf": gf, "ga": ga}
-        
-        # No data found
-        return None
+                result = _query(int(matched_id))
+
+        if result is None:
+            return None
+
+        # Bayes-i simítás: kevés meccsnél húzzuk a ligáátlag felé.
+        # Súly = n / (n + K), ahol K a "bizonytalansági" konstans (minél
+        # nagyobb, annál óvatosabb a modell kevés adatnál).
+        if league_avg_for is not None and league_avg_against is not None:
+            k = float(os.getenv("TIPPMIX_SHRINKAGE_K", "6"))
+            n = result["n"]
+            blend = n / (n + k)
+            result["gf"] = blend * result["gf"] + (1 - blend) * float(league_avg_for)
+            result["ga"] = blend * result["ga"] + (1 - blend) * float(league_avg_against)
+
+        return result
     finally:
         con.close()
 
@@ -124,61 +215,76 @@ def team_goal_rates(
 def league_goal_baseline(
     league_id: Optional[int] = None,
     league_name: Optional[str] = None,
-    days: int = 180
+    days: int = 180,
 ) -> Optional[Dict[str, float]]:
     """
-    League baseline goals per match for home/away over last N days.
-    
+    Liga-szintű hazai/vendég gólátlag az utóbbi N napban, időbeli
+    súlyozással.
+
     Args:
-        league_id: League ID from current match provider (optional)
-        league_name: League name for fallback matching (optional)
-        days: Lookback period in days
-    
+        league_id: liga ID a jelenlegi providertől (opcionális)
+        league_name: liga név fallback egyeztetéshez (opcionális)
+        days: visszatekintési időszak napokban
+
     Returns:
-        Dict with 'n' (matches), 'home_for', 'away_for' or None
+        Dict 'n' (meccsszám), 'home_for', 'away_for', vagy None.
     """
     if not os.path.exists(_db_path()):
         return None
 
     ensure_results_columns()
     start = _days_ago(days)
+    half_life = float(os.getenv("TIPPMIX_RECENCY_HALFLIFE_DAYS", "45"))
+    min_n = int(os.getenv("TIPPMIX_LEAGUE_MIN_N", "10"))
 
-    sql = """
-      SELECT
-        SUM(CASE WHEN league_id = ? THEN COALESCE(home_goals, NULL) ELSE NULL END) AS hg_sum,
-        SUM(CASE WHEN league_id = ? THEN COALESCE(away_goals, NULL) ELSE NULL END) AS ag_sum,
-        SUM(CASE WHEN league_id = ? AND home_goals IS NOT NULL AND away_goals IS NOT NULL THEN 1 ELSE 0 END) AS n
-      FROM results
-      WHERE updated_ts_utc >= ?
-        AND status IN ('FT','AET','PEN')
-    """
+    def _query(lid: int) -> Optional[Dict[str, float]]:
+        sql = """
+          SELECT home_goals AS hg, away_goals AS ag, updated_ts_utc AS dt
+          FROM results
+          WHERE league_id = ?
+            AND updated_ts_utc >= ?
+            AND status IN ('FT','AET','PEN')
+            AND home_goals IS NOT NULL AND away_goals IS NOT NULL
+        """
+        rows = con.execute(sql, (lid, start)).fetchall()
+        if not rows:
+            return None
+
+        n_raw = len(rows)
+        if n_raw < min_n:
+            return None
+
+        w_sum = 0.0
+        hg_w = 0.0
+        ag_w = 0.0
+        for r in rows:
+            w = _recency_weight(r["dt"], half_life)
+            w_sum += w
+            hg_w += w * float(r["hg"] or 0)
+            ag_w += w * float(r["ag"] or 0)
+
+        hg_avg = hg_w / w_sum if w_sum > 0 else 0.0
+        ag_avg = ag_w / w_sum if w_sum > 0 else 0.0
+        return {
+            "n": float(n_raw),
+            "home_for": max(0.6, min(2.5, hg_avg)),
+            "away_for": max(0.5, min(2.3, ag_avg)),
+        }
 
     con = _connect()
     try:
-        # Try with provided league_id first
         if league_id is not None:
-            row = con.execute(sql, (league_id, league_id, league_id, start)).fetchone()
-            if row:
-                n = int(row["n"] or 0)
-                if n >= int(os.getenv("TIPPMIX_LEAGUE_MIN_N", "10")):
-                    hg = float(row["hg_sum"] or 0.0) / n
-                    ag = float(row["ag_sum"] or 0.0) / n
-                    # clamp to sane values
-                    return {"n": float(n), "home_for": max(0.6, min(2.5, hg)), "away_for": max(0.5, min(2.3, ag))}
-        
-        # Fallback: try name-based matching
+            result = _query(int(league_id))
+            if result:
+                return result
+
         if league_name:
             matched_id = find_historical_league_id(league_name)
             if matched_id and matched_id != league_id:
-                row = con.execute(sql, (matched_id, matched_id, matched_id, start)).fetchone()
-                if row:
-                    n = int(row["n"] or 0)
-                    if n >= int(os.getenv("TIPPMIX_LEAGUE_MIN_N", "10")):
-                        hg = float(row["hg_sum"] or 0.0) / n
-                        ag = float(row["ag_sum"] or 0.0) / n
-                        return {"n": float(n), "home_for": max(0.6, min(2.5, hg)), "away_for": max(0.5, min(2.3, ag))}
-        
-        # No data found
+                result = _query(int(matched_id))
+                if result:
+                    return result
+
         return None
     finally:
         con.close()
