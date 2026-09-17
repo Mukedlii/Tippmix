@@ -1,11 +1,6 @@
 import datetime
 from typing import Any, Dict, List, Optional
 
-import requests
-
-from bot.api_keys import get_api_sports_key, resolve_sports_provider
-from bot.providers import sportsdataio, sportmonks, allsportsapi
-
 
 def _normalize_fixture_id(fixture_id_value: Any, match_text: Optional[str] = None) -> Optional[int]:
     """
@@ -44,46 +39,18 @@ def _normalize_fixture_id(fixture_id_value: Any, match_text: Optional[str] = Non
 def _get_fixture_result(fixture_id: int) -> Dict[str, Any]:
     """
     Lekéri egy meccs (fixture) állapotát/eredményét.
-    API-FOOTBALL (API-Sports) vagy SportsDataIO provider alapján.
+    Kizárólag ingyenes SofaScore scraping alapján (nincs fizetős API).
     """
-    provider = resolve_sports_provider()
-    
-    # Free scraper (SofaScore)
-    if provider == "free_scraper":
-        from bot.providers.free_fixtures import fetch_sofascore_result
-        result = fetch_sofascore_result(fixture_id)
-        if not result:
-            return {}
-        # Normalize to a common format
-        return {
-            "status": result.get("status"),
-            "home_score": result.get("home_score"),
-            "away_score": result.get("away_score"),
-        }
-    
-    if provider == "sportsdataio":
-        game = sportsdataio.fetch_game_by_id(fixture_id)
-        return game or {}
+    from bot.providers.free_fixtures import fetch_sofascore_result
 
-    if provider == "sportmonks":
-        # include scores so we can settle 1X2
-        fx = sportmonks.get_fixture_by_id(fixture_id, include_scores=True)
-        return fx or {}
-
-    if provider == "allsportsapi":
-        fx = allsportsapi.fixture_by_id(fixture_id)
-        return fx or {}
-
-    url = "https://v3.football.api-sports.io/fixtures"
-    headers = {"x-apisports-key": get_api_sports_key()}
-    params = {"id": fixture_id}
-
-    resp = requests.get(url, headers=headers, params=params, timeout=25)
-    resp.raise_for_status()
-    data = resp.json()
-    if not data.get("response"):
+    result = fetch_sofascore_result(fixture_id)
+    if not result:
         return {}
-    return data["response"][0]
+    return {
+        "status": result.get("status"),
+        "home_score": result.get("home_score"),
+        "away_score": result.get("away_score"),
+    }
 
 
 def _settle_tip_1x2(tip: str, fixture: Dict[str, Any]) -> str:
@@ -98,90 +65,12 @@ def _settle_tip_1x2(tip: str, fixture: Dict[str, Any]) -> str:
     if not fixture:
         return "unknown"
 
-    # Free scraper (SofaScore) format
-    if resolve_sports_provider() == "free_scraper":
-        raw_status = (fixture.get("status") or "").upper()
-        home_goals = fixture.get("home_score")
-        away_goals = fixture.get("away_score")
-        if raw_status not in ("FT", "FINISHED"):
-            return "pending"
-        if home_goals is None or away_goals is None:
-            return "unknown"
-        # Normalize status to FT for common logic below
-        status = "FT"
-
-    elif resolve_sports_provider() == "sportsdataio":
-        status = (fixture.get("Status") or "").upper()
-        home_goals = fixture.get("HomeTeamScore")
-        away_goals = fixture.get("AwayTeamScore")
-        if status not in ("FINAL", "FINAL/OT", "FINAL/SO", "FT"):
-            return "pending"
-    elif resolve_sports_provider() == "sportmonks":
-        # state_id=5 => FT (SportMonks states)
-        state_id = fixture.get("state_id")
-        try:
-            state_id = int(state_id)
-        except Exception:
-            state_id = None
-        if state_id != 5:
-            return "pending"
-
-        # Scores include: pick CURRENT for home/away goals
-        scores = fixture.get("scores") or []
-        hg = ag = None
-        for sc in scores:
-            if (sc.get("description") or "").upper() != "CURRENT":
-                continue
-            score = sc.get("score") or {}
-            part = (score.get("participant") or "").lower()
-            goals = score.get("goals")
-            try:
-                goals = int(goals)
-            except Exception:
-                continue
-            if part == "home":
-                hg = goals
-            elif part == "away":
-                ag = goals
-        home_goals, away_goals = hg, ag
-        status = "FT" if state_id == 5 else ""
-        if home_goals is None or away_goals is None:
-            return "unknown"
-
-    elif resolve_sports_provider() == "allsportsapi":
-        st = (fixture.get("event_status") or "").strip()
-        # examples: "Finished" or numeric live minute (e.g. "74")
-        finished = st.lower() in ("finished", "ft")
-        if not finished:
-            # if final score not present, treat as pending
-            if not fixture.get("event_final_result"):
-                return "pending"
-
-        score = str(fixture.get("event_final_result") or "").strip()
-        home_goals = away_goals = None
-        if "-" in score:
-            try:
-                a, b = [x.strip() for x in score.split("-", 1)]
-                home_goals = int(a)
-                away_goals = int(b)
-            except Exception:
-                home_goals = away_goals = None
-        status = "FT" if finished else st
-        if home_goals is None or away_goals is None:
-            return "unknown"
-
-    else:
-        fx = fixture.get("fixture") or {}
-        status = ((fx.get("status") or {}).get("short") or "").upper()
-
-        goals = fixture.get("goals") or {}
-        home_goals = goals.get("home")
-        away_goals = goals.get("away")
-
-    # még nem végleges (api-sports)
-    if resolve_sports_provider() != "sportsdataio":
-        if status not in ("FT", "AET", "PEN"):
-            return "pending"
+    # Ingyenes SofaScore scraper formátuma
+    raw_status = (fixture.get("status") or "").upper()
+    home_goals = fixture.get("home_score")
+    away_goals = fixture.get("away_score")
+    if raw_status not in ("FT", "FINISHED", "AET", "PEN"):
+        return "pending"
 
     if home_goals is None or away_goals is None:
         return "unknown"
@@ -237,21 +126,11 @@ def evaluate_bets(bets: List[Dict[str, Any]]) -> Dict[str, Any]:
                 fixture_data = _get_fixture_result(int(fixture_id))
                 result = _settle_tip_1x2(tip, fixture_data)
 
-                if resolve_sports_provider() == "sportsdataio":
-                    status = (fixture_data.get("Status") or "").upper()
-                    hg = fixture_data.get("HomeTeamScore")
-                    ag = fixture_data.get("AwayTeamScore")
-                    if isinstance(hg, int) and isinstance(ag, int):
-                        score = f"{hg}–{ag}"
-                else:
-                    fx = fixture_data.get("fixture") or {}
-                    status = ((fx.get("status") or {}).get("short") or "").upper()
-
-                    goals = fixture_data.get("goals") or {}
-                    hg = goals.get("home")
-                    ag = goals.get("away")
-                    if isinstance(hg, int) and isinstance(ag, int):
-                        score = f"{hg}–{ag}"
+                status = (fixture_data.get("status") or "").upper()
+                hg = fixture_data.get("home_score")
+                ag = fixture_data.get("away_score")
+                if isinstance(hg, int) and isinstance(ag, int):
+                    score = f"{hg}–{ag}"
             except Exception as e:
                 print(f"Hiba fixture {fixture_id} ellenőrzésekor: {repr(e)}")
                 result = "unknown"
