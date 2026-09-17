@@ -78,6 +78,45 @@
     "outcome": "pending"
   },
   {
+    "id": 2364,
+    "tier": "VIP",
+    "match": "Shanghai Shenhua vs Tampines Rovers FC",
+    "league": "Asia AFC Champions League Two: Group G",
+    "tip": "2.5 alatt (max. 2 g\u00f3l)",
+    "confidence": 2.7502328975261348,
+    "risk": "magas",
+    "odds": null,
+    "kickoff": "2026-09-17T12:15:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
+    "id": 2365,
+    "tier": "VIP",
+    "match": "Kitchee vs Gangwon FC",
+    "league": "Asia AFC Champions League Two: Group H",
+    "tip": "2.5 alatt (max. 2 g\u00f3l)",
+    "confidence": 2.7502328975261348,
+    "risk": "magas",
+    "odds": null,
+    "kickoff": "2026-09-17T12:15:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
+    "id": 2366,
+    "tier": "VIP",
+    "match": "Phnom Penh vs Kuching FA",
+    "league": "Asia AFC Champions League Two: Group H",
+    "tip": "2.5 alatt (max. 2 g\u00f3l)",
+    "confidence": 2.7502328975261348,
+    "risk": "magas",
+    "odds": null,
+    "kickoff": "2026-09-17T12:15:00+00:00",
+    "result": null,
+    "outcome": "pending"
+  },
+  {
     "id": 2340,
     "tier": "FREE",
     "match": "Adelaide United vs Tai Po",
@@ -217,45 +256,6 @@
     "risk": "magas",
     "odds": null,
     "kickoff": "2026-09-17T10:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 2354,
-    "tier": "VIP",
-    "match": "Machida Zelvia vs Svay Rieng",
-    "league": "Asia AFC Champions League Two: Group G",
-    "tip": "2.5 alatt (max. 2 g\u00f3l)",
-    "confidence": 2.7502328975261348,
-    "risk": "magas",
-    "odds": null,
-    "kickoff": "2026-09-17T10:00:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 2321,
-    "tier": "VIP",
-    "match": "Al-Rayyan vs Al-Faisaly",
-    "league": "Asia AFC Champions League Two: Group C",
-    "tip": "2.5 alatt (max. 2 g\u00f3l)",
-    "confidence": 2.7502328975261348,
-    "risk": "magas",
-    "odds": null,
-    "kickoff": "2026-09-16T18:15:00+00:00",
-    "result": null,
-    "outcome": "pending"
-  },
-  {
-    "id": 2330,
-    "tier": "VIP",
-    "match": "Al-Rayyan vs Al-Faisaly",
-    "league": "Asia AFC Champions League Two: Group C",
-    "tip": "2.5 alatt (max. 2 g\u00f3l)",
-    "confidence": 2.7502328975261348,
-    "risk": "magas",
-    "odds": null,
-    "kickoff": "2026-09-16T18:15:00+00:00",
     "result": null,
     "outcome": "pending"
   }
