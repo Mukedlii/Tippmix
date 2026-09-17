@@ -7,14 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
-from bot.api_keys import (
-    get_optional_api_sports_key,
-    get_optional_sportsdataio_key,
-    get_optional_sportmonks_token,
-    resolve_sports_provider,
-)
 from bot.tips_logger import read_tips
-from bot.providers import sportsdataio, sportmonks
 from bot.providers import free_fixtures
 from bot.storage.sqlite_store import upsert_result
 from bot.storage.poisson_stats import ensure_results_columns
@@ -166,181 +159,29 @@ def send_telegram_message(token: str, chat_id: str, text: str, label: str) -> Tu
 
 
 # -----------------------------
-# API-Football (api-sports) result fetch
+# Eredmény lekérés – kizárólag ingyenes SofaScore scraping (nincs fizetős API)
 # -----------------------------
-def _api_football_headers() -> Dict[str, str]:
-    # api-sports v3 header
-    return {"x-apisports-key": get_optional_api_sports_key()}
-
-
-def _detect_provider() -> Optional[str]:
-    """Best-effort provider detection.
-
-    IMPORTANT: Recap should not silently run without any provider key; otherwise every match becomes
-    '❓ nincs adat (API)' which is misleading.
-    
-    UPDATE: free_scraper is now supported (SofaScore) - no API key needed.
-    """
-    try:
-        return resolve_sports_provider()
-    except Exception:
-        # fall back to old optional-key probing
-        if get_optional_api_sports_key():
-            return "api-sports"
-        if get_optional_sportmonks_token():
-            return "sportmonks"
-        if get_optional_sportsdataio_key():
-            return "sportsdataio"
-        # free_scraper as last resort (no key needed)
-        return "free_scraper"
-
-
 def _fetch_fixture(fixture_id: int) -> Tuple[Optional[Dict[str, Any]], str]:
-    """Fetch fixture + return a short diagnostic status string.
+    """Fetch fixture result from SofaScore (free scraper) + short diagnostic status string."""
+    try:
+        result = free_fixtures.fetch_sofascore_result(fixture_id)
+        if not result:
+            return None, "NO_DATA"
 
-    Tries the configured provider first. If it returns NO_DATA and the other provider key is also
-    present, we attempt a fallback provider. This fixes cases where tips were generated with one
-    provider but recap runs with the other.
-    """
-
-    def _fetch_sportsdataio(fid: int) -> Tuple[Optional[Dict[str, Any]], str]:
-        fx = sportsdataio.fetch_game_by_id(fid)
-        return (fx, "OK") if fx else (None, "NO_DATA")
-
-    def _fetch_sportmonks(fid: int) -> Tuple[Optional[Dict[str, Any]], str]:
-        try:
-            fx = sportmonks.get_fixture_by_id(fid, include_scores=True)
-            return (fx, "OK") if fx else (None, "NO_DATA")
-        except Exception:
-            return None, "REQUEST_ERROR"
-
-    def _fetch_apisports(fid: int) -> Tuple[Optional[Dict[str, Any]], str]:
-        url = "https://v3.football.api-sports.io/fixtures"
-
-        # small retry for transient API failures
-        last_status = "NO_DATA"
-        for attempt in range(2):
-            try:
-                resp = requests.get(url, headers=_api_football_headers(), params={"id": str(fid)}, timeout=25)
-            except Exception:
-                last_status = "REQUEST_ERROR"
-                continue
-
-            if resp.status_code == 200:
-                try:
-                    data = resp.json()
-                except Exception:
-                    return None, "BAD_JSON"
-
-                arr = (data.get("response") or [])
-                if not arr:
-                    return None, "NO_DATA"
-                return arr[0], "OK"
-
-            # rate limit / temporary issues
-            if resp.status_code in (429, 500, 502, 503, 504) and attempt == 0:
-                last_status = f"HTTP_{resp.status_code}"
-                try:
-                    time.sleep(2)
-                except Exception:
-                    pass
-                continue
-
-            return None, f"HTTP_{resp.status_code}"
-
-        return None, last_status
-
-    def _fetch_free_scraper(fid: int) -> Tuple[Optional[Dict[str, Any]], str]:
-        """Fetch result from SofaScore (free scraper)"""
-        try:
-            result = free_fixtures.fetch_sofascore_result(fid)
-            if not result:
-                return None, "NO_DATA"
-            
-            # Convert to api-sports compatible format
-            converted = {
-                "fixture": {
-                    "id": fid,
-                    "status": {"short": result.get("status", "NS")}
-                },
-                "goals": {
-                    "home": result.get("home_score"),
-                    "away": result.get("away_score")
-                }
-            }
-            return converted, "OK"
-        except Exception as e:
-            return None, f"ERROR_{str(e)[:20]}"
-
-    provider = _detect_provider()
-    if not provider:
-        return None, "NO_PROVIDER_KEY"
-
-    has_api_sports = bool(get_optional_api_sports_key())
-    has_sdio = bool(get_optional_sportsdataio_key())
-    has_sm = bool(get_optional_sportmonks_token())
-
-    # free_scraper (SofaScore) - no API key needed
-    if provider == "free_scraper":
-        fx, st = _fetch_free_scraper(fixture_id)
-        if fx or st != "NO_DATA":
-            return fx, st
-        # fallback to paid providers if available
-        if has_api_sports:
-            fx2, st2 = _fetch_apisports(fixture_id)
-            if fx2:
-                return fx2, "FALLBACK_API_SPORTS"
-        if has_sm:
-            fx3, st3 = _fetch_sportmonks(fixture_id)
-            if fx3:
-                return fx3, "FALLBACK_SPORTMONKS"
-        if has_sdio:
-            fx4, st4 = _fetch_sportsdataio(fixture_id)
-            if fx4:
-                return fx4, "FALLBACK_SPORTSDATAIO"
-        return None, "NO_DATA_ALL"
-
-    # primary + fallback chain
-    if provider == "sportmonks":
-        fx, st = _fetch_sportmonks(fixture_id)
-        if fx or st != "NO_DATA":
-            return fx, st
-        # fallback
-        if has_api_sports:
-            fx2, st2 = _fetch_apisports(fixture_id)
-            if fx2:
-                return fx2, "FALLBACK_API_SPORTS"
-        if has_sdio:
-            fx3, st3 = _fetch_sportsdataio(fixture_id)
-            if fx3:
-                return fx3, "FALLBACK_SPORTSDATAIO"
-        return None, "NO_DATA_BOTH"
-
-    if provider == "sportsdataio":
-        fx, st = _fetch_sportsdataio(fixture_id)
-        if fx or st != "NO_DATA":
-            return fx, st
-        if has_api_sports:
-            fx2, st2 = _fetch_apisports(fixture_id)
-            return fx2, ("FALLBACK_API_SPORTS" if fx2 else f"NO_DATA_BOTH({st2})")
-        if has_sm:
-            fx3, st3 = _fetch_sportmonks(fixture_id)
-            return fx3, ("FALLBACK_SPORTMONKS" if fx3 else f"NO_DATA_BOTH({st3})")
-        return None, "NO_DATA"
-
-    # default: api-sports primary
-    fx, st = _fetch_apisports(fixture_id)
-    if fx or st != "NO_DATA":
-        return fx, st
-    if has_sm:
-        fx2, st2 = _fetch_sportmonks(fixture_id)
-        if fx2:
-            return fx2, "FALLBACK_SPORTMONKS"
-    if has_sdio:
-        fx3, st3 = _fetch_sportsdataio(fixture_id)
-        if fx3:
-            return fx3, "FALLBACK_SPORTSDATAIO"
-    return None, "NO_DATA"
+        # api-sports kompatibilis alakra hozzuk (a downstream kód ezt a formátumot várja)
+        converted = {
+            "fixture": {
+                "id": fixture_id,
+                "status": {"short": result.get("status", "NS")},
+            },
+            "goals": {
+                "home": result.get("home_score"),
+                "away": result.get("away_score"),
+            },
+        }
+        return converted, "OK"
+    except Exception as e:
+        return None, f"ERROR_{str(e)[:20]}"
 
 
 def _status_is_finished(short: str) -> bool:
@@ -370,13 +211,6 @@ def _pick_to_1x2(pick_hu: str) -> Optional[str]:
 
 
 def _format_score(fx: Dict[str, Any]) -> str:
-    if _detect_provider() == "sportsdataio":
-        gh = fx.get("HomeTeamScore")
-        ga = fx.get("AwayTeamScore")
-        if gh is None or ga is None:
-            return "–"
-        return f"{gh}–{ga}"
-
     goals = (fx.get("goals") or {})
     gh = goals.get("home")
     ga = goals.get("away")
@@ -407,8 +241,7 @@ def _evaluate_bets(bets: List[Dict[str, Any]]) -> Tuple[int, int, int, List[str]
             lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ❓ hibás fixture_id")
             continue
 
-        # Simple pacing to reduce 429 risk on API-Sports.
-        # (SportsDataIO tends to be less strict, but pacing is harmless.)
+        # Simple pacing to reduce rate-limit risk against SofaScore.
         now = time.time()
         if now - last_call_ts < 0.6:
             try:
@@ -426,46 +259,26 @@ def _evaluate_bets(bets: List[Dict[str, Any]]) -> Tuple[int, int, int, List[str]
             except Exception:
                 pass
 
-            if fx_status == "NO_PROVIDER_KEY":
-                lines.append(
-                    f"{i}. {match_label}\nTipp: {pick}\nEredmény: ❓ nincs API kulcs beállítva "
-                    "(SPORTS_API_KEY / SPORTMONKS_API_TOKEN / ALLSPORTSAPI_KEY / SPORTSDATAIO_API)"
-                )
-            else:
-                lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ❓ nincs adat (API, {fx_status})")
+            lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ❓ nincs adat (SofaScore, {fx_status})")
             continue
 
-        provider = _detect_provider()
         score = _format_score(fx)
 
-        if provider == "sportsdataio":
-            short = (fx.get("Status") or "").upper()
-            if short not in {"FINAL", "FINAL/OT", "FINAL/SO", "FT"}:
-                pending += 1
-                try:
-                    upsert_result(fid_int, final_score=score if score != "–" else None, result_1x2=None, status=short, raw=fx)
-                except Exception:
-                    pass
-                lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ⏳ függő ({score}, status={short})")
-                continue
-            gh = fx.get("HomeTeamScore")
-            ga = fx.get("AwayTeamScore")
-        else:
-            st = ((fx.get("fixture") or {}).get("status") or {})
-            short = st.get("short") or ""
+        st = ((fx.get("fixture") or {}).get("status") or {})
+        short = st.get("short") or ""
 
-            if not _status_is_finished(short):
-                pending += 1
-                try:
-                    upsert_result(fid_int, final_score=score if score != "–" else None, result_1x2=None, status=short, raw=fx)
-                except Exception:
-                    pass
-                lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ⏳ függő ({score}, status={short})")
-                continue
+        if not _status_is_finished(short):
+            pending += 1
+            try:
+                upsert_result(fid_int, final_score=score if score != "–" else None, result_1x2=None, status=short, raw=fx)
+            except Exception:
+                pass
+            lines.append(f"{i}. {match_label}\nTipp: {pick}\nEredmény: ⏳ függő ({score}, status={short})")
+            continue
 
-            goals = (fx.get("goals") or {})
-            gh = goals.get("home")
-            ga = goals.get("away")
+        goals = (fx.get("goals") or {})
+        gh = goals.get("home")
+        ga = goals.get("away")
 
         res = _result_1x2(gh, ga)
         sel = _pick_to_1x2(pick)
