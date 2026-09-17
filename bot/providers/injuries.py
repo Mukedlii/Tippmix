@@ -1,13 +1,12 @@
 """
 bot/providers/injuries.py
 
-Sérülések és eltiltások lekérése több forrásból (ingyenes + premium).
+Sérülések és eltiltások lekérése kizárólag ingyenes forrásokból.
 
 Források:
-  1. API-Football injuries endpoint (ha van SPORTS_API_KEY)
-  2. FBref.com scraping (ingyenes)
-  3. Transfermarkt scraping (ingyenes)
-  4. ESPN soccernet (ingyenes)
+  1. FBref.com scraping (ingyenes)
+  2. Transfermarkt scraping (ingyenes)
+  3. ESPN soccernet (ingyenes)
 
 Használat:
   injuries = get_team_injuries("Arsenal", "Premier League")
@@ -51,56 +50,9 @@ def _get(url: str, timeout: int = 15) -> Optional[str]:
     return None
 
 
-# ──────────────────────────────────────────────
-# 1. API-FOOTBALL (premium, ha van kulcs)
-# ──────────────────────────────────────────────
-
-def fetch_api_football_injuries(team_id: int, season: int = 2024) -> List[Dict[str, Any]]:
-    """
-    API-Football injuries endpoint.
-    Docs: https://www.api-football.com/documentation-v3#tag/Injuries
-    """
-    key = os.getenv("SPORTS_API_KEY", "").strip()
-    if not key:
-        return []
-
-    url = "https://v3.football.api-sports.io/injuries"
-    headers = {"x-apisports-key": key}
-    params = {"team": team_id, "season": season}
-
-    try:
-        r = requests.get(url, headers=headers, params=params, timeout=15)
-        if r.status_code != 200:
-            log.debug(f"API-Football injuries HTTP {r.status_code}")
-            return []
-
-        data = r.json()
-        response = data.get("response") or []
-
-        injuries = []
-        for item in response:
-            player = item.get("player") or {}
-            injury_type = (item.get("type") or "").lower()  # injury, suspension
-            reason = item.get("reason") or ""
-
-            injuries.append({
-                "player": player.get("name") or "",
-                "type": injury_type,
-                "reason": reason,
-                "expected_return": None,  # API-Football doesn't provide this
-                "source": "api-football",
-            })
-
-        return injuries
-
-    except Exception as e:
-        log.debug(f"API-Football injuries error: {e}")
-        return []
-
-
-# ──────────────────────────────────────────────
+# ───────────────────────────────────────────
 # 2. FBREF - Free scraping
-# ──────────────────────────────────────────────
+# ───────────────────────────────────────────
 
 def search_fbref_team_url(team_name: str) -> Optional[str]:
     """FBref csapat URL keresése."""
@@ -123,7 +75,7 @@ def search_fbref_team_url(team_name: str) -> Optional[str]:
 def fetch_fbref_injuries(team_name: str) -> List[Dict[str, Any]]:
     """
     FBref injury/suspension table scraping.
-    Sajnos az FBref nem mindig mutatja a sérülteket prominensen,
+    Sajnos az FBref nem mindig mutatja a sérülteket prominеnsen,
     de van egy "Squad & Position" tab ahol szerepelhet.
     """
     team_url = search_fbref_team_url(team_name)
@@ -167,9 +119,9 @@ def fetch_fbref_injuries(team_name: str) -> List[Dict[str, Any]]:
     return injuries
 
 
-# ──────────────────────────────────────────────
+# ───────────────────────────────────────────
 # 3. TRANSFERMARKT - Ingyenes, de rate-limited
-# ──────────────────────────────────────────────
+# ───────────────────────────────────────────
 
 def search_transfermarkt_team(team_name: str) -> Optional[str]:
     """Transfermarkt csapat oldal keresése."""
@@ -237,9 +189,9 @@ def fetch_transfermarkt_injuries(team_name: str) -> List[Dict[str, Any]]:
     return injuries
 
 
-# ──────────────────────────────────────────────
+# ───────────────────────────────────────────
 # 4. ESPN SOCCERNET - Ingyenes, könnyű scraping
-# ──────────────────────────────────────────────
+# ───────────────────────────────────────────
 
 def fetch_espn_injuries(team_name: str, league_hint: str = "") -> List[Dict[str, Any]]:
     """
@@ -301,9 +253,9 @@ def fetch_espn_injuries(team_name: str, league_hint: str = "") -> List[Dict[str,
     return injuries
 
 
-# ──────────────────────────────────────────────
+# ───────────────────────────────────────────
 # 5. FŐ FÜGGVÉNY - Multi-source aggregáció
-# ──────────────────────────────────────────────
+# ───────────────────────────────────────────
 
 def get_team_injuries(
     team_name: str,
@@ -317,7 +269,7 @@ def get_team_injuries(
     Args:
         team_name: Csapat neve
         league_name: Liga neve (kontextus)
-        team_id: API-Football team ID (opcionális, ha van)
+        team_id: (nem használt, csak kompatibilitás miatt)
         season: Szezon év
 
     Returns:
@@ -325,15 +277,7 @@ def get_team_injuries(
     """
     all_injuries: List[Dict[str, Any]] = []
 
-    # 1. API-Football (ha van kulcs + team_id)
-    if team_id and os.getenv("SPORTS_API_KEY"):
-        api_injuries = fetch_api_football_injuries(team_id, season)
-        all_injuries.extend(api_injuries)
-        if api_injuries:
-            log.info(f"[Injuries] API-Football: {team_name} → {len(api_injuries)} found")
-            return all_injuries  # Ha van API data, nem kell scraping
-
-    # 2. FBref scraping
+    # FBref scraping (ingyenes)
     fbref_injuries = fetch_fbref_injuries(team_name)
     all_injuries.extend(fbref_injuries)
     if fbref_injuries:
