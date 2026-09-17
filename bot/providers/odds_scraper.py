@@ -54,9 +54,9 @@ def _get(url: str, timeout: int = 15) -> Optional[str]:
     return None
 
 
-# ──────────────────────────────────────────────
+# ───────────────────────────────────────────
 # 1. ODDSPORTAL — legjobb aggregátor
-# ──────────────────────────────────────────────
+# ───────────────────────────────────────────
 
 def search_oddsportal(home_team: str, away_team: str) -> Optional[dict]:
     """OddsPortal keresés a meccsre."""
@@ -104,9 +104,9 @@ def search_oddsportal(home_team: str, away_team: str) -> Optional[dict]:
     return None
 
 
-# ──────────────────────────────────────────────
+# ───────────────────────────────────────────
 # 2. BETEXPLORER — megbízható
-# ──────────────────────────────────────────────
+# ───────────────────────────────────────────
 
 def search_betexplorer(home_team: str, away_team: str) -> Optional[dict]:
     """BetExplorer.com keresés."""
@@ -194,92 +194,10 @@ def search_betfair_exchange(home_team: str, away_team: str) -> Optional[dict]:
         return None
 
 
-# ──────────────────────────────────────────────
-# 3. THE ODDS API — ingyenes tier (500 req/hó)
-# ──────────────────────────────────────────────
+## (A korábbi TheOddsAPI - kulcsos - integráció eltávolítva; nincs fizetős API a kódban.
+##  Az odds-adatok kizárólag ingyenes scrapingből (OddsPortal, BetExplorer, OddsChecker,
+##  Betfair, SofaScore) származnak.)
 
-def fetch_theoddsapi(
-    home_team: str,
-    away_team: str,
-    api_key: Optional[str] = None,
-) -> Optional[dict]:
-    import os
-
-    key = (api_key or os.getenv("ODDS_API_KEY", "")).strip()
-    if not key:
-        return None
-
-    url = "https://api.the-odds-api.com/v4/sports/soccer/odds/"
-    params = {
-        "apiKey": key,
-        "regions": "eu",
-        "markets": "h2h",
-        "oddsFormat": "decimal",
-        "bookmakers": "bet365,unibet,pinnacle,betfair",
-    }
-
-    try:
-        r = requests.get(url, params=params, timeout=15)
-        if r.status_code != 200:
-            log.debug(f"TheOddsAPI HTTP {r.status_code}")
-            return None
-
-        games = r.json()
-        home_l = home_team.lower()
-        away_l = away_team.lower()
-
-        for game in games:
-            h = (game.get("home_team") or "").lower()
-            a = (game.get("away_team") or "").lower()
-
-            # best-effort fuzzy match
-            if not (home_l[:5] in h and away_l[:5] in a) and not (away_l[:5] in a and home_l[:5] in h):
-                continue
-
-            all_odds = {"1": [], "X": [], "2": []}
-            bookmakers_found = []
-
-            for bk in (game.get("bookmakers") or []):
-                bk_name = bk.get("key", "")
-                for market in (bk.get("markets") or []):
-                    if market.get("key") != "h2h":
-                        continue
-                    outcomes = {o.get("name"): o.get("price") for o in (market.get("outcomes") or [])}
-                    h_odds = outcomes.get(game.get("home_team"))
-                    a_odds = outcomes.get(game.get("away_team"))
-                    d_odds = outcomes.get("Draw")
-                    if h_odds:
-                        all_odds["1"].append(h_odds)
-                    if d_odds:
-                        all_odds["X"].append(d_odds)
-                    if a_odds:
-                        all_odds["2"].append(a_odds)
-                    bookmakers_found.append(bk_name)
-
-            if all_odds["1"]:
-                return {
-                    "source": "theoddsapi",
-                    "home_team": game.get("home_team"),
-                    "away_team": game.get("away_team"),
-                    "odds_1_avg": round(sum(all_odds["1"]) / len(all_odds["1"]), 2),
-                    "odds_x_avg": round(sum(all_odds["X"]) / len(all_odds["X"]), 2) if all_odds["X"] else None,
-                    "odds_2_avg": round(sum(all_odds["2"]) / len(all_odds["2"]), 2),
-                    "odds_1_best": max(all_odds["1"]),
-                    "odds_x_best": max(all_odds["X"]) if all_odds["X"] else None,
-                    "odds_2_best": max(all_odds["2"]),
-                    "bookmakers": bookmakers_found,
-                    "bookmaker_count": len(set(bookmakers_found)),
-                }
-
-    except Exception as e:
-        log.debug(f"TheOddsAPI error: {e}")
-
-    return None
-
-
-# ──────────────────────────────────────────────
-# 4. FLASH SCORE (best effort)
-# ──────────────────────────────────────────────
 
 def fetch_flashscore_odds(home_team: str, away_team: str) -> Optional[dict]:
     search_url = f"https://www.flashscore.com/search/?q={requests.utils.quote(home_team + ' ' + away_team)}"
@@ -306,21 +224,13 @@ def fetch_flashscore_odds(home_team: str, away_team: str) -> Optional[dict]:
     return None
 
 
-# ──────────────────────────────────────────────
+# ───────────────────────────────────────────
 # 5. FŐ FÜGGVÉNY — összesített odds gyűjtés
-# ──────────────────────────────────────────────
+# ───────────────────────────────────────────
 
 def get_best_odds(home_team: str, away_team: str) -> dict:
     results: dict = {}
     sources_tried: list[str] = []
-
-    theodds = fetch_theoddsapi(home_team, away_team)
-    if theodds:
-        results["theoddsapi"] = theodds
-        sources_tried.append("theoddsapi")
-        log.info(
-            f"[Odds] TheOddsAPI: 1={theodds.get('odds_1_avg')} X={theodds.get('odds_x_avg')} 2={theodds.get('odds_2_avg')}"
-        )
 
     oddsportal = search_oddsportal(home_team, away_team)
     if oddsportal:
